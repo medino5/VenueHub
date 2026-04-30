@@ -13,6 +13,19 @@ npx prisma db seed
 npm run dev
 ```
 
+## Supabase Setup
+
+VenueHub uses Supabase as a PostgreSQL database through Prisma. It does not use Supabase Auth or Next.js session middleware.
+
+Use this in `backend/.env`:
+
+```text
+DATABASE_URL="your Supabase PostgreSQL connection string"
+JWT_SECRET="a long random backend secret"
+```
+
+Do not add the Next.js files from the Supabase prompt, such as `page.tsx`, `utils/supabase/server.ts`, `utils/supabase/client.ts`, or `utils/supabase/middleware.ts`. Those are for Next.js SSR projects, not this Express API.
+
 ## Scripts
 
 ```text

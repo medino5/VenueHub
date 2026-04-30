@@ -60,6 +60,30 @@ Create a Supabase project, open Project Settings, copy the PostgreSQL connection
 
 For Render, use the pooled or direct connection string recommended by Supabase for server apps. Make sure the password is URL-encoded if it contains special characters.
 
+Important: the Supabase prompt for `@supabase/supabase-js`, `@supabase/ssr`, `page.tsx`, and `utils/supabase/*` is for Next.js apps that use Supabase Auth. VenueHub does not need those files because it uses:
+
+```text
+Flutter app -> Express API -> Prisma -> Supabase PostgreSQL
+```
+
+For this prototype, Supabase is only the PostgreSQL database. Authentication is handled by the Express API with bcrypt and JWT.
+
+Supabase values you need:
+
+```text
+DATABASE_URL=Supabase PostgreSQL connection string
+```
+
+Supabase values you do not need for this version:
+
+```text
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+@supabase/supabase-js
+@supabase/ssr
+Next.js middleware files
+```
+
 ## 4. Add DATABASE_URL To Render
 
 Create a Render Web Service from the GitHub repository.
