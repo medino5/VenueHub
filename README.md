@@ -58,7 +58,17 @@ Create a GitHub repository and push this project. Render will connect to this re
 
 Create a Supabase project, open Project Settings, copy the PostgreSQL connection string, and use it as `DATABASE_URL`.
 
-For Render, use the pooled or direct connection string recommended by Supabase for server apps. Make sure the password is URL-encoded if it contains special characters.
+For this project, the direct Supabase database URL pattern is:
+
+```text
+postgresql://postgres:[YOUR-PASSWORD]@db.uxoggpvmlyvbepkiydqs.supabase.co:5432/postgres?schema=public
+```
+
+Replace `[YOUR-PASSWORD]` with the database password from Supabase. Do not commit the real password to GitHub.
+
+If Supabase says `Not IPv4 compatible`, use the Supabase **Session Pooler** connection string for Render instead of the direct `db.uxoggpvmlyvbepkiydqs.supabase.co` host. Copy it from Supabase `Project Settings > Database > Connection Pooling` and keep `?schema=public` at the end for Prisma.
+
+Make sure the password is URL-encoded if it contains special characters.
 
 Important: the Supabase prompt for `@supabase/supabase-js`, `@supabase/ssr`, `page.tsx`, and `utils/supabase/*` is for Next.js apps that use Supabase Auth. VenueHub does not need those files because it uses:
 

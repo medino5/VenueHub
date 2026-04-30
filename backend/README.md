@@ -20,9 +20,13 @@ VenueHub uses Supabase as a PostgreSQL database through Prisma. It does not use 
 Use this in `backend/.env`:
 
 ```text
-DATABASE_URL="your Supabase PostgreSQL connection string"
+DATABASE_URL="postgresql://postgres:[YOUR-PASSWORD]@db.uxoggpvmlyvbepkiydqs.supabase.co:5432/postgres?schema=public"
 JWT_SECRET="a long random backend secret"
 ```
+
+Replace `[YOUR-PASSWORD]` with the database password from Supabase. Keep the real password only in `backend/.env` locally and in Render environment variables.
+
+If Supabase says `Not IPv4 compatible`, use the Supabase Session Pooler connection string for Render instead of the direct `db.uxoggpvmlyvbepkiydqs.supabase.co` host. Copy it from Supabase `Project Settings > Database > Connection Pooling` and keep `?schema=public` at the end.
 
 Do not add the Next.js files from the Supabase prompt, such as `page.tsx`, `utils/supabase/server.ts`, `utils/supabase/client.ts`, or `utils/supabase/middleware.ts`. Those are for Next.js SSR projects, not this Express API.
 
