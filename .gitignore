@@ -1,0 +1,25 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Prisma/local data
+backend/prisma/dev.db
+
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+mobile/build/
+
+# Editors/OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

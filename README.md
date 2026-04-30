@@ -1,0 +1,133 @@
+# VenueHub
+
+VenueHub is a full-stack event venue booking prototype with a Node.js/Express API, Prisma, Supabase PostgreSQL, JWT auth, simulated payments, and a Flutter Android app.
+
+## Project Structure
+
+```text
+backend/  Node.js + Express + Prisma API
+mobile/   Flutter Android app
+```
+
+## Demo Accounts
+
+After seeding the database, use these accounts:
+
+```text
+customer@venuehub.test  password123
+host@venuehub.test      password123
+admin@venuehub.test     password123
+```
+
+## 1. Build Backend Locally
+
+```bash
+cd backend
+npm install
+copy .env.example .env
+```
+
+Edit `backend/.env` and set:
+
+```text
+DATABASE_URL="your Supabase PostgreSQL connection string"
+JWT_SECRET="a long random secret"
+PORT=5000
+```
+
+Then run:
+
+```bash
+npx prisma generate
+npx prisma migrate deploy
+npx prisma db seed
+npm run dev
+```
+
+The API should be available at:
+
+```text
+http://localhost:5000/api/health
+```
+
+## 2. Push Backend To GitHub
+
+Create a GitHub repository and push this project. Render will connect to this repository.
+
+## 3. Create Supabase Database
+
+Create a Supabase project, open Project Settings, copy the PostgreSQL connection string, and use it as `DATABASE_URL`.
+
+For Render, use the pooled or direct connection string recommended by Supabase for server apps. Make sure the password is URL-encoded if it contains special characters.
+
+## 4. Add DATABASE_URL To Render
+
+Create a Render Web Service from the GitHub repository.
+
+Environment variables:
+
+```text
+DATABASE_URL=your Supabase PostgreSQL URL
+JWT_SECRET=your long random secret
+JWT_EXPIRES_IN=7d
+CLIENT_ORIGIN=*
+```
+
+## 5. Deploy Backend On Render
+
+If the Render root is the repository root, use:
+
+```bash
+Build Command: cd backend && npm install && npx prisma generate && npx prisma migrate deploy
+Start Command: cd backend && npm start
+```
+
+If the Render root is `backend/`, use:
+
+```bash
+Build Command: npm install && npx prisma generate && npx prisma migrate deploy
+Start Command: npm start
+```
+
+After the first successful deploy, seed demo data from a local machine connected to the same Supabase `DATABASE_URL`:
+
+```bash
+cd backend
+npx prisma db seed
+```
+
+## 6. Put Render API URL Inside Flutter
+
+For local Android emulator testing, the app defaults to:
+
+```text
+http://10.0.2.2:5000/api
+```
+
+For a deployed backend, pass the Render URL at build time:
+
+```bash
+cd mobile
+flutter pub get
+flutter build apk --release --dart-define=API_BASE_URL=https://your-render-service.onrender.com/api
+```
+
+## 7. Build APK
+
+The release APK will be created under:
+
+```text
+mobile/build/app/outputs/flutter-apk/app-release.apk
+```
+
+## 8. Client Installs APK And Tests With Internet
+
+Install the APK on an Android phone. The phone must have internet access because the app connects to Render, and Render connects to Supabase.
+
+## Payment Rules
+
+- Demo payment only, no Stripe.
+- Booking requires a 50% non-refundable security deposit.
+- Remaining 50% balance is due before or on event day.
+- VenueHub service fee is 10%.
+- Simulated payment creates payment and receipt records.

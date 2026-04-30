@@ -1,0 +1,185 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  HOST
+  VENUEHUB_ADMIN
+}
+
+enum VenueStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BookingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+}
+
+enum PaymentMethod {
+  VISA
+  MASTERCARD
+  PAYPAL
+  GCASH
+  MAYA
+  EWALLET
+}
+
+enum PaymentType {
+  DEPOSIT
+  BALANCE
+  FULL
+}
+
+enum TransactionStatus {
+  SUCCESS
+  FAILED
+}
+
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  password        String
+  name            String
+  gender          String?
+  phone           String?
+  profileImageUrl String?
+  role            Role     @default(CUSTOMER)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  venues   Venue[]   @relation("HostVenues")
+  bookings Booking[] @relation("CustomerBookings")
+  reviews  Review[]
+}
+
+model Venue {
+  id          String      @id @default(cuid())
+  hostId      String
+  name        String
+  description String
+  pricePerDay Decimal     @db.Decimal(10, 2)
+  capacity    Int
+  location    String
+  address     String
+  status      VenueStatus @default(PENDING)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  host       User         @relation("HostVenues", fields: [hostId], references: [id], onDelete: Cascade)
+  images     VenueImage[]
+  amenities  Amenity[]
+  facilities Facility[]
+  bookings   Booking[]
+  reviews    Review[]
+}
+
+model VenueImage {
+  id        String   @id @default(cuid())
+  venueId   String
+  imageUrl  String
+  publicId  String?
+  caption   String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
+}
+
+model Amenity {
+  id      String @id @default(cuid())
+  venueId String
+  name    String
+
+  venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
+}
+
+model Facility {
+  id      String @id @default(cuid())
+  venueId String
+  name    String
+
+  venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
+}
+
+model Booking {
+  id               String        @id @default(cuid())
+  customerId       String
+  venueId          String
+  eventDate        DateTime
+  notes            String?
+  status           BookingStatus @default(PENDING)
+  totalAmount      Decimal       @db.Decimal(10, 2)
+  depositAmount    Decimal       @db.Decimal(10, 2)
+  remainingBalance Decimal       @db.Decimal(10, 2)
+  serviceFee       Decimal       @db.Decimal(10, 2)
+  paymentStatus    PaymentStatus @default(UNPAID)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  customer User      @relation("CustomerBookings", fields: [customerId], references: [id], onDelete: Cascade)
+  venue    Venue     @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  payments Payment[]
+  receipt  Receipt?
+  review   Review?
+}
+
+model Payment {
+  id             String            @id @default(cuid())
+  bookingId      String
+  amount         Decimal           @db.Decimal(10, 2)
+  method         PaymentMethod
+  type           PaymentType
+  status         TransactionStatus @default(SUCCESS)
+  transactionRef String            @unique
+  createdAt      DateTime          @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+model Receipt {
+  id               String   @id @default(cuid())
+  bookingId         String   @unique
+  receiptNumber     String   @unique
+  subtotal          Decimal  @db.Decimal(10, 2)
+  depositPaid       Decimal  @db.Decimal(10, 2)
+  remainingBalance  Decimal  @db.Decimal(10, 2)
+  serviceFee        Decimal  @db.Decimal(10, 2)
+  totalPaid         Decimal  @db.Decimal(10, 2)
+  paymentMethod     String
+  securityNote      String
+  issuedAt          DateTime @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  bookingId  String   @unique
+  venueId    String
+  customerId String
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  booking  Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  venue    Venue   @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  customer User    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
