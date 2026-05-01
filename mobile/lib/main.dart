@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/config/app_config.dart';
@@ -91,12 +94,12 @@ class SplashScreen extends StatelessWidget {
         ),
         child: Center(
           child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(24),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32)),
-                child: const Icon(Icons.location_city, size: 64, color: AppTheme.coral),
+                child: const VenueHubLogo(size: 112),
               ),
               const SizedBox(height: 18),
               const Text('VenueHub', style: TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.w900)),
@@ -148,7 +151,9 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.all(24),
           children: [
             const SizedBox(height: 30),
-            const Text('VenueHub', style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: AppTheme.ink)),
+            const Center(child: VenueHubLogo(size: 118)),
+            const SizedBox(height: 18),
+            const Text('VenueHub', textAlign: TextAlign.center, style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: AppTheme.ink)),
             const SizedBox(height: 8),
             const Text('Book event venues with a polished demo flow for customers, hosts, and admins.'),
             const SizedBox(height: 26),
@@ -355,8 +360,13 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
   }
 
   Future<void> _search() async {
-    final response = await widget.api.get('/venues/search?query=${Uri.encodeComponent(query.text)}&location=${Uri.encodeComponent(location.text)}');
-    setState(() => venues = Future.value(response['venues'] as List<dynamic>));
+    try {
+      final response = await widget.api.get('/venues/search?query=${Uri.encodeComponent(query.text)}&location=${Uri.encodeComponent(location.text)}');
+      setState(() => venues = Future.value(response['venues'] as List<dynamic>));
+    } catch (error) {
+      if (!mounted) return;
+      _snack(context, error.toString());
+    }
   }
 
   @override
@@ -410,6 +420,8 @@ class _HeroSearch extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const VenueHubLogo(size: 54),
+          const SizedBox(height: 14),
           const Text('Where is the next celebration?', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900)),
           const SizedBox(height: 14),
           TextField(controller: query, decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Venue name')),
@@ -432,7 +444,6 @@ class VenueCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final images = venue['images'] as List<dynamic>? ?? [];
-    final imageUrl = images.isNotEmpty ? images.first['imageUrl'] as String : null;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -444,10 +455,7 @@ class VenueCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (imageUrl != null)
-                Image.network(imageUrl, height: 190, width: double.infinity, fit: BoxFit.cover)
-              else
-                Container(height: 190, color: Colors.black12, child: const Center(child: Icon(Icons.image))),
+              VenueImageCarousel(images: images, height: 190),
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -516,14 +524,7 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
           ),
           body: ListView(
             children: [
-              SizedBox(
-                height: 260,
-                child: PageView(
-                  children: images.isEmpty
-                      ? [Container(color: Colors.black12, child: const Icon(Icons.image, size: 60))]
-                      : images.map((image) => Image.network(image['imageUrl'] as String, fit: BoxFit.cover)).toList(),
-                ),
-              ),
+              VenueImageCarousel(images: images, height: 260),
               Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
@@ -1071,8 +1072,13 @@ class _HostBookingsScreenState extends State<HostBookingsScreen> {
   }
 
   Future<void> _status(String id, String status) async {
-    await widget.api.put('/bookings/$id/status', {'status': status});
-    setState(() => bookings = _load());
+    try {
+      await widget.api.put('/bookings/$id/status', {'status': status});
+      if (mounted) setState(() => bookings = _load());
+    } catch (error) {
+      if (!mounted) return;
+      _snack(context, error.toString());
+    }
   }
 
   @override
@@ -1116,8 +1122,13 @@ class _HostVenuesScreenState extends State<HostVenuesScreen> {
   }
 
   Future<void> _delete(String id) async {
-    await widget.api.delete('/venues/$id');
-    setState(() => venues = _load());
+    try {
+      await widget.api.delete('/venues/$id');
+      if (mounted) setState(() => venues = _load());
+    } catch (error) {
+      if (!mounted) return;
+      _snack(context, error.toString());
+    }
   }
 
   Future<void> _openForm([Map<String, dynamic>? venue]) async {
@@ -1144,19 +1155,30 @@ class _HostVenuesScreenState extends State<HostVenuesScreen> {
             padding: const EdgeInsets.all(16),
             children: data.map((item) {
               final venue = item as Map<String, dynamic>;
+              final images = venue['images'] as List<dynamic>? ?? [];
               return Card(
+                clipBehavior: Clip.antiAlias,
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.zero,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(children: [Expanded(child: Text(venue['name'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900))), VHStatusChip(venue['status'])]),
-                      Text('${venue['location']} - ${moneyFormat.format(_num(venue['pricePerDay']))}'),
-                      const SizedBox(height: 10),
-                      Wrap(spacing: 8, children: [
-                        OutlinedButton(onPressed: () => _openForm(venue), child: const Text('Edit')),
-                        OutlinedButton(onPressed: () => _delete(venue['id'] as String), child: const Text('Delete')),
-                      ]),
+                      VenueImageCarousel(images: images, height: 150),
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [Expanded(child: Text(venue['name'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900))), VHStatusChip(venue['status'])]),
+                            Text('${venue['location']} - ${moneyFormat.format(_num(venue['pricePerDay']))}'),
+                            const SizedBox(height: 10),
+                            Wrap(spacing: 8, children: [
+                              OutlinedButton.icon(onPressed: () => _openForm(venue), icon: const Icon(Icons.edit), label: const Text('Edit')),
+                              OutlinedButton.icon(onPressed: () => _delete(venue['id'] as String), icon: const Icon(Icons.delete_outline), label: const Text('Delete')),
+                            ]),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1186,9 +1208,10 @@ class _AddVenueScreenState extends State<AddVenueScreen> {
   final capacity = TextEditingController();
   final location = TextEditingController();
   final address = TextEditingController();
-  final images = TextEditingController(text: 'https://images.unsplash.com/photo-1519167758481-83f29c8f8c17?auto=format&fit=crop&w=1200&q=80');
   final amenities = TextEditingController(text: 'Air conditioning, Parking, Catering partner');
   final facilities = TextEditingController(text: 'Main hall, Sound system, Prep room');
+  final imagePicker = ImagePicker();
+  final List<String> selectedImages = [];
   bool loading = false;
 
   @override
@@ -1203,9 +1226,75 @@ class _AddVenueScreenState extends State<AddVenueScreen> {
     capacity.text = venue['capacity']?.toString() ?? '';
     location.text = venue['location']?.toString() ?? '';
     address.text = venue['address']?.toString() ?? '';
-    images.text = ((venue['images'] as List<dynamic>? ?? []).map((item) => item['imageUrl'].toString())).join(', ');
+    selectedImages
+      ..clear()
+      ..addAll((venue['images'] as List<dynamic>? ?? []).map((item) => item['imageUrl'].toString()).where((item) => item.isNotEmpty));
     amenities.text = ((venue['amenities'] as List<dynamic>? ?? []).map((item) => item['name'].toString())).join(', ');
     facilities.text = ((venue['facilities'] as List<dynamic>? ?? []).map((item) => item['name'].toString())).join(', ');
+  }
+
+  Future<void> _chooseImages() async {
+    try {
+      final action = await showModalBottomSheet<String>(
+        context: context,
+        builder: (context) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Choose photos from gallery'),
+                subtitle: const Text('Select one or more venue photos from this phone.'),
+                onTap: () => Navigator.pop(context, 'gallery'),
+              ),
+              if (selectedImages.isNotEmpty)
+                ListTile(
+                  leading: const Icon(Icons.delete_outline),
+                  title: const Text('Clear selected photos'),
+                  onTap: () => Navigator.pop(context, 'clear'),
+                ),
+            ],
+          ),
+        ),
+      );
+
+      if (action == 'clear') {
+        setState(selectedImages.clear);
+        return;
+      }
+
+      if (action != 'gallery') return;
+      if (selectedImages.length >= 6) {
+        throw ApiException('You can add up to 6 photos per venue for this demo.');
+      }
+
+      final picked = await imagePicker.pickMultiImage(imageQuality: 68, maxWidth: 1200);
+      if (picked.isEmpty) return;
+
+      final encodedImages = <String>[];
+      var totalPayloadSize = selectedImages.fold<int>(0, (sum, image) => sum + image.length);
+      for (final image in picked.take(6 - selectedImages.length)) {
+        final bytes = await image.readAsBytes();
+        if (bytes.length > 2.5 * 1024 * 1024) {
+          throw ApiException('One selected image is still too large. Please choose a smaller photo.');
+        }
+        final dataUrl = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+        totalPayloadSize += dataUrl.length;
+        if (totalPayloadSize > 18 * 1024 * 1024) {
+          throw ApiException('Selected photos are too large together. Please remove one photo or choose smaller images.');
+        }
+        encodedImages.add(dataUrl);
+      }
+
+      setState(() => selectedImages.addAll(encodedImages));
+    } catch (error) {
+      if (!mounted) return;
+      _snack(context, error.toString());
+    }
+  }
+
+  void _removeImage(int index) {
+    setState(() => selectedImages.removeAt(index));
   }
 
   Future<void> _save() async {
@@ -1218,7 +1307,7 @@ class _AddVenueScreenState extends State<AddVenueScreen> {
         'capacity': int.tryParse(capacity.text) ?? 0,
         'location': location.text.trim(),
         'address': address.text.trim(),
-        'images': _csv(images.text),
+        'images': selectedImages,
         'amenities': _csv(amenities.text),
         'facilities': _csv(facilities.text),
       };
@@ -1262,7 +1351,11 @@ class _AddVenueScreenState extends State<AddVenueScreen> {
           const SizedBox(height: 10),
           TextField(controller: address, decoration: const InputDecoration(labelText: 'Address')),
           const SizedBox(height: 10),
-          TextField(controller: images, decoration: const InputDecoration(labelText: 'Image URLs, comma separated')),
+          _VenuePhotoPicker(
+            images: selectedImages,
+            onAdd: _chooseImages,
+            onRemove: _removeImage,
+          ),
           const SizedBox(height: 10),
           TextField(controller: amenities, decoration: const InputDecoration(labelText: 'Amenities, comma separated')),
           const SizedBox(height: 10),
@@ -1270,6 +1363,124 @@ class _AddVenueScreenState extends State<AddVenueScreen> {
           const SizedBox(height: 18),
           ElevatedButton(onPressed: loading ? null : _save, child: Text(loading ? 'Saving...' : widget.venue == null ? 'Submit venue' : 'Save changes')),
         ],
+      ),
+    );
+  }
+}
+
+class _VenuePhotoPicker extends StatelessWidget {
+  const _VenuePhotoPicker({
+    required this.images,
+    required this.onAdd,
+    required this.onRemove,
+  });
+
+  final List<String> images;
+  final VoidCallback onAdd;
+  final ValueChanged<int> onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Venue photos',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                  ),
+                ),
+                Text('${images.length}/6', style: const TextStyle(color: Colors.black54)),
+              ],
+            ),
+            const SizedBox(height: 6),
+            const Text('Choose real photos from the phone gallery. Guests can swipe through them in the listing.', style: TextStyle(color: Colors.black54)),
+            const SizedBox(height: 12),
+            if (images.isEmpty)
+              InkWell(
+                onTap: onAdd,
+                borderRadius: BorderRadius.circular(18),
+                child: Container(
+                  height: 150,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: AppTheme.teal.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: AppTheme.teal.withValues(alpha: 0.22)),
+                  ),
+                  child: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add_photo_alternate_outlined, size: 42, color: AppTheme.teal),
+                      SizedBox(height: 8),
+                      Text('Tap to add venue photos', style: TextStyle(fontWeight: FontWeight.w800)),
+                    ],
+                  ),
+                ),
+              )
+            else
+              SizedBox(
+                height: 124,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: images.length + 1,
+                  separatorBuilder: (context, index) => const SizedBox(width: 10),
+                  itemBuilder: (context, index) {
+                    if (index == images.length) {
+                      return InkWell(
+                        onTap: onAdd,
+                        borderRadius: BorderRadius.circular(18),
+                        child: Container(
+                          width: 118,
+                          decoration: BoxDecoration(
+                            color: AppTheme.coral.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: AppTheme.coral.withValues(alpha: 0.25)),
+                          ),
+                          child: const Icon(Icons.add, color: AppTheme.coral),
+                        ),
+                      );
+                    }
+
+                    return Stack(
+                      children: [
+                        VenueImageView(
+                          imageUrl: images[index],
+                          width: 118,
+                          height: 124,
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: InkWell(
+                            onTap: () => onRemove(index),
+                            borderRadius: BorderRadius.circular(999),
+                            child: Container(
+                              padding: const EdgeInsets.all(5),
+                              decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.58), shape: BoxShape.circle),
+                              child: const Icon(Icons.close, color: Colors.white, size: 16),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: onAdd,
+              icon: const Icon(Icons.photo_library_outlined),
+              label: Text(images.isEmpty ? 'Choose from gallery' : 'Add more photos'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1422,8 +1633,13 @@ class _AdminVenuesScreenState extends State<AdminVenuesScreen> {
   }
 
   Future<void> _setStatus(String id, String status) async {
-    await widget.api.put('/venues/$id', {'status': status});
-    setState(() => venues = _load());
+    try {
+      await widget.api.put('/venues/$id', {'status': status});
+      if (mounted) setState(() => venues = _load());
+    } catch (error) {
+      if (!mounted) return;
+      _snack(context, error.toString());
+    }
   }
 
   @override
