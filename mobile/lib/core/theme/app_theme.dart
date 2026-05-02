@@ -22,7 +22,6 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: scheme,
       scaffoldBackgroundColor: Colors.white,
-      fontFamily: 'Georgia',
       appBarTheme: const AppBarTheme(
         centerTitle: false,
         backgroundColor: Colors.white,

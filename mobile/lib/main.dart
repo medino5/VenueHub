@@ -759,10 +759,11 @@ class _MoneyRow extends StatelessWidget {
 }
 
 class PaymentScreen extends StatefulWidget {
-  const PaymentScreen({super.key, required this.api, required this.booking});
+  const PaymentScreen({super.key, required this.api, required this.booking, this.paymentType = 'DEPOSIT'});
 
   final ApiClient api;
   final Map<String, dynamic> booking;
+  final String paymentType;
 
   @override
   State<PaymentScreen> createState() => _PaymentScreenState();
@@ -778,7 +779,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       final response = await widget.api.post('/payments/simulate', {
         'bookingId': widget.booking['id'],
         'method': method,
-        'paymentType': 'DEPOSIT',
+        'paymentType': widget.paymentType,
       });
       if (!mounted) return;
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ReceiptScreen(receipt: response['receipt'] as Map<String, dynamic>, booking: response['booking'] as Map<String, dynamic>)));
@@ -792,6 +793,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   Widget build(BuildContext context) {
     final methods = ['VISA', 'MASTERCARD', 'PAYPAL', 'GCASH', 'MAYA', 'EWALLET'];
+    final isBalancePayment = widget.paymentType == 'BALANCE';
+    final amountDue = isBalancePayment ? _balanceDue(widget.booking) : _num(widget.booking['depositAmount']);
+    final title = isBalancePayment ? 'Pay remaining balance' : 'Pay security deposit';
+    final note = isBalancePayment
+        ? 'This simulated transaction completes the remaining balance for the event.'
+        : 'This simulated transaction records the 50% non-refundable security deposit.';
+
     return Scaffold(
       appBar: AppBar(title: const Text('Secure demo payment')),
       body: ListView(
@@ -803,10 +811,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Amount due today', style: TextStyle(color: Colors.black54)),
-                  Text(moneyFormat.format(_num(widget.booking['depositAmount'])), style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
+                  Text(title, style: const TextStyle(color: Colors.black54)),
+                  Text(moneyFormat.format(amountDue), style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
                   const SizedBox(height: 8),
-                  const Text('This simulated transaction records the 50% non-refundable security deposit.'),
+                  Text(note),
                 ],
               ),
             ),
@@ -824,7 +832,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ),
               )),
           const SizedBox(height: 18),
-          ElevatedButton(onPressed: loading ? null : _pay, child: Text(loading ? 'Processing...' : 'Pay simulated deposit')),
+          ElevatedButton(onPressed: loading ? null : _pay, child: Text(loading ? 'Processing...' : isBalancePayment ? 'Complete payment' : 'Pay simulated deposit')),
         ],
       ),
     );
@@ -924,6 +932,13 @@ class BookingTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final venue = booking['venue'] as Map<String, dynamic>;
+    final customer = booking['customer'] as Map<String, dynamic>?;
+    final payments = booking['payments'] as List<dynamic>? ?? [];
+    final receipt = booking['receipt'] as Map<String, dynamic>?;
+    final paid = payments.fold<num>(0, (sum, payment) => sum + _num((payment as Map<String, dynamic>)['amount']));
+    final balanceDue = _balanceDue(booking);
+    final paymentStatus = booking['paymentStatus']?.toString() ?? 'UNPAID';
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Card(
@@ -939,15 +954,46 @@ class BookingTile extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 6),
-              Text('Event: ${dateFormat.format(DateTime.parse(booking['eventDate']))}'),
-              Text('Payment: ${booking['paymentStatus']}'),
-              Text('Deposit: ${moneyFormat.format(_num(booking['depositAmount']))}'),
+              _InfoLine(Icons.calendar_today_outlined, 'Event date', dateFormat.format(DateTime.parse(booking['eventDate']))),
+              if (customer != null) _InfoLine(Icons.person_outline, 'Customer', '${customer['name'] ?? 'Guest'} - ${customer['email'] ?? ''}'),
+              _InfoLine(Icons.payments_outlined, 'Total amount', moneyFormat.format(_num(booking['totalAmount']))),
+              _InfoLine(Icons.savings_outlined, 'Deposit required', moneyFormat.format(_num(booking['depositAmount']))),
+              _InfoLine(Icons.account_balance_wallet_outlined, 'Paid so far', moneyFormat.format(paid)),
+              _InfoLine(Icons.pending_actions_outlined, 'Balance due', moneyFormat.format(balanceDue)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  VHStatusChip(booking['status']?.toString() ?? 'PENDING'),
+                  VHStatusChip(paymentStatus),
+                  if (receipt != null) Chip(label: Text(receipt['receiptNumber']?.toString() ?? 'Receipt issued')),
+                ],
+              ),
+              if (payments.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Text('Transactions', style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w900)),
+                const SizedBox(height: 4),
+                ...payments.map((payment) {
+                  final map = payment as Map<String, dynamic>;
+                  return Text('${map['type']} via ${map['method']} - ${moneyFormat.format(_num(map['amount']))}', style: const TextStyle(color: Colors.black54));
+                }),
+              ],
               const SizedBox(height: 12),
-              if (!hostControls && booking['paymentStatus'] == 'UNPAID')
-                OutlinedButton(
+              if (!hostControls && paymentStatus == 'UNPAID')
+                OutlinedButton.icon(
                   onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentScreen(api: api, booking: booking))),
-                  child: const Text('Pay deposit'),
+                  icon: const Icon(Icons.lock_outline),
+                  label: const Text('Pay 50% deposit'),
                 ),
+              if (!hostControls && paymentStatus == 'PARTIALLY_PAID')
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentScreen(api: api, booking: booking, paymentType: 'BALANCE'))),
+                  icon: const Icon(Icons.check_circle_outline),
+                  label: const Text('Pay remaining balance'),
+                ),
+              if (!hostControls && paymentStatus == 'PAID')
+                const Text('Fully paid. The host can mark this booking completed after the event.', style: TextStyle(color: Colors.black54)),
               if (hostControls)
                 Wrap(
                   spacing: 8,
@@ -960,6 +1006,30 @@ class BookingTile extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _InfoLine extends StatelessWidget {
+  const _InfoLine(this.icon, this.label, this.value);
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 17, color: AppTheme.blue),
+          const SizedBox(width: 8),
+          SizedBox(width: 112, child: Text(label, style: const TextStyle(color: Colors.black54))),
+          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w700))),
+        ],
       ),
     );
   }
@@ -1685,19 +1755,44 @@ class _AdminVenuesScreenState extends State<AdminVenuesScreen> {
             padding: const EdgeInsets.all(16),
             children: snapshot.data!.map((item) {
               final venue = item as Map<String, dynamic>;
+              final images = venue['images'] as List<dynamic>? ?? [];
               return Card(
+                clipBehavior: Clip.antiAlias,
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.zero,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(children: [Expanded(child: Text(venue['name'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900))), VHStatusChip(venue['status'])]),
-                      Text('${venue['location']} - ${moneyFormat.format(_num(venue['pricePerDay']))}'),
-                      const SizedBox(height: 10),
-                      Wrap(spacing: 8, children: [
-                        OutlinedButton(onPressed: () => _setStatus(venue['id'], 'APPROVED'), child: const Text('Approve')),
-                        OutlinedButton(onPressed: () => _setStatus(venue['id'], 'REJECTED'), child: const Text('Reject')),
-                      ]),
+                      VenueImageCarousel(images: images, height: 150),
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [Expanded(child: Text(venue['name'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900))), VHStatusChip(venue['status'])]),
+                            const SizedBox(height: 4),
+                            Text('${venue['location']} - ${moneyFormat.format(_num(venue['pricePerDay']))}', style: const TextStyle(color: Colors.black54)),
+                            const SizedBox(height: 10),
+                            Wrap(spacing: 8, runSpacing: 8, children: [
+                              ElevatedButton.icon(
+                                onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => AdminVenueDetailsScreen(
+                                      venue: venue,
+                                      onStatus: (status) => _setStatus(venue['id'], status),
+                                    ),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.visibility_outlined),
+                                label: const Text('Review details'),
+                              ),
+                              OutlinedButton(onPressed: () => _setStatus(venue['id'], 'APPROVED'), child: const Text('Approve')),
+                              OutlinedButton(onPressed: () => _setStatus(venue['id'], 'REJECTED'), child: const Text('Reject')),
+                            ]),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1705,6 +1800,120 @@ class _AdminVenuesScreenState extends State<AdminVenuesScreen> {
             }).toList(),
           );
         },
+      ),
+    );
+  }
+}
+
+class AdminVenueDetailsScreen extends StatelessWidget {
+  const AdminVenueDetailsScreen({super.key, required this.venue, required this.onStatus});
+
+  final Map<String, dynamic> venue;
+  final Future<void> Function(String status) onStatus;
+
+  @override
+  Widget build(BuildContext context) {
+    final images = venue['images'] as List<dynamic>? ?? [];
+    final amenities = venue['amenities'] as List<dynamic>? ?? [];
+    final facilities = venue['facilities'] as List<dynamic>? ?? [];
+    final host = venue['host'] as Map<String, dynamic>?;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Review venue listing')),
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  await onStatus('REJECTED');
+                  if (context.mounted) Navigator.pop(context);
+                },
+                icon: const Icon(Icons.close),
+                label: const Text('Reject'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  await onStatus('APPROVED');
+                  if (context.mounted) Navigator.pop(context);
+                },
+                icon: const Icon(Icons.check),
+                label: const Text('Approve'),
+              ),
+            ),
+          ],
+        ),
+      ),
+      body: ListView(
+        children: [
+          VenueImageCarousel(images: images, height: 260),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: Text(venue['name']?.toString() ?? 'Venue', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900))),
+                    VHStatusChip(venue['status']?.toString() ?? 'PENDING'),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(venue['description']?.toString() ?? 'No description provided.'),
+                const SizedBox(height: 18),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        _InfoLine(Icons.place_outlined, 'Location', '${venue['location']} - ${venue['address']}'),
+                        _InfoLine(Icons.people_outline, 'Capacity', '${venue['capacity']} guests'),
+                        _InfoLine(Icons.payments_outlined, 'Price', '${moneyFormat.format(_num(venue['pricePerDay']))} / day'),
+                        if (host != null) _InfoLine(Icons.storefront_outlined, 'Host', '${host['name'] ?? 'Host'} - ${host['email'] ?? ''}'),
+                      ],
+                    ),
+                  ),
+                ),
+                _DetailChipSection(title: 'Amenities', items: amenities),
+                _DetailChipSection(title: 'Facilities', items: facilities),
+                const SizedBox(height: 90),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailChipSection extends StatelessWidget {
+  const _DetailChipSection({required this.title, required this.items});
+
+  final String title;
+  final List<dynamic> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+          const SizedBox(height: 8),
+          if (items.isEmpty)
+            const Text('None listed.', style: TextStyle(color: Colors.black54))
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: items.map((item) => Chip(label: Text((item as Map<String, dynamic>)['name']?.toString() ?? 'Item'))).toList(),
+            ),
+        ],
       ),
     );
   }
@@ -1793,6 +2002,21 @@ List<String> _csv(String text) {
 num _num(dynamic value) {
   if (value is num) return value;
   return num.tryParse(value?.toString() ?? '') ?? 0;
+}
+
+num _balanceDue(Map<String, dynamic> booking) {
+  final receipt = booking['receipt'];
+  if (receipt is Map<String, dynamic>) {
+    return _num(receipt['remainingBalance']);
+  }
+
+  final payments = booking['payments'];
+  if (payments is List) {
+    final paid = payments.fold<num>(0, (sum, payment) => sum + _num((payment as Map<String, dynamic>)['amount']));
+    return (_num(booking['totalAmount']) - paid).clamp(0, double.infinity);
+  }
+
+  return _num(booking['remainingBalance']);
 }
 
 void _snack(BuildContext context, String message) {
