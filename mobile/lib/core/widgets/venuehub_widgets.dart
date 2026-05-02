@@ -28,8 +28,8 @@ class VenueHubLogo extends StatelessWidget {
         errorBuilder: (context, error, stackTrace) => Container(
           width: size,
           height: size,
-          decoration: BoxDecoration(color: AppTheme.teal.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(size * 0.24)),
-          child: Icon(Icons.location_city, color: AppTheme.teal, size: size * 0.5),
+          decoration: BoxDecoration(color: AppTheme.sky, borderRadius: BorderRadius.circular(size * 0.24)),
+          child: Icon(Icons.apartment_rounded, color: AppTheme.navy, size: size * 0.5),
         ),
       ),
     );
@@ -162,8 +162,8 @@ class _ImageFallback extends StatelessWidget {
     return Container(
       height: height,
       width: width,
-      color: AppTheme.teal.withValues(alpha: 0.1),
-      child: const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.black38, size: 42)),
+      color: AppTheme.sky,
+      child: const Center(child: Icon(Icons.image_not_supported_outlined, color: AppTheme.navy, size: 42)),
     );
   }
 }
@@ -217,7 +217,7 @@ class VHStatCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: AppTheme.coral),
+            Icon(icon, color: AppTheme.blue),
             const SizedBox(height: 14),
             Text(value, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
             Text(label, style: const TextStyle(color: Colors.black54)),

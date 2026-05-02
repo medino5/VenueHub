@@ -327,13 +327,13 @@ class _CustomerHomeState extends State<CustomerHome> {
 
     return Scaffold(
       body: pages[index],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: (value) => setState(() => index = value),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.search), label: 'Explore'),
-          NavigationDestination(icon: Icon(Icons.event_note), label: 'Bookings'),
-          NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: index,
+        onTap: (value) => setState(() => index = value),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.search_rounded), label: 'Explore'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), activeIcon: Icon(Icons.calendar_month_rounded), label: 'Bookings'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline_rounded), activeIcon: Icon(Icons.person_rounded), label: 'Profile'),
         ],
       ),
     );
@@ -412,23 +412,54 @@ class _HeroSearch extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
-        gradient: const LinearGradient(colors: [Color(0xFF182230), Color(0xFF007C89)]),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: AppTheme.line),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.navy.withValues(alpha: 0.08),
+            blurRadius: 28,
+            offset: const Offset(0, 14),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const VenueHubLogo(size: 54),
+          Row(
+            children: [
+              const VenueHubLogo(size: 44),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Find venues that fit the moment',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(color: AppTheme.blue, fontWeight: FontWeight.w900),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 14),
-          const Text('Where is the next celebration?', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900)),
+          const Text('Where is your next event?', style: TextStyle(color: AppTheme.navy, fontSize: 28, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 6),
+          const Text('Search by venue name or city to start booking.', style: TextStyle(color: Colors.black54)),
           const SizedBox(height: 14),
-          TextField(controller: query, decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Venue name')),
+          TextField(
+            controller: query,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (_) => onSearch(),
+            decoration: const InputDecoration(prefixIcon: Icon(Icons.search_rounded), hintText: 'Search venue name'),
+          ),
           const SizedBox(height: 10),
-          TextField(controller: location, decoration: const InputDecoration(prefixIcon: Icon(Icons.place), hintText: 'Location')),
+          TextField(
+            controller: location,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (_) => onSearch(),
+            decoration: const InputDecoration(prefixIcon: Icon(Icons.place_outlined), hintText: 'City or location'),
+          ),
           const SizedBox(height: 12),
-          ElevatedButton(onPressed: onSearch, child: const Text('Search venues')),
+          ElevatedButton.icon(onPressed: onSearch, icon: const Icon(Icons.tune_rounded), label: const Text('Search venues')),
         ],
       ),
     );
@@ -471,7 +502,7 @@ class VenueCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text('${venue['location']} - up to ${venue['capacity']} guests', style: const TextStyle(color: Colors.black54)),
                     const SizedBox(height: 8),
-                    Text('${moneyFormat.format(_num(venue['pricePerDay']))} / day', style: const TextStyle(fontWeight: FontWeight.w900, color: AppTheme.coral)),
+                    Text('${moneyFormat.format(_num(venue['pricePerDay']))} / day', style: const TextStyle(fontWeight: FontWeight.w900, color: AppTheme.blue)),
                   ],
                 ),
               ),
@@ -788,7 +819,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   title: Text(item.replaceAll('_', ' ')),
                   trailing: Icon(
                     method == item ? Icons.check_circle : Icons.radio_button_unchecked,
-                    color: method == item ? AppTheme.coral : Colors.black38,
+                    color: method == item ? AppTheme.blue : Colors.black38,
                   ),
                 ),
               )),
@@ -994,14 +1025,14 @@ class _HostHomeState extends State<HostHome> {
 
     return Scaffold(
       body: pages[index],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: (value) => setState(() => index = value),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.dashboard), label: 'Host'),
-          NavigationDestination(icon: Icon(Icons.event_available), label: 'Bookings'),
-          NavigationDestination(icon: Icon(Icons.add_business), label: 'Venues'),
-          NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: index,
+        onTap: (value) => setState(() => index = value),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home_work_outlined), activeIcon: Icon(Icons.home_work_rounded), label: 'Host'),
+          BottomNavigationBarItem(icon: Icon(Icons.event_note_outlined), activeIcon: Icon(Icons.event_available_rounded), label: 'Bookings'),
+          BottomNavigationBarItem(icon: Icon(Icons.add_home_outlined), activeIcon: Icon(Icons.add_home_rounded), label: 'Venues'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline_rounded), activeIcon: Icon(Icons.person_rounded), label: 'Profile'),
         ],
       ),
     );
@@ -1438,11 +1469,11 @@ class _VenuePhotoPicker extends StatelessWidget {
                         child: Container(
                           width: 118,
                           decoration: BoxDecoration(
-                            color: AppTheme.coral.withValues(alpha: 0.08),
+                            color: AppTheme.blue.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: AppTheme.coral.withValues(alpha: 0.25)),
+                            border: Border.all(color: AppTheme.blue.withValues(alpha: 0.25)),
                           ),
-                          child: const Icon(Icons.add, color: AppTheme.coral),
+                          child: const Icon(Icons.add, color: AppTheme.blue),
                         ),
                       );
                     }
@@ -1513,16 +1544,16 @@ class _AdminHomeState extends State<AdminHome> {
 
     return Scaffold(
       body: pages[index],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: (value) => setState(() => index = value),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.space_dashboard), label: 'Dash'),
-          NavigationDestination(icon: Icon(Icons.group), label: 'Users'),
-          NavigationDestination(icon: Icon(Icons.location_city), label: 'Venues'),
-          NavigationDestination(icon: Icon(Icons.list_alt), label: 'Bookings'),
-          NavigationDestination(icon: Icon(Icons.analytics), label: 'Income'),
-          NavigationDestination(icon: Icon(Icons.person), label: 'Me'),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: index,
+        onTap: (value) => setState(() => index = value),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.grid_view_outlined), activeIcon: Icon(Icons.grid_view_rounded), label: 'Dash'),
+          BottomNavigationBarItem(icon: Icon(Icons.people_outline_rounded), activeIcon: Icon(Icons.people_rounded), label: 'Users'),
+          BottomNavigationBarItem(icon: Icon(Icons.apartment_outlined), activeIcon: Icon(Icons.apartment_rounded), label: 'Venues'),
+          BottomNavigationBarItem(icon: Icon(Icons.receipt_long_outlined), activeIcon: Icon(Icons.receipt_long_rounded), label: 'Bookings'),
+          BottomNavigationBarItem(icon: Icon(Icons.query_stats_rounded), label: 'Income'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline_rounded), activeIcon: Icon(Icons.person_rounded), label: 'Me'),
         ],
       ),
     );
