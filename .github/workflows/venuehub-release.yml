@@ -1,0 +1,40 @@
+name: Publish VenueHub APK
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - releases/VenueHub-release.apk
+      - .github/workflows/venuehub-release.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-apk:
+    name: Publish latest APK release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify APK exists
+        run: test -f releases/VenueHub-release.apk
+
+      - name: Publish GitHub release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: venuehub-latest
+          name: VenueHub Latest APK
+          body: |
+            Latest VenueHub Android APK.
+
+            Download `VenueHub-release.apk` from the assets below and install it on an Android device.
+          artifacts: releases/VenueHub-release.apk
+          artifactContentType: application/vnd.android.package-archive
+          allowUpdates: true
+          replacesArtifacts: true
+          makeLatest: true

@@ -154,6 +154,14 @@ The release APK will be created under:
 mobile/build/app/outputs/flutter-apk/app-release.apk
 ```
 
+The latest APK is also copied into the repository at:
+
+```text
+releases/VenueHub-release.apk
+```
+
+Whenever that file is pushed to `main`, GitHub Actions publishes or updates the `VenueHub Latest APK` release so the APK can be downloaded from GitHub Releases.
+
 ## 8. Client Installs APK And Tests With Internet
 
 Install the APK on an Android phone. The phone must have internet access because the app connects to Render, and Render connects to Supabase.
