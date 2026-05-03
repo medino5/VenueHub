@@ -112,9 +112,19 @@ SMTP_SECURE=false
 SMTP_USER=your SMTP username
 SMTP_PASS=your SMTP password
 SMTP_FROM=VenueHub <no-reply@yourdomain.com>
+RESEND_API_KEY=optional Resend API key instead of SMTP
 ```
 
-Email is used for password reset and booking/payment receipt emails. If SMTP is not configured, the backend will log email contents for development.
+Email is used for password reset and booking/payment receipt emails. Configure either SMTP variables or `RESEND_API_KEY` in Render. If no email provider is configured, password reset will show a clear setup error instead of pretending the email was sent.
+
+For the quickest client demo email setup, use Resend:
+
+```text
+RESEND_API_KEY=your_resend_api_key
+SMTP_FROM=VenueHub <onboarding@resend.dev>
+```
+
+If you use your own sender domain, verify that domain in Resend first, then replace `SMTP_FROM` with your verified sender address.
 
 ## 5. Deploy Backend On Render
 
@@ -202,5 +212,9 @@ Install the APK on an Android phone. The phone must have internet access because
 
 - If login says host lookup or network error, confirm the APK was built with the Render API URL and Android internet permission is present.
 - If Render cannot reach Supabase, use the Supabase Session Pooler URL, not the direct database host.
-- If password reset emails do not arrive, verify SMTP variables in Render and check Render logs.
+- If password reset emails do not arrive, verify SMTP or Resend variables in Render, redeploy the backend, and check Render logs.
 - If demo accounts do not work, run `npx prisma db seed` against the deployed Supabase database.
+
+## Version Tracking
+
+The Flutter app version is tracked in `mobile/pubspec.yaml`, and release notes are tracked in `CHANGELOG.md`. Whenever a new APK is built for the client, bump the version before committing so GitHub history and APK builds stay traceable.

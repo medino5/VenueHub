@@ -20,12 +20,21 @@ const simulate = asyncHandler(async (req, res) => {
     customerId: req.user.role === 'CUSTOMER' ? req.user.id : null
   });
 
-  sendReceiptEmail({ booking: result.booking, receipt: result.receipt }).catch((error) => {
+  let emailStatus = 'sent';
+  let emailMessage = 'Receipt email sent.';
+
+  try {
+    await sendReceiptEmail({ booking: result.booking, receipt: result.receipt });
+  } catch (error) {
+    emailStatus = 'failed';
+    emailMessage = 'Payment saved, but receipt email could not be sent. Check backend email settings.';
     console.error('Receipt email failed:', error.message);
-  });
+  }
 
   res.status(201).json({
     message: 'Demo payment approved.',
+    emailStatus,
+    emailMessage,
     ...result,
     booking: formatBooking(result.booking)
   });

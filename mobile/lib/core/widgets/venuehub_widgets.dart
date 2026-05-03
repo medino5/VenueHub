@@ -6,7 +6,11 @@ import 'package:intl/intl.dart';
 
 import '../theme/app_theme.dart';
 
-final moneyFormat = NumberFormat.currency(locale: 'en_PH', symbol: 'PHP ', decimalDigits: 0);
+final moneyFormat = NumberFormat.currency(
+  locale: 'en_PH',
+  symbol: 'PHP ',
+  decimalDigits: 0,
+);
 final dateFormat = DateFormat('MMM d, yyyy');
 const venueHubLogoAsset = 'assets/branding/venuehub_logo.jpg';
 
@@ -28,8 +32,15 @@ class VenueHubLogo extends StatelessWidget {
         errorBuilder: (context, error, stackTrace) => Container(
           width: size,
           height: size,
-          decoration: BoxDecoration(color: AppTheme.sky, borderRadius: BorderRadius.circular(size * 0.24)),
-          child: Icon(Icons.apartment_rounded, color: AppTheme.navy, size: size * 0.5),
+          decoration: BoxDecoration(
+            color: AppTheme.sky,
+            borderRadius: BorderRadius.circular(size * 0.24),
+          ),
+          child: Icon(
+            Icons.apartment_rounded,
+            color: AppTheme.navy,
+            size: size * 0.5,
+          ),
         ),
       ),
     );
@@ -41,7 +52,10 @@ class VenueHubLogo extends StatelessWidget {
       children: [
         logo,
         const SizedBox(width: 10),
-        const Text('VenueHub', style: TextStyle(fontWeight: FontWeight.w900, color: AppTheme.ink)),
+        const Text(
+          'VenueHub',
+          style: TextStyle(fontWeight: FontWeight.w900, color: AppTheme.ink),
+        ),
       ],
     );
   }
@@ -70,14 +84,16 @@ class VenueImageView extends StatelessWidget {
             width: width,
             fit: BoxFit.cover,
             gaplessPlayback: true,
-            errorBuilder: (context, error, stackTrace) => _ImageFallback(height: height, width: width),
+            errorBuilder: (context, error, stackTrace) =>
+                _ImageFallback(height: height, width: width),
           )
         : Image.network(
             imageUrl,
             height: height,
             width: width,
             fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => _ImageFallback(height: height, width: width),
+            errorBuilder: (context, error, stackTrace) =>
+                _ImageFallback(height: height, width: width),
             loadingBuilder: (context, child, progress) {
               if (progress == null) return child;
               return SizedBox(
@@ -130,7 +146,11 @@ class _VenueImageCarouselState extends State<VenueImageCarousel> {
               : PageView.builder(
                   itemCount: urls.length,
                   onPageChanged: (value) => setState(() => page = value),
-                  itemBuilder: (context, index) => VenueImageView(imageUrl: urls[index], height: widget.height, width: double.infinity),
+                  itemBuilder: (context, index) => VenueImageView(
+                    imageUrl: urls[index],
+                    height: widget.height,
+                    width: double.infinity,
+                  ),
                 ),
         ),
         if (urls.length > 1)
@@ -139,8 +159,17 @@ class _VenueImageCarouselState extends State<VenueImageCarousel> {
             bottom: 12,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.55), borderRadius: BorderRadius.circular(999)),
-              child: Text('${page + 1}/${urls.length}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.55),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '${page + 1}/${urls.length}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ),
           ),
       ],
@@ -163,7 +192,13 @@ class _ImageFallback extends StatelessWidget {
       height: height,
       width: width,
       color: AppTheme.sky,
-      child: const Center(child: Icon(Icons.image_not_supported_outlined, color: AppTheme.navy, size: 42)),
+      child: const Center(
+        child: Icon(
+          Icons.image_not_supported_outlined,
+          color: AppTheme.navy,
+          size: 42,
+        ),
+      ),
     );
   }
 }
@@ -193,7 +228,12 @@ class VHSectionTitle extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+            child: Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+            ),
           ),
           ?trailing,
         ],
@@ -203,7 +243,12 @@ class VHSectionTitle extends StatelessWidget {
 }
 
 class VHStatCard extends StatelessWidget {
-  const VHStatCard({super.key, required this.label, required this.value, required this.icon});
+  const VHStatCard({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
 
   final String label;
   final String value;
@@ -219,7 +264,12 @@ class VHStatCard extends StatelessWidget {
           children: [
             Icon(icon, color: AppTheme.blue),
             const SizedBox(height: 14),
-            Text(value, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+            Text(
+              value,
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            ),
             Text(label, style: const TextStyle(color: Colors.black54)),
           ],
         ),
@@ -244,8 +294,18 @@ class VHStatusChip extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(40)),
-      child: Text(status.replaceAll('_', ' '), style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 12)),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(40),
+      ),
+      child: Text(
+        status.replaceAll('_', ' '),
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
+        ),
+      ),
     );
   }
 }
@@ -266,9 +326,18 @@ class EmptyState extends StatelessWidget {
           children: [
             const Icon(Icons.event_busy, size: 54, color: Colors.black38),
             const SizedBox(height: 12),
-            Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+            Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+            ),
             const SizedBox(height: 8),
-            Text(message, textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54)),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.black54),
+            ),
           ],
         ),
       ),

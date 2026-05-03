@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 
 const prisma = require('../config/prisma');
-const { sendPasswordResetEmail } = require('../services/emailService');
+const { isEmailConfigured, sendPasswordResetEmail } = require('../services/emailService');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
 const { publicUser, normalizeRole } = require('../utils/formatters');
@@ -116,6 +116,9 @@ const forgotPassword = asyncHandler(async (req, res) => {
   const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
   if (!user) {
     throw new ApiError(404, 'No VenueHub account was found for that email.');
+  }
+  if (!isEmailConfigured()) {
+    throw new ApiError(503, 'Email is not configured yet. Add SMTP settings or RESEND_API_KEY in Render, then try again.');
   }
 
   const token = crypto.randomBytes(24).toString('hex');

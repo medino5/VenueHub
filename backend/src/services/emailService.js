@@ -3,6 +3,10 @@ const nodemailer = require('nodemailer');
 const { toNumber } = require('../utils/formatters');
 
 const hasSmtpConfig = () => Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+const hasResendConfig = () => Boolean(process.env.RESEND_API_KEY);
+const fromAddress = () => process.env.SMTP_FROM || process.env.EMAIL_FROM || 'VenueHub <no-reply@venuehub.demo>';
+
+const isEmailConfigured = () => hasSmtpConfig() || hasResendConfig();
 
 const transporter = () => {
   if (!hasSmtpConfig()) return null;
@@ -19,15 +23,38 @@ const transporter = () => {
 };
 
 const sendMail = async ({ to, subject, html, text }) => {
+  if (hasResendConfig()) {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: fromAddress(),
+        to: [to],
+        subject,
+        html,
+        text
+      })
+    });
+
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new Error(`Resend email failed: ${detail}`);
+    }
+
+    return response.json();
+  }
+
   const mailer = transporter();
 
   if (!mailer) {
-    console.log('[email disabled]', { to, subject, text });
-    return { skipped: true };
+    throw new Error('Email is not configured. Add SMTP_* variables or RESEND_API_KEY in Render.');
   }
 
   return mailer.sendMail({
-    from: process.env.SMTP_FROM || 'VenueHub <no-reply@venuehub.demo>',
+    from: fromAddress(),
     to,
     subject,
     html,
@@ -87,6 +114,7 @@ Thank you for booking with VenueHub.`,
 };
 
 module.exports = {
+  isEmailConfigured,
   sendPasswordResetEmail,
   sendReceiptEmail
 };

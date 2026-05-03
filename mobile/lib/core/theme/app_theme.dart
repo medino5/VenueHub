@@ -35,8 +35,14 @@ class AppTheme {
         unselectedItemColor: Colors.black45,
         type: BottomNavigationBarType.fixed,
         elevation: 12,
-        selectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
-        unselectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+        selectedLabelStyle: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
+        unselectedLabelStyle: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
       ),
       cardTheme: CardThemeData(
         color: Colors.white,
@@ -67,7 +73,9 @@ class AppTheme {
           backgroundColor: navy,
           foregroundColor: Colors.white,
           minimumSize: const Size.fromHeight(52),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
           textStyle: const TextStyle(fontWeight: FontWeight.w800),
         ),
       ),

@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'core/config/app_config.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/venuehub_widgets.dart';
 import 'data/api/api_client.dart';
@@ -73,8 +72,8 @@ class _VenueHubAppState extends State<VenueHubApp> {
       home: booting
           ? const SplashScreen()
           : user == null
-              ? LoginScreen(api: api, onAuthenticated: _setSession)
-              : RoleHome(api: api, user: user!, onLogout: _logout),
+          ? LoginScreen(api: api, onAuthenticated: _setSession)
+          : RoleHome(api: api, user: user!, onLogout: _logout),
     );
   }
 }
@@ -93,7 +92,10 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    timer = Timer.periodic(const Duration(milliseconds: 360), (_) => setState(() => dot = (dot + 1) % 4));
+    timer = Timer.periodic(
+      const Duration(milliseconds: 360),
+      (_) => setState(() => dot = (dot + 1) % 4),
+    );
   }
 
   @override
@@ -115,11 +117,14 @@ class _SplashScreenState extends State<SplashScreen> {
         ),
         child: Center(
           child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32)),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(32),
+                ),
                 child: const VenueHubLogo(size: 112),
               ),
               const SizedBox(height: 18),
@@ -133,7 +138,9 @@ class _SplashScreenState extends State<SplashScreen> {
                     height: 8,
                     width: dot == index ? 20 : 8,
                     decoration: BoxDecoration(
-                      color: dot == index ? Colors.white : Colors.white.withValues(alpha: 0.45),
+                      color: dot == index
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: 0.45),
                       borderRadius: BorderRadius.circular(999),
                     ),
                   ),
@@ -148,10 +155,15 @@ class _SplashScreenState extends State<SplashScreen> {
 }
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, required this.api, required this.onAuthenticated});
+  const LoginScreen({
+    super.key,
+    required this.api,
+    required this.onAuthenticated,
+  });
 
   final ApiClient api;
-  final Future<void> Function(String token, Map<String, dynamic> user) onAuthenticated;
+  final Future<void> Function(String token, Map<String, dynamic> user)
+  onAuthenticated;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -169,7 +181,10 @@ class _LoginScreenState extends State<LoginScreen> {
         'email': email.text.trim(),
         'password': password.text,
       });
-      await widget.onAuthenticated(response['token'] as String, response['user'] as Map<String, dynamic>);
+      await widget.onAuthenticated(
+        response['token'] as String,
+        response['user'] as Map<String, dynamic>,
+      );
     } catch (error) {
       if (!mounted) return;
       _snack(context, error.toString());
@@ -187,27 +202,43 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             const SizedBox(height: 30),
             const Center(child: VenueHubLogo(size: 118)),
-            const SizedBox(height: 18),
-            const Text('VenueHub', textAlign: TextAlign.center, style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: AppTheme.ink)),
-            const SizedBox(height: 8),
-            const Text('Book event venues with a polished demo flow for customers, hosts, and admins.'),
             const SizedBox(height: 26),
-            TextField(controller: email, decoration: const InputDecoration(labelText: 'Email')),
+            TextField(
+              controller: email,
+              decoration: const InputDecoration(labelText: 'Email'),
+            ),
             const SizedBox(height: 12),
-            TextField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'Password')),
+            TextField(
+              controller: password,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Password'),
+            ),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ForgotPasswordScreen(api: widget.api))),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ForgotPasswordScreen(api: widget.api),
+                  ),
+                ),
                 child: const Text('Forgot password?'),
               ),
             ),
             const SizedBox(height: 18),
-            ElevatedButton(onPressed: loading ? null : _login, child: Text(loading ? 'Signing in...' : 'Login')),
+            ElevatedButton(
+              onPressed: loading ? null : _login,
+              child: Text(loading ? 'Signing in...' : 'Login'),
+            ),
             TextButton(
               onPressed: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => RegisterScreen(api: widget.api, onAuthenticated: widget.onAuthenticated)),
+                MaterialPageRoute(
+                  builder: (_) => RegisterScreen(
+                    api: widget.api,
+                    onAuthenticated: widget.onAuthenticated,
+                  ),
+                ),
               ),
               child: const Text('Create account'),
             ),
@@ -219,7 +250,6 @@ class _LoginScreenState extends State<LoginScreen> {
               },
             ),
             const SizedBox(height: 16),
-            Text('API: ${AppConfig.apiBaseUrl}', style: const TextStyle(color: Colors.black45, fontSize: 12)),
           ],
         ),
       ),
@@ -240,14 +270,26 @@ class _DemoLoginCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Demo accounts', style: TextStyle(fontWeight: FontWeight.w900)),
+            const Text(
+              'Demo accounts',
+              style: TextStyle(fontWeight: FontWeight.w900),
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               children: [
-                ActionChip(label: const Text('Customer'), onPressed: () => onPick('customer@venuehub.test')),
-                ActionChip(label: const Text('Host'), onPressed: () => onPick('host@venuehub.test')),
-                ActionChip(label: const Text('Admin'), onPressed: () => onPick('admin@venuehub.test')),
+                ActionChip(
+                  label: const Text('Customer'),
+                  onPressed: () => onPick('customer@venuehub.test'),
+                ),
+                ActionChip(
+                  label: const Text('Host'),
+                  onPressed: () => onPick('host@venuehub.test'),
+                ),
+                ActionChip(
+                  label: const Text('Admin'),
+                  onPressed: () => onPick('admin@venuehub.test'),
+                ),
               ],
             ),
           ],
@@ -258,10 +300,15 @@ class _DemoLoginCard extends StatelessWidget {
 }
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key, required this.api, required this.onAuthenticated});
+  const RegisterScreen({
+    super.key,
+    required this.api,
+    required this.onAuthenticated,
+  });
 
   final ApiClient api;
-  final Future<void> Function(String token, Map<String, dynamic> user) onAuthenticated;
+  final Future<void> Function(String token, Map<String, dynamic> user)
+  onAuthenticated;
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -285,7 +332,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'phone': phone.text.trim(),
         'role': role,
       });
-      await widget.onAuthenticated(response['token'] as String, response['user'] as Map<String, dynamic>);
+      await widget.onAuthenticated(
+        response['token'] as String,
+        response['user'] as Map<String, dynamic>,
+      );
       if (mounted) Navigator.pop(context);
     } catch (error) {
       if (!mounted) return;
@@ -302,26 +352,48 @@ class _RegisterScreenState extends State<RegisterScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          TextField(controller: name, decoration: const InputDecoration(labelText: 'Full name')),
+          TextField(
+            controller: name,
+            decoration: const InputDecoration(labelText: 'Full name'),
+          ),
           const SizedBox(height: 12),
-          TextField(controller: email, decoration: const InputDecoration(labelText: 'Email')),
+          TextField(
+            controller: email,
+            decoration: const InputDecoration(labelText: 'Email'),
+          ),
           const SizedBox(height: 12),
-          TextField(controller: phone, decoration: const InputDecoration(labelText: 'Contact number')),
+          TextField(
+            controller: phone,
+            decoration: const InputDecoration(labelText: 'Contact number'),
+          ),
           const SizedBox(height: 12),
-          TextField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'Password')),
+          TextField(
+            controller: password,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Password'),
+          ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: role,
             decoration: const InputDecoration(labelText: 'Account type'),
             items: const [
               DropdownMenuItem(value: 'CUSTOMER', child: Text('Customer')),
-              DropdownMenuItem(value: 'HOST', child: Text('Host / Venue Lister')),
-              DropdownMenuItem(value: 'VENUEHUB_ADMIN', child: Text('VenueHub Admin')),
+              DropdownMenuItem(
+                value: 'HOST',
+                child: Text('Host / Venue Lister'),
+              ),
+              DropdownMenuItem(
+                value: 'VENUEHUB_ADMIN',
+                child: Text('VenueHub Admin'),
+              ),
             ],
             onChanged: (value) => setState(() => role = value ?? 'CUSTOMER'),
           ),
           const SizedBox(height: 18),
-          ElevatedButton(onPressed: loading ? null : _register, child: Text(loading ? 'Creating...' : 'Register')),
+          ElevatedButton(
+            onPressed: loading ? null : _register,
+            child: Text(loading ? 'Creating...' : 'Register'),
+          ),
         ],
       ),
     );
@@ -347,9 +419,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Future<void> _sendReset() async {
     setState(() => loading = true);
     try {
-      final response = await widget.api.post('/auth/forgot-password', {'email': email.text.trim()});
+      final response = await widget.api.post('/auth/forgot-password', {
+        'email': email.text.trim(),
+      });
       if (!mounted) return;
-      if (response['resetToken'] != null) token.text = response['resetToken'].toString();
+      if (response['resetToken'] != null) {
+        token.text = response['resetToken'].toString();
+      }
       _snack(context, response['message']?.toString() ?? 'Reset email sent.');
     } catch (error) {
       if (!mounted) return;
@@ -385,19 +461,45 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text('Enter your account email. VenueHub will send a reset link and code if the email exists.'),
+          const Text(
+            'Enter your account email. VenueHub will send a reset link and code if the email exists.',
+          ),
           const SizedBox(height: 14),
-          TextField(controller: email, decoration: const InputDecoration(labelText: 'Account email')),
+          TextField(
+            controller: email,
+            decoration: const InputDecoration(labelText: 'Account email'),
+          ),
           const SizedBox(height: 12),
-          ElevatedButton(onPressed: loading ? null : _sendReset, child: const Text('Send reset email')),
+          ElevatedButton(
+            onPressed: loading ? null : _sendReset,
+            child: const Text('Send reset email'),
+          ),
           const VHSectionTitle('Set new password'),
-          TextField(controller: token, decoration: const InputDecoration(labelText: 'Reset code from email')),
+          TextField(
+            controller: token,
+            decoration: const InputDecoration(
+              labelText: 'Reset code from email',
+            ),
+          ),
           const SizedBox(height: 10),
-          TextField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'New password')),
+          TextField(
+            controller: password,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'New password'),
+          ),
           const SizedBox(height: 10),
-          TextField(controller: confirmPassword, obscureText: true, decoration: const InputDecoration(labelText: 'Confirm new password')),
+          TextField(
+            controller: confirmPassword,
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText: 'Confirm new password',
+            ),
+          ),
           const SizedBox(height: 14),
-          OutlinedButton(onPressed: loading ? null : _resetPassword, child: const Text('Update password')),
+          OutlinedButton(
+            onPressed: loading ? null : _resetPassword,
+            child: const Text('Update password'),
+          ),
         ],
       ),
     );
@@ -405,7 +507,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 }
 
 class RoleHome extends StatelessWidget {
-  const RoleHome({super.key, required this.api, required this.user, required this.onLogout});
+  const RoleHome({
+    super.key,
+    required this.api,
+    required this.user,
+    required this.onLogout,
+  });
 
   final ApiClient api;
   final Map<String, dynamic> user;
@@ -422,7 +529,12 @@ class RoleHome extends StatelessWidget {
 }
 
 class CustomerHome extends StatefulWidget {
-  const CustomerHome({super.key, required this.api, required this.user, required this.onLogout});
+  const CustomerHome({
+    super.key,
+    required this.api,
+    required this.user,
+    required this.onLogout,
+  });
 
   final ApiClient api;
   final Map<String, dynamic> user;
@@ -440,7 +552,11 @@ class _CustomerHomeState extends State<CustomerHome> {
     final pages = [
       VenueBrowseScreen(api: widget.api),
       MyBookingsScreen(api: widget.api),
-      ProfileScreen(api: widget.api, user: widget.user, onLogout: widget.onLogout),
+      ProfileScreen(
+        api: widget.api,
+        user: widget.user,
+        onLogout: widget.onLogout,
+      ),
     ];
 
     return Scaffold(
@@ -449,9 +565,20 @@ class _CustomerHomeState extends State<CustomerHome> {
         currentIndex: index,
         onTap: (value) => setState(() => index = value),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.search_rounded), label: 'Explore'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), activeIcon: Icon(Icons.calendar_month_rounded), label: 'Bookings'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline_rounded), activeIcon: Icon(Icons.person_rounded), label: 'Profile'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search_rounded),
+            label: 'Explore',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today_outlined),
+            activeIcon: Icon(Icons.calendar_month_rounded),
+            label: 'Bookings',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline_rounded),
+            activeIcon: Icon(Icons.person_rounded),
+            label: 'Profile',
+          ),
         ],
       ),
     );
@@ -479,8 +606,12 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
 
   Future<void> _search() async {
     try {
-      final response = await widget.api.get('/venues/search?query=${Uri.encodeComponent(query.text)}&location=${Uri.encodeComponent(location.text)}');
-      setState(() => venues = Future.value(response['venues'] as List<dynamic>));
+      final response = await widget.api.get(
+        '/venues/search?query=${Uri.encodeComponent(query.text)}&location=${Uri.encodeComponent(location.text)}',
+      );
+      setState(
+        () => venues = Future.value(response['venues'] as List<dynamic>),
+      );
     } catch (error) {
       if (!mounted) return;
       _snack(context, error.toString());
@@ -496,19 +627,38 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
           child: FutureBuilder<List<dynamic>>(
             future: venues,
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) return const LoadingView();
-              if (snapshot.hasError) return EmptyState(title: 'API unavailable', message: snapshot.error.toString());
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const LoadingView();
+              }
+              if (snapshot.hasError) {
+                return EmptyState(
+                  title: 'API unavailable',
+                  message: snapshot.error.toString(),
+                );
+              }
               final data = snapshot.data ?? [];
 
               return ListView(
                 padding: const EdgeInsets.only(bottom: 24),
                 children: [
-                  _HeroSearch(query: query, location: location, onSearch: _search),
+                  _HeroSearch(
+                    query: query,
+                    location: location,
+                    onSearch: _search,
+                  ),
                   const VHSectionTitle('Popular venues'),
                   if (data.isEmpty)
-                    const EmptyState(title: 'No venues yet', message: 'Approved venues will appear here.')
+                    const EmptyState(
+                      title: 'No venues yet',
+                      message: 'Approved venues will appear here.',
+                    )
                   else
-                    ...data.map((venue) => VenueCard(venue: venue as Map<String, dynamic>, api: widget.api)),
+                    ...data.map(
+                      (venue) => VenueCard(
+                        venue: venue as Map<String, dynamic>,
+                        api: widget.api,
+                      ),
+                    ),
                 ],
               );
             },
@@ -520,7 +670,11 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
 }
 
 class _HeroSearch extends StatelessWidget {
-  const _HeroSearch({required this.query, required this.location, required this.onSearch});
+  const _HeroSearch({
+    required this.query,
+    required this.location,
+    required this.onSearch,
+  });
 
   final TextEditingController query;
   final TextEditingController location;
@@ -553,31 +707,54 @@ class _HeroSearch extends StatelessWidget {
               Expanded(
                 child: Text(
                   'Find venues that fit the moment',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(color: AppTheme.blue, fontWeight: FontWeight.w900),
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: AppTheme.blue,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 14),
-          const Text('Where is your next event?', style: TextStyle(color: AppTheme.navy, fontSize: 28, fontWeight: FontWeight.w900)),
+          const Text(
+            'Where is your next event?',
+            style: TextStyle(
+              color: AppTheme.navy,
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           const SizedBox(height: 6),
-          const Text('Search by venue name or city to start booking.', style: TextStyle(color: Colors.black54)),
+          const Text(
+            'Search by venue name or city to start booking.',
+            style: TextStyle(color: Colors.black54),
+          ),
           const SizedBox(height: 14),
           TextField(
             controller: query,
             textInputAction: TextInputAction.search,
             onSubmitted: (_) => onSearch(),
-            decoration: const InputDecoration(prefixIcon: Icon(Icons.search_rounded), hintText: 'Search venue name'),
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.search_rounded),
+              hintText: 'Search venue name',
+            ),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: location,
             textInputAction: TextInputAction.search,
             onSubmitted: (_) => onSearch(),
-            decoration: const InputDecoration(prefixIcon: Icon(Icons.place_outlined), hintText: 'City or location'),
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.place_outlined),
+              hintText: 'City or location',
+            ),
           ),
           const SizedBox(height: 12),
-          ElevatedButton.icon(onPressed: onSearch, icon: const Icon(Icons.tune_rounded), label: const Text('Search venues')),
+          ElevatedButton.icon(
+            onPressed: onSearch,
+            icon: const Icon(Icons.tune_rounded),
+            label: const Text('Search venues'),
+          ),
         ],
       ),
     );
@@ -598,7 +775,13 @@ class VenueCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: InkWell(
         borderRadius: BorderRadius.circular(28),
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VenueDetailsScreen(api: api, venueId: venue['id'] as String))),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                VenueDetailsScreen(api: api, venueId: venue['id'] as String),
+          ),
+        ),
         child: Card(
           clipBehavior: Clip.antiAlias,
           child: Column(
@@ -612,15 +795,32 @@ class VenueCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Expanded(child: Text(venue['name'] ?? '', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900))),
+                        Expanded(
+                          child: Text(
+                            venue['name'] ?? '',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
                         const Icon(Icons.star, color: Colors.amber, size: 18),
                         Text('${venue['averageRating'] ?? 0}'),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text('${venue['location']} - up to ${venue['capacity']} guests', style: const TextStyle(color: Colors.black54)),
+                    Text(
+                      '${venue['location']} - up to ${venue['capacity']} guests',
+                      style: const TextStyle(color: Colors.black54),
+                    ),
                     const SizedBox(height: 8),
-                    Text('${moneyFormat.format(_num(venue['pricePerDay']))} / day', style: const TextStyle(fontWeight: FontWeight.w900, color: AppTheme.blue)),
+                    Text(
+                      '${moneyFormat.format(_num(venue['pricePerDay']))} / day',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: AppTheme.blue,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -633,7 +833,11 @@ class VenueCard extends StatelessWidget {
 }
 
 class VenueDetailsScreen extends StatefulWidget {
-  const VenueDetailsScreen({super.key, required this.api, required this.venueId});
+  const VenueDetailsScreen({
+    super.key,
+    required this.api,
+    required this.venueId,
+  });
 
   final ApiClient api;
   final String venueId;
@@ -656,7 +860,15 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
       future: venue,
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return Scaffold(appBar: AppBar(), body: snapshot.hasError ? EmptyState(title: 'Could not load venue', message: snapshot.error.toString()) : const LoadingView());
+          return Scaffold(
+            appBar: AppBar(),
+            body: snapshot.hasError
+                ? EmptyState(
+                    title: 'Could not load venue',
+                    message: snapshot.error.toString(),
+                  )
+                : const LoadingView(),
+          );
         }
 
         final venue = snapshot.data!;
@@ -667,7 +879,12 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
           bottomNavigationBar: Padding(
             padding: const EdgeInsets.all(16),
             child: ElevatedButton(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BookingScreen(api: widget.api, venue: venue))),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => BookingScreen(api: widget.api, venue: venue),
+                ),
+              ),
               child: const Text('Choose date and book'),
             ),
           ),
@@ -679,19 +896,42 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(venue['name'], style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+                    Text(
+                      venue['name'],
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w900),
+                    ),
                     const SizedBox(height: 8),
-                    Text('${venue['location']} - ${venue['address']}', style: const TextStyle(color: Colors.black54)),
+                    Text(
+                      '${venue['location']} - ${venue['address']}',
+                      style: const TextStyle(color: Colors.black54),
+                    ),
                     const SizedBox(height: 12),
                     Text(venue['description'] ?? ''),
                     const SizedBox(height: 18),
-                    Wrap(spacing: 8, runSpacing: 8, children: [
-                      _InfoPill(Icons.people, '${venue['capacity']} guests'),
-                      _InfoPill(Icons.payments, moneyFormat.format(_num(venue['pricePerDay']))),
-                      _InfoPill(Icons.star, '${venue['averageRating']} rating'),
-                    ]),
-                    _ChipList(title: 'Amenities', items: venue['amenities'] as List<dynamic>? ?? []),
-                    _ChipList(title: 'Facilities', items: venue['facilities'] as List<dynamic>? ?? []),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _InfoPill(Icons.people, '${venue['capacity']} guests'),
+                        _InfoPill(
+                          Icons.payments,
+                          moneyFormat.format(_num(venue['pricePerDay'])),
+                        ),
+                        _InfoPill(
+                          Icons.star,
+                          '${venue['averageRating']} rating',
+                        ),
+                      ],
+                    ),
+                    _ChipList(
+                      title: 'Amenities',
+                      items: venue['amenities'] as List<dynamic>? ?? [],
+                    ),
+                    _ChipList(
+                      title: 'Facilities',
+                      items: venue['facilities'] as List<dynamic>? ?? [],
+                    ),
                     _Reviews(reviews: venue['reviews'] as List<dynamic>? ?? []),
                   ],
                 ),
@@ -730,7 +970,12 @@ class _ChipList extends StatelessWidget {
         const SizedBox(height: 18),
         Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
-        Wrap(spacing: 8, children: items.map((item) => Chip(label: Text(item['name'].toString()))).toList()),
+        Wrap(
+          spacing: 8,
+          children: items
+              .map((item) => Chip(label: Text(item['name'].toString())))
+              .toList(),
+        ),
       ],
     );
   }
@@ -747,16 +992,27 @@ class _Reviews extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 18),
-        const Text('Guest feedback', style: TextStyle(fontWeight: FontWeight.w900)),
+        const Text(
+          'Guest feedback',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
         if (reviews.isEmpty)
-          const Padding(padding: EdgeInsets.only(top: 8), child: Text('No reviews yet.', style: TextStyle(color: Colors.black54)))
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(
+              'No reviews yet.',
+              style: TextStyle(color: Colors.black54),
+            ),
+          )
         else
-          ...reviews.map((review) => ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const CircleAvatar(child: Icon(Icons.person)),
-                title: Text('${review['rating']} stars'),
-                subtitle: Text(review['comment']?.toString() ?? ''),
-              )),
+          ...reviews.map(
+            (review) => ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const CircleAvatar(child: Icon(Icons.person)),
+              title: Text('${review['rating']} stars'),
+              subtitle: Text(review['comment']?.toString() ?? ''),
+            ),
+          ),
       ],
     );
   }
@@ -803,7 +1059,12 @@ class _BookingScreenState extends State<BookingScreen> {
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => PaymentScreen(api: widget.api, booking: response['booking'] as Map<String, dynamic>)),
+        MaterialPageRoute(
+          builder: (_) => PaymentScreen(
+            api: widget.api,
+            booking: response['booking'] as Map<String, dynamic>,
+          ),
+        ),
       );
     } catch (error) {
       _snack(context, error.toString());
@@ -823,7 +1084,12 @@ class _BookingScreenState extends State<BookingScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Text(widget.venue['name'], style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+          Text(
+            widget.venue['name'],
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 14),
           Card(
             child: Padding(
@@ -835,7 +1101,9 @@ class _BookingScreenState extends State<BookingScreen> {
                   _MoneyRow('Remaining balance', price - deposit),
                   _MoneyRow('10% app service fee', fee),
                   const Divider(),
-                  const Text('Deposit is non-refundable. Remaining balance is due before or on event day.'),
+                  const Text(
+                    'Deposit is non-refundable. Remaining balance is due before or on event day.',
+                  ),
                 ],
               ),
             ),
@@ -844,12 +1112,24 @@ class _BookingScreenState extends State<BookingScreen> {
           OutlinedButton.icon(
             onPressed: _pickDate,
             icon: const Icon(Icons.calendar_month),
-            label: Text(eventDate == null ? 'Choose event date' : dateFormat.format(eventDate!)),
+            label: Text(
+              eventDate == null
+                  ? 'Choose event date'
+                  : dateFormat.format(eventDate!),
+            ),
           ),
           const SizedBox(height: 12),
-          TextField(controller: notes, minLines: 3, maxLines: 5, decoration: const InputDecoration(labelText: 'Notes for host')),
+          TextField(
+            controller: notes,
+            minLines: 3,
+            maxLines: 5,
+            decoration: const InputDecoration(labelText: 'Notes for host'),
+          ),
           const SizedBox(height: 18),
-          ElevatedButton(onPressed: loading ? null : _book, child: Text(loading ? 'Submitting...' : 'Submit booking request')),
+          ElevatedButton(
+            onPressed: loading ? null : _book,
+            child: Text(loading ? 'Submitting...' : 'Submit booking request'),
+          ),
         ],
       ),
     );
@@ -869,7 +1149,10 @@ class _MoneyRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(child: Text(label)),
-          Text(moneyFormat.format(value), style: const TextStyle(fontWeight: FontWeight.w900)),
+          Text(
+            moneyFormat.format(value),
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
         ],
       ),
     );
@@ -877,7 +1160,12 @@ class _MoneyRow extends StatelessWidget {
 }
 
 class PaymentScreen extends StatefulWidget {
-  const PaymentScreen({super.key, required this.api, required this.booking, this.paymentType = 'DEPOSIT'});
+  const PaymentScreen({
+    super.key,
+    required this.api,
+    required this.booking,
+    this.paymentType = 'DEPOSIT',
+  });
 
   final ApiClient api;
   final Map<String, dynamic> booking;
@@ -900,7 +1188,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'paymentType': widget.paymentType,
       });
       if (!mounted) return;
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ReceiptScreen(receipt: response['receipt'] as Map<String, dynamic>, booking: response['booking'] as Map<String, dynamic>)));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ReceiptScreen(
+            receipt: response['receipt'] as Map<String, dynamic>,
+            booking: response['booking'] as Map<String, dynamic>,
+            emailStatus: response['emailStatus']?.toString(),
+            emailMessage: response['emailMessage']?.toString(),
+          ),
+        ),
+      );
     } catch (error) {
       _snack(context, error.toString());
     } finally {
@@ -910,10 +1208,21 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final methods = ['VISA', 'MASTERCARD', 'PAYPAL', 'GCASH', 'MAYA', 'EWALLET'];
+    final methods = [
+      'VISA',
+      'MASTERCARD',
+      'PAYPAL',
+      'GCASH',
+      'MAYA',
+      'EWALLET',
+    ];
     final isBalancePayment = widget.paymentType == 'BALANCE';
-    final amountDue = isBalancePayment ? _balanceDue(widget.booking) : _num(widget.booking['depositAmount']);
-    final title = isBalancePayment ? 'Pay remaining balance' : 'Pay security deposit';
+    final amountDue = isBalancePayment
+        ? _balanceDue(widget.booking)
+        : _num(widget.booking['depositAmount']);
+    final title = isBalancePayment
+        ? 'Pay remaining balance'
+        : 'Pay security deposit';
     final note = isBalancePayment
         ? 'This simulated transaction completes the remaining balance for the event.'
         : 'This simulated transaction records the 50% non-refundable security deposit.';
@@ -930,7 +1239,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title, style: const TextStyle(color: Colors.black54)),
-                  Text(moneyFormat.format(amountDue), style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
+                  Text(
+                    moneyFormat.format(amountDue),
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Text(note),
                 ],
@@ -938,19 +1252,32 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
           ),
           const VHSectionTitle('Payment method'),
-          ...methods.map((item) => Card(
-                child: ListTile(
-                  onTap: () => setState(() => method = item),
-                  leading: Icon(_paymentIcon(item)),
-                  title: Text(item.replaceAll('_', ' ')),
-                  trailing: Icon(
-                    method == item ? Icons.check_circle : Icons.radio_button_unchecked,
-                    color: method == item ? AppTheme.blue : Colors.black38,
-                  ),
+          ...methods.map(
+            (item) => Card(
+              child: ListTile(
+                onTap: () => setState(() => method = item),
+                leading: Icon(_paymentIcon(item)),
+                title: Text(item.replaceAll('_', ' ')),
+                trailing: Icon(
+                  method == item
+                      ? Icons.check_circle
+                      : Icons.radio_button_unchecked,
+                  color: method == item ? AppTheme.blue : Colors.black38,
                 ),
-              )),
+              ),
+            ),
+          ),
           const SizedBox(height: 18),
-          ElevatedButton(onPressed: loading ? null : _pay, child: Text(loading ? 'Processing...' : isBalancePayment ? 'Complete payment' : 'Pay simulated deposit')),
+          ElevatedButton(
+            onPressed: loading ? null : _pay,
+            child: Text(
+              loading
+                  ? 'Processing...'
+                  : isBalancePayment
+                  ? 'Complete payment'
+                  : 'Pay simulated deposit',
+            ),
+          ),
         ],
       ),
     );
@@ -958,10 +1285,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
 }
 
 class ReceiptScreen extends StatelessWidget {
-  const ReceiptScreen({super.key, required this.receipt, required this.booking});
+  const ReceiptScreen({
+    super.key,
+    required this.receipt,
+    required this.booking,
+    this.emailStatus,
+    this.emailMessage,
+  });
 
   final Map<String, dynamic> receipt;
   final Map<String, dynamic> booking;
+  final String? emailStatus;
+  final String? emailMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -978,21 +1313,48 @@ class ReceiptScreen extends StatelessWidget {
                 children: [
                   const Icon(Icons.verified, color: Colors.green, size: 52),
                   const SizedBox(height: 12),
-                  const Text('Payment approved', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
+                  const Text(
+                    'Payment approved',
+                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
+                  ),
                   Text(receipt['receiptNumber']?.toString() ?? ''),
                   const Divider(height: 32),
                   _MoneyRow('Subtotal', _num(receipt['subtotal'])),
                   _MoneyRow('Deposit paid', _num(receipt['depositPaid'])),
-                  _MoneyRow('Remaining balance', _num(receipt['remainingBalance'])),
+                  _MoneyRow(
+                    'Remaining balance',
+                    _num(receipt['remainingBalance']),
+                  ),
                   _MoneyRow('App service fee', _num(receipt['serviceFee'])),
                   const SizedBox(height: 12),
                   Text(receipt['securityNote']?.toString() ?? ''),
+                  if (emailMessage != null) ...[
+                    const Divider(height: 32),
+                    Row(
+                      children: [
+                        Icon(
+                          emailStatus == 'sent'
+                              ? Icons.mark_email_read_outlined
+                              : Icons.email_outlined,
+                          color: emailStatus == 'sent'
+                              ? Colors.green
+                              : Colors.orange,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(child: Text(emailMessage!)),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
           ),
           const SizedBox(height: 18),
-          ElevatedButton(onPressed: () => Navigator.popUntil(context, (route) => route.isFirst), child: const Text('Back to home')),
+          ElevatedButton(
+            onPressed: () =>
+                Navigator.popUntil(context, (route) => route.isFirst),
+            child: const Text('Back to home'),
+          ),
         ],
       ),
     );
@@ -1025,9 +1387,21 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
       body: FutureBuilder<List<dynamic>>(
         future: bookings,
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return snapshot.hasError ? EmptyState(title: 'Could not load bookings', message: snapshot.error.toString()) : const LoadingView();
+          if (!snapshot.hasData) {
+            return snapshot.hasError
+                ? EmptyState(
+                    title: 'Could not load bookings',
+                    message: snapshot.error.toString(),
+                  )
+                : const LoadingView();
+          }
           final raw = snapshot.data!;
-          if (raw.isEmpty) return const EmptyState(title: 'No bookings', message: 'Your venue reservations will show here.');
+          if (raw.isEmpty) {
+            return const EmptyState(
+              title: 'No bookings',
+              message: 'Your venue reservations will show here.',
+            );
+          }
           final data = _filterSortBookings(raw, search.text, sort);
           return RefreshIndicator(
             onRefresh: () async => setState(() => bookings = _load()),
@@ -1042,9 +1416,18 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
                 ),
                 const SizedBox(height: 12),
                 if (data.isEmpty)
-                  const EmptyState(title: 'No matches', message: 'Try searching a venue, customer, status, or date.')
+                  const EmptyState(
+                    title: 'No matches',
+                    message:
+                        'Try searching a venue, customer, status, or date.',
+                  )
                 else
-                  ...data.map((booking) => BookingTile(api: widget.api, booking: booking as Map<String, dynamic>)),
+                  ...data.map(
+                    (booking) => BookingTile(
+                      api: widget.api,
+                      booking: booking as Map<String, dynamic>,
+                    ),
+                  ),
               ],
             ),
           );
@@ -1055,7 +1438,13 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
 }
 
 class BookingTile extends StatelessWidget {
-  const BookingTile({super.key, required this.api, required this.booking, this.hostControls = false, this.onStatus});
+  const BookingTile({
+    super.key,
+    required this.api,
+    required this.booking,
+    this.hostControls = false,
+    this.onStatus,
+  });
 
   final ApiClient api;
   final Map<String, dynamic> booking;
@@ -1074,7 +1463,12 @@ class BookingTile extends StatelessWidget {
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => BookingDetailsScreen(api: api, booking: booking, hostControls: hostControls, onStatus: onStatus),
+            builder: (_) => BookingDetailsScreen(
+              api: api,
+              booking: booking,
+              hostControls: hostControls,
+              onStatus: onStatus,
+            ),
           ),
         ),
         child: Padding(
@@ -1088,18 +1482,39 @@ class BookingTile extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(venue['name'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                        Text(
+                          venue['name'] ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                         const SizedBox(height: 6),
-                        Text(dateFormat.format(DateTime.parse(booking['eventDate'])), style: const TextStyle(color: Colors.black54)),
+                        Text(
+                          dateFormat.format(
+                            DateTime.parse(booking['eventDate']),
+                          ),
+                          style: const TextStyle(color: Colors.black54),
+                        ),
                         const SizedBox(height: 8),
-                        Wrap(spacing: 8, children: [
-                          VHStatusChip(booking['status']?.toString() ?? 'PENDING'),
-                          VHStatusChip(paymentStatus),
-                        ]),
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            VHStatusChip(
+                              booking['status']?.toString() ?? 'PENDING',
+                            ),
+                            VHStatusChip(paymentStatus),
+                          ],
+                        ),
                       ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right_rounded, color: Colors.black38),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.black38,
+                  ),
                 ],
               ),
             ),
@@ -1111,7 +1526,13 @@ class BookingTile extends StatelessWidget {
 }
 
 class BookingDetailsScreen extends StatelessWidget {
-  const BookingDetailsScreen({super.key, required this.api, required this.booking, this.hostControls = false, this.onStatus});
+  const BookingDetailsScreen({
+    super.key,
+    required this.api,
+    required this.booking,
+    this.hostControls = false,
+    this.onStatus,
+  });
 
   final ApiClient api;
   final Map<String, dynamic> booking;
@@ -1124,7 +1545,10 @@ class BookingDetailsScreen extends StatelessWidget {
     final customer = booking['customer'] as Map<String, dynamic>?;
     final payments = booking['payments'] as List<dynamic>? ?? [];
     final receipt = booking['receipt'] as Map<String, dynamic>?;
-    final paid = payments.fold<num>(0, (sum, payment) => sum + _num((payment as Map<String, dynamic>)['amount']));
+    final paid = payments.fold<num>(
+      0,
+      (sum, payment) => sum + _num((payment as Map<String, dynamic>)['amount']),
+    );
     final balanceDue = _balanceDue(booking);
     final paymentStatus = booking['paymentStatus']?.toString() ?? 'UNPAID';
 
@@ -1139,7 +1563,13 @@ class BookingDetailsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(venue['name'] ?? '', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+                  Text(
+                    venue['name'] ?? '',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
@@ -1147,17 +1577,53 @@ class BookingDetailsScreen extends StatelessWidget {
                     children: [
                       VHStatusChip(booking['status']?.toString() ?? 'PENDING'),
                       VHStatusChip(paymentStatus),
-                      if (receipt != null) Chip(label: Text(receipt['receiptNumber']?.toString() ?? 'Receipt issued')),
+                      if (receipt != null)
+                        Chip(
+                          label: Text(
+                            receipt['receiptNumber']?.toString() ??
+                                'Receipt issued',
+                          ),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _InfoLine(Icons.calendar_today_outlined, 'Event date', dateFormat.format(DateTime.parse(booking['eventDate']))),
-                  if (customer != null) _InfoLine(Icons.person_outline, 'Customer', '${customer['name'] ?? 'Guest'} - ${customer['email'] ?? ''}'),
-                  _InfoLine(Icons.payments_outlined, 'Total amount', moneyFormat.format(_num(booking['totalAmount']))),
-                  _InfoLine(Icons.savings_outlined, 'Deposit', moneyFormat.format(_num(booking['depositAmount']))),
-                  _InfoLine(Icons.account_balance_wallet_outlined, 'Paid so far', moneyFormat.format(paid)),
-                  _InfoLine(Icons.pending_actions_outlined, 'Balance due', moneyFormat.format(balanceDue)),
-                  if ((booking['notes']?.toString() ?? '').isNotEmpty) _InfoLine(Icons.notes_outlined, 'Notes', booking['notes'].toString()),
+                  _InfoLine(
+                    Icons.calendar_today_outlined,
+                    'Event date',
+                    dateFormat.format(DateTime.parse(booking['eventDate'])),
+                  ),
+                  if (customer != null)
+                    _InfoLine(
+                      Icons.person_outline,
+                      'Customer',
+                      '${customer['name'] ?? 'Guest'} - ${customer['email'] ?? ''}',
+                    ),
+                  _InfoLine(
+                    Icons.payments_outlined,
+                    'Total amount',
+                    moneyFormat.format(_num(booking['totalAmount'])),
+                  ),
+                  _InfoLine(
+                    Icons.savings_outlined,
+                    'Deposit',
+                    moneyFormat.format(_num(booking['depositAmount'])),
+                  ),
+                  _InfoLine(
+                    Icons.account_balance_wallet_outlined,
+                    'Paid so far',
+                    moneyFormat.format(paid),
+                  ),
+                  _InfoLine(
+                    Icons.pending_actions_outlined,
+                    'Balance due',
+                    moneyFormat.format(balanceDue),
+                  ),
+                  if ((booking['notes']?.toString() ?? '').isNotEmpty)
+                    _InfoLine(
+                      Icons.notes_outlined,
+                      'Notes',
+                      booking['notes'].toString(),
+                    ),
                 ],
               ),
             ),
@@ -1168,10 +1634,16 @@ class BookingDetailsScreen extends StatelessWidget {
               final map = payment as Map<String, dynamic>;
               return Card(
                 child: ListTile(
-                  leading: const Icon(Icons.receipt_long_outlined, color: AppTheme.blue),
+                  leading: const Icon(
+                    Icons.receipt_long_outlined,
+                    color: AppTheme.blue,
+                  ),
                   title: Text('${map['type']} via ${map['method']}'),
                   subtitle: Text(map['transactionRef']?.toString() ?? ''),
-                  trailing: Text(moneyFormat.format(_num(map['amount'])), style: const TextStyle(fontWeight: FontWeight.w900)),
+                  trailing: Text(
+                    moneyFormat.format(_num(map['amount'])),
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
                 ),
               );
             }),
@@ -1179,26 +1651,52 @@ class BookingDetailsScreen extends StatelessWidget {
           const SizedBox(height: 12),
           if (!hostControls && paymentStatus == 'UNPAID')
             OutlinedButton.icon(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentScreen(api: api, booking: booking))),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PaymentScreen(api: api, booking: booking),
+                ),
+              ),
               icon: const Icon(Icons.lock_outline),
               label: const Text('Pay 50% deposit'),
             ),
           if (!hostControls && paymentStatus == 'PARTIALLY_PAID')
             ElevatedButton.icon(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentScreen(api: api, booking: booking, paymentType: 'BALANCE'))),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PaymentScreen(
+                    api: api,
+                    booking: booking,
+                    paymentType: 'BALANCE',
+                  ),
+                ),
+              ),
               icon: const Icon(Icons.check_circle_outline),
               label: const Text('Pay remaining balance'),
             ),
           if (!hostControls && paymentStatus == 'PAID')
-            const Text('Fully paid. The host can mark this booking completed after the event.', style: TextStyle(color: Colors.black54)),
+            const Text(
+              'Fully paid. The host can mark this booking completed after the event.',
+              style: TextStyle(color: Colors.black54),
+            ),
           if (hostControls)
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                OutlinedButton(onPressed: () => onStatus?.call('APPROVED'), child: const Text('Approve')),
-                OutlinedButton(onPressed: () => onStatus?.call('REJECTED'), child: const Text('Reject')),
-                ElevatedButton(onPressed: () => onStatus?.call('COMPLETED'), child: const Text('Complete')),
+                OutlinedButton(
+                  onPressed: () => onStatus?.call('APPROVED'),
+                  child: const Text('Approve'),
+                ),
+                OutlinedButton(
+                  onPressed: () => onStatus?.call('REJECTED'),
+                  child: const Text('Reject'),
+                ),
+                ElevatedButton(
+                  onPressed: () => onStatus?.call('COMPLETED'),
+                  child: const Text('Complete'),
+                ),
               ],
             ),
         ],
@@ -1227,28 +1725,34 @@ class BookingSearchSortBar extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
-            children: [
-              TextField(
-                controller: controller,
-                onChanged: (_) => onChanged(),
-                decoration: const InputDecoration(prefixIcon: Icon(Icons.search_rounded), hintText: 'Search venue, customer, status, or date'),
+          children: [
+            TextField(
+              controller: controller,
+              onChanged: (_) => onChanged(),
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search_rounded),
+                hintText: 'Search venue, customer, status, or date',
               ),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                initialValue: sort,
-                decoration: const InputDecoration(prefixIcon: Icon(Icons.sort_rounded), labelText: 'Sort by'),
-                items: const [
-                  DropdownMenuItem(value: 'newest', child: Text('Newest first')),
-                  DropdownMenuItem(value: 'oldest', child: Text('Oldest first')),
-                  DropdownMenuItem(value: 'status', child: Text('Status')),
-                  DropdownMenuItem(value: 'price', child: Text('Price')),
-                ],
-                onChanged: (value) => onSortChanged(value ?? 'newest'),
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              initialValue: sort,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.sort_rounded),
+                labelText: 'Sort by',
               ),
-            ],
-          ),
+              items: const [
+                DropdownMenuItem(value: 'newest', child: Text('Newest first')),
+                DropdownMenuItem(value: 'oldest', child: Text('Oldest first')),
+                DropdownMenuItem(value: 'status', child: Text('Status')),
+                DropdownMenuItem(value: 'price', child: Text('Price')),
+              ],
+              onChanged: (value) => onSortChanged(value ?? 'newest'),
+            ),
+          ],
         ),
-      );
+      ),
+    );
   }
 }
 
@@ -1268,8 +1772,16 @@ class _InfoLine extends StatelessWidget {
         children: [
           Icon(icon, size: 17, color: AppTheme.blue),
           const SizedBox(width: 8),
-          SizedBox(width: 112, child: Text(label, style: const TextStyle(color: Colors.black54))),
-          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w700))),
+          SizedBox(
+            width: 112,
+            child: Text(label, style: const TextStyle(color: Colors.black54)),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
         ],
       ),
     );
@@ -1277,7 +1789,12 @@ class _InfoLine extends StatelessWidget {
 }
 
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key, required this.api, required this.user, required this.onLogout});
+  const ProfileScreen({
+    super.key,
+    required this.api,
+    required this.user,
+    required this.onLogout,
+  });
 
   final ApiClient api;
   final Map<String, dynamic> user;
@@ -1290,28 +1807,64 @@ class ProfileScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          CircleAvatar(radius: 46, backgroundImage: user['profileImageUrl'] == null ? null : NetworkImage(user['profileImageUrl'] as String), child: user['profileImageUrl'] == null ? const Icon(Icons.person, size: 48) : null),
+          CircleAvatar(
+            radius: 46,
+            backgroundImage: user['profileImageUrl'] == null
+                ? null
+                : NetworkImage(user['profileImageUrl'] as String),
+            child: user['profileImageUrl'] == null
+                ? const Icon(Icons.person, size: 48)
+                : null,
+          ),
           const SizedBox(height: 16),
-          Center(child: Text(user['name'] ?? '', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900))),
-          Center(child: Text(user['role'] ?? '', style: const TextStyle(color: Colors.black54))),
+          Center(
+            child: Text(
+              user['name'] ?? '',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            ),
+          ),
+          Center(
+            child: Text(
+              user['role'] ?? '',
+              style: const TextStyle(color: Colors.black54),
+            ),
+          ),
           const SizedBox(height: 24),
           Card(
             child: Column(
               children: [
-                ListTile(leading: const Icon(Icons.email), title: Text(user['email'] ?? '')),
-                ListTile(leading: const Icon(Icons.phone), title: Text(user['phone'] ?? 'No phone yet')),
-                ListTile(leading: const Icon(Icons.wc), title: Text(user['gender'] ?? 'No gender set')),
+                ListTile(
+                  leading: const Icon(Icons.email),
+                  title: Text(user['email'] ?? ''),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.phone),
+                  title: Text(user['phone'] ?? 'No phone yet'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.wc),
+                  title: Text(user['gender'] ?? 'No gender set'),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 18),
           OutlinedButton.icon(
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChangePasswordScreen(api: api))),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => ChangePasswordScreen(api: api)),
+            ),
             icon: const Icon(Icons.lock_reset),
             label: const Text('Change password'),
           ),
           const SizedBox(height: 10),
-          OutlinedButton.icon(onPressed: onLogout, icon: const Icon(Icons.logout), label: const Text('Logout')),
+          OutlinedButton.icon(
+            onPressed: onLogout,
+            icon: const Icon(Icons.logout),
+            label: const Text('Logout'),
+          ),
         ],
       ),
     );
@@ -1359,13 +1912,30 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          TextField(controller: currentPassword, obscureText: true, decoration: const InputDecoration(labelText: 'Current password')),
+          TextField(
+            controller: currentPassword,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Current password'),
+          ),
           const SizedBox(height: 10),
-          TextField(controller: newPassword, obscureText: true, decoration: const InputDecoration(labelText: 'New password')),
+          TextField(
+            controller: newPassword,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'New password'),
+          ),
           const SizedBox(height: 10),
-          TextField(controller: confirmPassword, obscureText: true, decoration: const InputDecoration(labelText: 'Confirm new password')),
+          TextField(
+            controller: confirmPassword,
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText: 'Confirm new password',
+            ),
+          ),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: loading ? null : _changePassword, child: Text(loading ? 'Updating...' : 'Update password')),
+          ElevatedButton(
+            onPressed: loading ? null : _changePassword,
+            child: Text(loading ? 'Updating...' : 'Update password'),
+          ),
         ],
       ),
     );
@@ -1373,7 +1943,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 }
 
 class HostHome extends StatefulWidget {
-  const HostHome({super.key, required this.api, required this.user, required this.onLogout});
+  const HostHome({
+    super.key,
+    required this.api,
+    required this.user,
+    required this.onLogout,
+  });
 
   final ApiClient api;
   final Map<String, dynamic> user;
@@ -1392,7 +1967,11 @@ class _HostHomeState extends State<HostHome> {
       HostDashboard(api: widget.api, user: widget.user),
       HostBookingsScreen(api: widget.api),
       HostVenuesScreen(api: widget.api),
-      ProfileScreen(api: widget.api, user: widget.user, onLogout: widget.onLogout),
+      ProfileScreen(
+        api: widget.api,
+        user: widget.user,
+        onLogout: widget.onLogout,
+      ),
     ];
 
     return Scaffold(
@@ -1401,10 +1980,26 @@ class _HostHomeState extends State<HostHome> {
         currentIndex: index,
         onTap: (value) => setState(() => index = value),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_work_outlined), activeIcon: Icon(Icons.home_work_rounded), label: 'Host'),
-          BottomNavigationBarItem(icon: Icon(Icons.event_note_outlined), activeIcon: Icon(Icons.event_available_rounded), label: 'Bookings'),
-          BottomNavigationBarItem(icon: Icon(Icons.add_home_outlined), activeIcon: Icon(Icons.add_home_rounded), label: 'Venues'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline_rounded), activeIcon: Icon(Icons.person_rounded), label: 'Profile'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_work_outlined),
+            activeIcon: Icon(Icons.home_work_rounded),
+            label: 'Host',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.event_note_outlined),
+            activeIcon: Icon(Icons.event_available_rounded),
+            label: 'Bookings',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.add_home_outlined),
+            activeIcon: Icon(Icons.add_home_rounded),
+            label: 'Venues',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline_rounded),
+            activeIcon: Icon(Icons.person_rounded),
+            label: 'Profile',
+          ),
         ],
       ),
     );
@@ -1436,7 +2031,14 @@ class _HostDashboardState extends State<HostDashboard> {
       body: FutureBuilder<Map<String, dynamic>>(
         future: summary,
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return snapshot.hasError ? EmptyState(title: 'Could not load summary', message: snapshot.error.toString()) : const LoadingView();
+          if (!snapshot.hasData) {
+            return snapshot.hasError
+                ? EmptyState(
+                    title: 'Could not load summary',
+                    message: snapshot.error.toString(),
+                  )
+                : const LoadingView();
+          }
           final data = snapshot.data!;
           return GridView.count(
             padding: const EdgeInsets.all(16),
@@ -1445,10 +2047,26 @@ class _HostDashboardState extends State<HostDashboard> {
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
             children: [
-              VHStatCard(label: 'Paid bookings', value: '${data['paidBookings']}', icon: Icons.event_available),
-              VHStatCard(label: 'Gross paid', value: moneyFormat.format(_num(data['grossPaid'])), icon: Icons.payments),
-              VHStatCard(label: 'App fees', value: moneyFormat.format(_num(data['estimatedPlatformFees'])), icon: Icons.receipt),
-              VHStatCard(label: 'Host income', value: moneyFormat.format(_num(data['estimatedHostIncome'])), icon: Icons.trending_up),
+              VHStatCard(
+                label: 'Paid bookings',
+                value: '${data['paidBookings']}',
+                icon: Icons.event_available,
+              ),
+              VHStatCard(
+                label: 'Gross paid',
+                value: moneyFormat.format(_num(data['grossPaid'])),
+                icon: Icons.payments,
+              ),
+              VHStatCard(
+                label: 'App fees',
+                value: moneyFormat.format(_num(data['estimatedPlatformFees'])),
+                icon: Icons.receipt,
+              ),
+              VHStatCard(
+                label: 'Host income',
+                value: moneyFormat.format(_num(data['estimatedHostIncome'])),
+                icon: Icons.trending_up,
+              ),
             ],
           );
         },
@@ -1477,9 +2095,20 @@ class _HostBookingsScreenState extends State<HostBookingsScreen> {
   }
 
   Future<void> _status(String id, String status) async {
+    final confirmed = await _confirmAction(
+      context,
+      title: '${_prettyStatusAction(status)} booking?',
+      message:
+          'This will update the booking status to ${_prettyStatus(status)}.',
+      confirmLabel: _prettyStatusAction(status),
+    );
+    if (!confirmed) return;
+
     try {
       await widget.api.put('/bookings/$id/status', {'status': status});
-      if (mounted) setState(() => bookings = _load());
+      if (!mounted) return;
+      setState(() => bookings = _load());
+      _snack(context, 'Booking updated to ${_prettyStatus(status)}.');
     } catch (error) {
       if (!mounted) return;
       _snack(context, error.toString());
@@ -1493,9 +2122,22 @@ class _HostBookingsScreenState extends State<HostBookingsScreen> {
       body: FutureBuilder<List<dynamic>>(
         future: bookings,
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return snapshot.hasError ? EmptyState(title: 'Could not load host bookings', message: snapshot.error.toString()) : const LoadingView();
+          if (!snapshot.hasData) {
+            return snapshot.hasError
+                ? EmptyState(
+                    title: 'Could not load host bookings',
+                    message: snapshot.error.toString(),
+                  )
+                : const LoadingView();
+          }
           final raw = snapshot.data!;
-          if (raw.isEmpty) return const EmptyState(title: 'No requests yet', message: 'Customer booking requests for your venues will appear here.');
+          if (raw.isEmpty) {
+            return const EmptyState(
+              title: 'No requests yet',
+              message:
+                  'Customer booking requests for your venues will appear here.',
+            );
+          }
           final data = _filterSortBookings(raw, search.text, sort);
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -1508,11 +2150,19 @@ class _HostBookingsScreenState extends State<HostBookingsScreen> {
               ),
               const SizedBox(height: 12),
               if (data.isEmpty)
-                const EmptyState(title: 'No matches', message: 'Try searching a venue, customer, status, or date.')
+                const EmptyState(
+                  title: 'No matches',
+                  message: 'Try searching a venue, customer, status, or date.',
+                )
               else
                 ...data.map((booking) {
                   final map = booking as Map<String, dynamic>;
-                  return BookingTile(api: widget.api, booking: map, hostControls: true, onStatus: (status) => _status(map['id'] as String, status));
+                  return BookingTile(
+                    api: widget.api,
+                    booking: map,
+                    hostControls: true,
+                    onStatus: (status) => _status(map['id'] as String, status),
+                  );
                 }),
             ],
           );
@@ -1550,7 +2200,12 @@ class _HostVenuesScreenState extends State<HostVenuesScreen> {
   }
 
   Future<void> _openForm([Map<String, dynamic>? venue]) async {
-    await Navigator.push(context, MaterialPageRoute(builder: (_) => AddVenueScreen(api: widget.api, venue: venue)));
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddVenueScreen(api: widget.api, venue: venue),
+      ),
+    );
     if (mounted) setState(() => venues = _load());
   }
 
@@ -1566,9 +2221,21 @@ class _HostVenuesScreenState extends State<HostVenuesScreen> {
       body: FutureBuilder<List<dynamic>>(
         future: venues,
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return snapshot.hasError ? EmptyState(title: 'Could not load venues', message: snapshot.error.toString()) : const LoadingView();
+          if (!snapshot.hasData) {
+            return snapshot.hasError
+                ? EmptyState(
+                    title: 'Could not load venues',
+                    message: snapshot.error.toString(),
+                  )
+                : const LoadingView();
+          }
           final data = snapshot.data!;
-          if (data.isEmpty) return const EmptyState(title: 'No venues listed', message: 'Tap Add venue to create your first listing.');
+          if (data.isEmpty) {
+            return const EmptyState(
+              title: 'No venues listed',
+              message: 'Tap Add venue to create your first listing.',
+            );
+          }
           return ListView(
             padding: const EdgeInsets.all(16),
             children: data.map((item) {
@@ -1587,13 +2254,40 @@ class _HostVenuesScreenState extends State<HostVenuesScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(children: [Expanded(child: Text(venue['name'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900))), VHStatusChip(venue['status'])]),
-                            Text('${venue['location']} - ${moneyFormat.format(_num(venue['pricePerDay']))}'),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    venue['name'],
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                                VHStatusChip(venue['status']),
+                              ],
+                            ),
+                            Text(
+                              '${venue['location']} - ${moneyFormat.format(_num(venue['pricePerDay']))}',
+                            ),
                             const SizedBox(height: 10),
-                            Wrap(spacing: 8, children: [
-                              OutlinedButton.icon(onPressed: () => _openForm(venue), icon: const Icon(Icons.edit), label: const Text('Edit')),
-                              OutlinedButton.icon(onPressed: () => _delete(venue['id'] as String), icon: const Icon(Icons.delete_outline), label: const Text('Delete')),
-                            ]),
+                            Wrap(
+                              spacing: 8,
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: () => _openForm(venue),
+                                  icon: const Icon(Icons.edit),
+                                  label: const Text('Edit'),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: () =>
+                                      _delete(venue['id'] as String),
+                                  icon: const Icon(Icons.delete_outline),
+                                  label: const Text('Delete'),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
@@ -1626,8 +2320,12 @@ class _AddVenueScreenState extends State<AddVenueScreen> {
   final capacity = TextEditingController();
   final location = TextEditingController();
   final address = TextEditingController();
-  final amenities = TextEditingController(text: 'Air conditioning, Parking, Catering partner');
-  final facilities = TextEditingController(text: 'Main hall, Sound system, Prep room');
+  final amenities = TextEditingController(
+    text: 'Air conditioning, Parking, Catering partner',
+  );
+  final facilities = TextEditingController(
+    text: 'Main hall, Sound system, Prep room',
+  );
   final imagePicker = ImagePicker();
   final List<String> selectedImages = [];
   bool loading = false;
@@ -1646,9 +2344,17 @@ class _AddVenueScreenState extends State<AddVenueScreen> {
     address.text = venue['address']?.toString() ?? '';
     selectedImages
       ..clear()
-      ..addAll((venue['images'] as List<dynamic>? ?? []).map((item) => item['imageUrl'].toString()).where((item) => item.isNotEmpty));
-    amenities.text = ((venue['amenities'] as List<dynamic>? ?? []).map((item) => item['name'].toString())).join(', ');
-    facilities.text = ((venue['facilities'] as List<dynamic>? ?? []).map((item) => item['name'].toString())).join(', ');
+      ..addAll(
+        (venue['images'] as List<dynamic>? ?? [])
+            .map((item) => item['imageUrl'].toString())
+            .where((item) => item.isNotEmpty),
+      );
+    amenities.text = ((venue['amenities'] as List<dynamic>? ?? []).map(
+      (item) => item['name'].toString(),
+    )).join(', ');
+    facilities.text = ((venue['facilities'] as List<dynamic>? ?? []).map(
+      (item) => item['name'].toString(),
+    )).join(', ');
   }
 
   Future<void> _chooseImages() async {
@@ -1662,7 +2368,9 @@ class _AddVenueScreenState extends State<AddVenueScreen> {
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined),
                 title: const Text('Choose photos from gallery'),
-                subtitle: const Text('Select one or more venue photos from this phone.'),
+                subtitle: const Text(
+                  'Select one or more venue photos from this phone.',
+                ),
                 onTap: () => Navigator.pop(context, 'gallery'),
               ),
               if (selectedImages.isNotEmpty)
@@ -1683,23 +2391,35 @@ class _AddVenueScreenState extends State<AddVenueScreen> {
 
       if (action != 'gallery') return;
       if (selectedImages.length >= 6) {
-        throw ApiException('You can add up to 6 photos per venue for this demo.');
+        throw ApiException(
+          'You can add up to 6 photos per venue for this demo.',
+        );
       }
 
-      final picked = await imagePicker.pickMultiImage(imageQuality: 68, maxWidth: 1200);
+      final picked = await imagePicker.pickMultiImage(
+        imageQuality: 68,
+        maxWidth: 1200,
+      );
       if (picked.isEmpty) return;
 
       final encodedImages = <String>[];
-      var totalPayloadSize = selectedImages.fold<int>(0, (sum, image) => sum + image.length);
+      var totalPayloadSize = selectedImages.fold<int>(
+        0,
+        (sum, image) => sum + image.length,
+      );
       for (final image in picked.take(6 - selectedImages.length)) {
         final bytes = await image.readAsBytes();
         if (bytes.length > 2.5 * 1024 * 1024) {
-          throw ApiException('One selected image is still too large. Please choose a smaller photo.');
+          throw ApiException(
+            'One selected image is still too large. Please choose a smaller photo.',
+          );
         }
         final dataUrl = 'data:image/jpeg;base64,${base64Encode(bytes)}';
         totalPayloadSize += dataUrl.length;
         if (totalPayloadSize > 18 * 1024 * 1024) {
-          throw ApiException('Selected photos are too large together. Please remove one photo or choose smaller images.');
+          throw ApiException(
+            'Selected photos are too large together. Please remove one photo or choose smaller images.',
+          );
         }
         encodedImages.add(dataUrl);
       }
@@ -1737,8 +2457,20 @@ class _AddVenueScreenState extends State<AddVenueScreen> {
       }
 
       if (!mounted) return;
-      _snack(context, widget.venue == null ? 'Venue submitted for admin approval.' : 'Venue updated.');
-      for (final controller in [name, description, price, capacity, location, address]) {
+      _snack(
+        context,
+        widget.venue == null
+            ? 'Venue submitted for admin approval.'
+            : 'Venue updated.',
+      );
+      for (final controller in [
+        name,
+        description,
+        price,
+        capacity,
+        location,
+        address,
+      ]) {
         controller.clear();
       }
       if (widget.venue != null) Navigator.pop(context);
@@ -1753,21 +2485,45 @@ class _AddVenueScreenState extends State<AddVenueScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.venue == null ? 'Add venue' : 'Edit venue')),
+      appBar: AppBar(
+        title: Text(widget.venue == null ? 'Add venue' : 'Edit venue'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          TextField(controller: name, decoration: const InputDecoration(labelText: 'Venue name')),
+          TextField(
+            controller: name,
+            decoration: const InputDecoration(labelText: 'Venue name'),
+          ),
           const SizedBox(height: 10),
-          TextField(controller: description, minLines: 3, maxLines: 4, decoration: const InputDecoration(labelText: 'Description')),
+          TextField(
+            controller: description,
+            minLines: 3,
+            maxLines: 4,
+            decoration: const InputDecoration(labelText: 'Description'),
+          ),
           const SizedBox(height: 10),
-          TextField(controller: price, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Price per day')),
+          TextField(
+            controller: price,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Price per day'),
+          ),
           const SizedBox(height: 10),
-          TextField(controller: capacity, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Capacity')),
+          TextField(
+            controller: capacity,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Capacity'),
+          ),
           const SizedBox(height: 10),
-          TextField(controller: location, decoration: const InputDecoration(labelText: 'Location')),
+          TextField(
+            controller: location,
+            decoration: const InputDecoration(labelText: 'Location'),
+          ),
           const SizedBox(height: 10),
-          TextField(controller: address, decoration: const InputDecoration(labelText: 'Address')),
+          TextField(
+            controller: address,
+            decoration: const InputDecoration(labelText: 'Address'),
+          ),
           const SizedBox(height: 10),
           _VenuePhotoPicker(
             images: selectedImages,
@@ -1775,11 +2531,30 @@ class _AddVenueScreenState extends State<AddVenueScreen> {
             onRemove: _removeImage,
           ),
           const SizedBox(height: 10),
-          TextField(controller: amenities, decoration: const InputDecoration(labelText: 'Amenities, comma separated')),
+          TextField(
+            controller: amenities,
+            decoration: const InputDecoration(
+              labelText: 'Amenities, comma separated',
+            ),
+          ),
           const SizedBox(height: 10),
-          TextField(controller: facilities, decoration: const InputDecoration(labelText: 'Facilities, comma separated')),
+          TextField(
+            controller: facilities,
+            decoration: const InputDecoration(
+              labelText: 'Facilities, comma separated',
+            ),
+          ),
           const SizedBox(height: 18),
-          ElevatedButton(onPressed: loading ? null : _save, child: Text(loading ? 'Saving...' : widget.venue == null ? 'Submit venue' : 'Save changes')),
+          ElevatedButton(
+            onPressed: loading ? null : _save,
+            child: Text(
+              loading
+                  ? 'Saving...'
+                  : widget.venue == null
+                  ? 'Submit venue'
+                  : 'Save changes',
+            ),
+          ),
         ],
       ),
     );
@@ -1810,14 +2585,22 @@ class _VenuePhotoPicker extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Venue photos',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
-                Text('${images.length}/6', style: const TextStyle(color: Colors.black54)),
+                Text(
+                  '${images.length}/6',
+                  style: const TextStyle(color: Colors.black54),
+                ),
               ],
             ),
             const SizedBox(height: 6),
-            const Text('Choose real photos from the phone gallery. Guests can swipe through them in the listing.', style: TextStyle(color: Colors.black54)),
+            const Text(
+              'Choose real photos from the phone gallery. Guests can swipe through them in the listing.',
+              style: TextStyle(color: Colors.black54),
+            ),
             const SizedBox(height: 12),
             if (images.isEmpty)
               InkWell(
@@ -1829,14 +2612,23 @@ class _VenuePhotoPicker extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppTheme.teal.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: AppTheme.teal.withValues(alpha: 0.22)),
+                    border: Border.all(
+                      color: AppTheme.teal.withValues(alpha: 0.22),
+                    ),
                   ),
                   child: const Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.add_photo_alternate_outlined, size: 42, color: AppTheme.teal),
+                      Icon(
+                        Icons.add_photo_alternate_outlined,
+                        size: 42,
+                        color: AppTheme.teal,
+                      ),
                       SizedBox(height: 8),
-                      Text('Tap to add venue photos', style: TextStyle(fontWeight: FontWeight.w800)),
+                      Text(
+                        'Tap to add venue photos',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
                     ],
                   ),
                 ),
@@ -1847,7 +2639,8 @@ class _VenuePhotoPicker extends StatelessWidget {
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: images.length + 1,
-                  separatorBuilder: (context, index) => const SizedBox(width: 10),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(width: 10),
                   itemBuilder: (context, index) {
                     if (index == images.length) {
                       return InkWell(
@@ -1858,7 +2651,9 @@ class _VenuePhotoPicker extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: AppTheme.blue.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: AppTheme.blue.withValues(alpha: 0.25)),
+                            border: Border.all(
+                              color: AppTheme.blue.withValues(alpha: 0.25),
+                            ),
                           ),
                           child: const Icon(Icons.add, color: AppTheme.blue),
                         ),
@@ -1881,8 +2676,15 @@ class _VenuePhotoPicker extends StatelessWidget {
                             borderRadius: BorderRadius.circular(999),
                             child: Container(
                               padding: const EdgeInsets.all(5),
-                              decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.58), shape: BoxShape.circle),
-                              child: const Icon(Icons.close, color: Colors.white, size: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.58),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 16,
+                              ),
                             ),
                           ),
                         ),
@@ -1895,7 +2697,9 @@ class _VenuePhotoPicker extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: onAdd,
               icon: const Icon(Icons.photo_library_outlined),
-              label: Text(images.isEmpty ? 'Choose from gallery' : 'Add more photos'),
+              label: Text(
+                images.isEmpty ? 'Choose from gallery' : 'Add more photos',
+              ),
             ),
           ],
         ),
@@ -1905,7 +2709,12 @@ class _VenuePhotoPicker extends StatelessWidget {
 }
 
 class AdminHome extends StatefulWidget {
-  const AdminHome({super.key, required this.api, required this.user, required this.onLogout});
+  const AdminHome({
+    super.key,
+    required this.api,
+    required this.user,
+    required this.onLogout,
+  });
 
   final ApiClient api;
   final Map<String, dynamic> user;
@@ -1922,11 +2731,20 @@ class _AdminHomeState extends State<AdminHome> {
   Widget build(BuildContext context) {
     final pages = [
       AdminDashboard(api: widget.api),
-      AdminListScreen(api: widget.api, title: 'Users', endpoint: '/admin/users', listKey: 'users'),
+      AdminListScreen(
+        api: widget.api,
+        title: 'Users',
+        endpoint: '/admin/users',
+        listKey: 'users',
+      ),
       AdminVenuesScreen(api: widget.api),
       AdminBookingsScreen(api: widget.api),
       AdminIncomeScreen(api: widget.api),
-      ProfileScreen(api: widget.api, user: widget.user, onLogout: widget.onLogout),
+      ProfileScreen(
+        api: widget.api,
+        user: widget.user,
+        onLogout: widget.onLogout,
+      ),
     ];
 
     return Scaffold(
@@ -1935,12 +2753,35 @@ class _AdminHomeState extends State<AdminHome> {
         currentIndex: index,
         onTap: (value) => setState(() => index = value),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.grid_view_outlined), activeIcon: Icon(Icons.grid_view_rounded), label: 'Dash'),
-          BottomNavigationBarItem(icon: Icon(Icons.people_outline_rounded), activeIcon: Icon(Icons.people_rounded), label: 'Users'),
-          BottomNavigationBarItem(icon: Icon(Icons.apartment_outlined), activeIcon: Icon(Icons.apartment_rounded), label: 'Venues'),
-          BottomNavigationBarItem(icon: Icon(Icons.receipt_long_outlined), activeIcon: Icon(Icons.receipt_long_rounded), label: 'Bookings'),
-          BottomNavigationBarItem(icon: Icon(Icons.query_stats_rounded), label: 'Income'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline_rounded), activeIcon: Icon(Icons.person_rounded), label: 'Me'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.grid_view_outlined),
+            activeIcon: Icon(Icons.grid_view_rounded),
+            label: 'Dash',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people_outline_rounded),
+            activeIcon: Icon(Icons.people_rounded),
+            label: 'Users',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.apartment_outlined),
+            activeIcon: Icon(Icons.apartment_rounded),
+            label: 'Venues',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.receipt_long_outlined),
+            activeIcon: Icon(Icons.receipt_long_rounded),
+            label: 'Bookings',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.query_stats_rounded),
+            label: 'Income',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline_rounded),
+            activeIcon: Icon(Icons.person_rounded),
+            label: 'Me',
+          ),
         ],
       ),
     );
@@ -1971,7 +2812,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
       body: FutureBuilder<Map<String, dynamic>>(
         future: dashboard,
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return snapshot.hasError ? EmptyState(title: 'Could not load dashboard', message: snapshot.error.toString()) : const LoadingView();
+          if (!snapshot.hasData) {
+            return snapshot.hasError
+                ? EmptyState(
+                    title: 'Could not load dashboard',
+                    message: snapshot.error.toString(),
+                  )
+                : const LoadingView();
+          }
           final data = snapshot.data!;
           return GridView.count(
             padding: const EdgeInsets.all(16),
@@ -1980,12 +2828,36 @@ class _AdminDashboardState extends State<AdminDashboard> {
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
             children: [
-              VHStatCard(label: 'Users', value: '${data['totalUsers']}', icon: Icons.group),
-              VHStatCard(label: 'Hosts', value: '${data['totalHosts']}', icon: Icons.store),
-              VHStatCard(label: 'Venues', value: '${data['totalVenues']}', icon: Icons.location_city),
-              VHStatCard(label: 'Bookings', value: '${data['totalBookings']}', icon: Icons.event),
-              VHStatCard(label: 'Platform income', value: moneyFormat.format(_num(data['platformIncome'])), icon: Icons.savings),
-              const VHStatCard(label: 'Service fee', value: '10%', icon: Icons.percent),
+              VHStatCard(
+                label: 'Users',
+                value: '${data['totalUsers']}',
+                icon: Icons.group,
+              ),
+              VHStatCard(
+                label: 'Hosts',
+                value: '${data['totalHosts']}',
+                icon: Icons.store,
+              ),
+              VHStatCard(
+                label: 'Venues',
+                value: '${data['totalVenues']}',
+                icon: Icons.location_city,
+              ),
+              VHStatCard(
+                label: 'Bookings',
+                value: '${data['totalBookings']}',
+                icon: Icons.event,
+              ),
+              VHStatCard(
+                label: 'Platform income',
+                value: moneyFormat.format(_num(data['platformIncome'])),
+                icon: Icons.savings,
+              ),
+              const VHStatCard(
+                label: 'Service fee',
+                value: '10%',
+                icon: Icons.percent,
+              ),
             ],
           );
         },
@@ -1995,7 +2867,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
 }
 
 class AdminListScreen extends StatefulWidget {
-  const AdminListScreen({super.key, required this.api, required this.title, required this.endpoint, required this.listKey});
+  const AdminListScreen({
+    super.key,
+    required this.api,
+    required this.title,
+    required this.endpoint,
+    required this.listKey,
+  });
 
   final ApiClient api;
   final String title;
@@ -2021,11 +2899,22 @@ class _AdminListScreenState extends State<AdminListScreen> {
       body: FutureBuilder<List<dynamic>>(
         future: items,
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return snapshot.hasError ? EmptyState(title: 'Could not load ${widget.title}', message: snapshot.error.toString()) : const LoadingView();
+          if (!snapshot.hasData) {
+            return snapshot.hasError
+                ? EmptyState(
+                    title: 'Could not load ${widget.title}',
+                    message: snapshot.error.toString(),
+                  )
+                : const LoadingView();
+          }
           final data = snapshot.data!;
           return ListView(
             padding: const EdgeInsets.all(16),
-            children: data.map((item) => _AdminJsonCard(item: item as Map<String, dynamic>)).toList(),
+            children: data
+                .map(
+                  (item) => _AdminJsonCard(item: item as Map<String, dynamic>),
+                )
+                .toList(),
           );
         },
       ),
@@ -2053,9 +2942,20 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
   }
 
   Future<void> _status(String id, String status) async {
+    final confirmed = await _confirmAction(
+      context,
+      title: '${_prettyStatusAction(status)} booking?',
+      message:
+          'This will update the booking status to ${_prettyStatus(status)} for everyone.',
+      confirmLabel: _prettyStatusAction(status),
+    );
+    if (!confirmed) return;
+
     try {
       await widget.api.put('/bookings/$id/status', {'status': status});
-      if (mounted) setState(() => bookings = _load());
+      if (!mounted) return;
+      setState(() => bookings = _load());
+      _snack(context, 'Booking updated to ${_prettyStatus(status)}.');
     } catch (error) {
       if (!mounted) return;
       _snack(context, error.toString());
@@ -2069,9 +2969,22 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
       body: FutureBuilder<List<dynamic>>(
         future: bookings,
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return snapshot.hasError ? EmptyState(title: 'Could not load bookings', message: snapshot.error.toString()) : const LoadingView();
+          if (!snapshot.hasData) {
+            return snapshot.hasError
+                ? EmptyState(
+                    title: 'Could not load bookings',
+                    message: snapshot.error.toString(),
+                  )
+                : const LoadingView();
+          }
           final raw = snapshot.data!;
-          if (raw.isEmpty) return const EmptyState(title: 'No bookings found', message: 'Bookings will appear here when customers reserve venues.');
+          if (raw.isEmpty) {
+            return const EmptyState(
+              title: 'No bookings found',
+              message:
+                  'Bookings will appear here when customers reserve venues.',
+            );
+          }
           final data = _filterSortBookings(raw, search.text, sort);
 
           return ListView(
@@ -2085,11 +2998,19 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
               ),
               const SizedBox(height: 12),
               if (data.isEmpty)
-                const EmptyState(title: 'No matches', message: 'Try searching a venue, customer, status, or date.')
+                const EmptyState(
+                  title: 'No matches',
+                  message: 'Try searching a venue, customer, status, or date.',
+                )
               else
                 ...data.map((booking) {
                   final map = booking as Map<String, dynamic>;
-                  return BookingTile(api: widget.api, booking: map, hostControls: true, onStatus: (status) => _status(map['id'] as String, status));
+                  return BookingTile(
+                    api: widget.api,
+                    booking: map,
+                    hostControls: true,
+                    onStatus: (status) => _status(map['id'] as String, status),
+                  );
                 }),
             ],
           );
@@ -2116,13 +3037,25 @@ class _AdminVenuesScreenState extends State<AdminVenuesScreen> {
     return response['venues'] as List<dynamic>;
   }
 
-  Future<void> _setStatus(String id, String status) async {
+  Future<bool> _setStatus(String id, String status) async {
+    final confirmed = await _confirmAction(
+      context,
+      title: '${_prettyStatusAction(status)} venue?',
+      message: 'This venue listing will be marked ${_prettyStatus(status)}.',
+      confirmLabel: _prettyStatusAction(status),
+    );
+    if (!confirmed) return false;
+
     try {
       await widget.api.put('/venues/$id', {'status': status});
-      if (mounted) setState(() => venues = _load());
+      if (!mounted) return false;
+      setState(() => venues = _load());
+      _snack(context, 'Venue updated to ${_prettyStatus(status)}.');
+      return true;
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) return false;
       _snack(context, error.toString());
+      return false;
     }
   }
 
@@ -2133,7 +3066,14 @@ class _AdminVenuesScreenState extends State<AdminVenuesScreen> {
       body: FutureBuilder<List<dynamic>>(
         future: venues,
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return snapshot.hasError ? EmptyState(title: 'Could not load venues', message: snapshot.error.toString()) : const LoadingView();
+          if (!snapshot.hasData) {
+            return snapshot.hasError
+                ? EmptyState(
+                    title: 'Could not load venues',
+                    message: snapshot.error.toString(),
+                  )
+                : const LoadingView();
+          }
           return ListView(
             padding: const EdgeInsets.all(16),
             children: snapshot.data!.map((item) {
@@ -2152,27 +3092,56 @@ class _AdminVenuesScreenState extends State<AdminVenuesScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(children: [Expanded(child: Text(venue['name'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900))), VHStatusChip(venue['status'])]),
-                            const SizedBox(height: 4),
-                            Text('${venue['location']} - ${moneyFormat.format(_num(venue['pricePerDay']))}', style: const TextStyle(color: Colors.black54)),
-                            const SizedBox(height: 10),
-                            Wrap(spacing: 8, runSpacing: 8, children: [
-                              ElevatedButton.icon(
-                                onPressed: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => AdminVenueDetailsScreen(
-                                      venue: venue,
-                                      onStatus: (status) => _setStatus(venue['id'], status),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    venue['name'],
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
                                     ),
                                   ),
                                 ),
-                                icon: const Icon(Icons.visibility_outlined),
-                                label: const Text('Review details'),
-                              ),
-                              OutlinedButton(onPressed: () => _setStatus(venue['id'], 'APPROVED'), child: const Text('Approve')),
-                              OutlinedButton(onPressed: () => _setStatus(venue['id'], 'REJECTED'), child: const Text('Reject')),
-                            ]),
+                                VHStatusChip(venue['status']),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${venue['location']} - ${moneyFormat.format(_num(venue['pricePerDay']))}',
+                              style: const TextStyle(color: Colors.black54),
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                ElevatedButton.icon(
+                                  onPressed: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => AdminVenueDetailsScreen(
+                                        venue: venue,
+                                        onStatus: (status) =>
+                                            _setStatus(venue['id'], status),
+                                      ),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.visibility_outlined),
+                                  label: const Text('Review details'),
+                                ),
+                                OutlinedButton(
+                                  onPressed: () =>
+                                      _setStatus(venue['id'], 'APPROVED'),
+                                  child: const Text('Approve'),
+                                ),
+                                OutlinedButton(
+                                  onPressed: () =>
+                                      _setStatus(venue['id'], 'REJECTED'),
+                                  child: const Text('Reject'),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
@@ -2189,10 +3158,14 @@ class _AdminVenuesScreenState extends State<AdminVenuesScreen> {
 }
 
 class AdminVenueDetailsScreen extends StatelessWidget {
-  const AdminVenueDetailsScreen({super.key, required this.venue, required this.onStatus});
+  const AdminVenueDetailsScreen({
+    super.key,
+    required this.venue,
+    required this.onStatus,
+  });
 
   final Map<String, dynamic> venue;
-  final Future<void> Function(String status) onStatus;
+  final Future<bool> Function(String status) onStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -2210,8 +3183,8 @@ class AdminVenueDetailsScreen extends StatelessWidget {
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: () async {
-                  await onStatus('REJECTED');
-                  if (context.mounted) Navigator.pop(context);
+                  final didUpdate = await onStatus('REJECTED');
+                  if (didUpdate && context.mounted) Navigator.pop(context);
                 },
                 icon: const Icon(Icons.close),
                 label: const Text('Reject'),
@@ -2221,8 +3194,8 @@ class AdminVenueDetailsScreen extends StatelessWidget {
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: () async {
-                  await onStatus('APPROVED');
-                  if (context.mounted) Navigator.pop(context);
+                  final didUpdate = await onStatus('APPROVED');
+                  if (didUpdate && context.mounted) Navigator.pop(context);
                 },
                 icon: const Icon(Icons.check),
                 label: const Text('Approve'),
@@ -2241,22 +3214,48 @@ class AdminVenueDetailsScreen extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Expanded(child: Text(venue['name']?.toString() ?? 'Venue', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900))),
+                    Expanded(
+                      child: Text(
+                        venue['name']?.toString() ?? 'Venue',
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.w900),
+                      ),
+                    ),
                     VHStatusChip(venue['status']?.toString() ?? 'PENDING'),
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(venue['description']?.toString() ?? 'No description provided.'),
+                Text(
+                  venue['description']?.toString() ??
+                      'No description provided.',
+                ),
                 const SizedBox(height: 18),
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
-                        _InfoLine(Icons.place_outlined, 'Location', '${venue['location']} - ${venue['address']}'),
-                        _InfoLine(Icons.people_outline, 'Capacity', '${venue['capacity']} guests'),
-                        _InfoLine(Icons.payments_outlined, 'Price', '${moneyFormat.format(_num(venue['pricePerDay']))} / day'),
-                        if (host != null) _InfoLine(Icons.storefront_outlined, 'Host', '${host['name'] ?? 'Host'} - ${host['email'] ?? ''}'),
+                        _InfoLine(
+                          Icons.place_outlined,
+                          'Location',
+                          '${venue['location']} - ${venue['address']}',
+                        ),
+                        _InfoLine(
+                          Icons.people_outline,
+                          'Capacity',
+                          '${venue['capacity']} guests',
+                        ),
+                        _InfoLine(
+                          Icons.payments_outlined,
+                          'Price',
+                          '${moneyFormat.format(_num(venue['pricePerDay']))} / day',
+                        ),
+                        if (host != null)
+                          _InfoLine(
+                            Icons.storefront_outlined,
+                            'Host',
+                            '${host['name'] ?? 'Host'} - ${host['email'] ?? ''}',
+                          ),
                       ],
                     ),
                   ),
@@ -2286,7 +3285,12 @@ class _DetailChipSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 8),
           if (items.isEmpty)
             const Text('None listed.', style: TextStyle(color: Colors.black54))
@@ -2294,7 +3298,16 @@ class _DetailChipSection extends StatelessWidget {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: items.map((item) => Chip(label: Text((item as Map<String, dynamic>)['name']?.toString() ?? 'Item'))).toList(),
+              children: items
+                  .map(
+                    (item) => Chip(
+                      label: Text(
+                        (item as Map<String, dynamic>)['name']?.toString() ??
+                            'Item',
+                      ),
+                    ),
+                  )
+                  .toList(),
             ),
         ],
       ),
@@ -2326,18 +3339,41 @@ class _AdminIncomeScreenState extends State<AdminIncomeScreen> {
       body: FutureBuilder<Map<String, dynamic>>(
         future: income,
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return snapshot.hasError ? EmptyState(title: 'Could not load income', message: snapshot.error.toString()) : const LoadingView();
+          if (!snapshot.hasData) {
+            return snapshot.hasError
+                ? EmptyState(
+                    title: 'Could not load income',
+                    message: snapshot.error.toString(),
+                  )
+                : const LoadingView();
+          }
           final data = snapshot.data!;
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              VHStatCard(label: 'Weekly platform income', value: moneyFormat.format(_num(data['weekly'])), icon: Icons.calendar_view_week),
+              VHStatCard(
+                label: 'Weekly platform income',
+                value: moneyFormat.format(_num(data['weekly'])),
+                icon: Icons.calendar_view_week,
+              ),
               const SizedBox(height: 12),
-              VHStatCard(label: 'Monthly platform income', value: moneyFormat.format(_num(data['monthly'])), icon: Icons.calendar_month),
+              VHStatCard(
+                label: 'Monthly platform income',
+                value: moneyFormat.format(_num(data['monthly'])),
+                icon: Icons.calendar_month,
+              ),
               const SizedBox(height: 12),
-              VHStatCard(label: 'Annual platform income', value: moneyFormat.format(_num(data['annual'])), icon: Icons.stacked_line_chart),
+              VHStatCard(
+                label: 'Annual platform income',
+                value: moneyFormat.format(_num(data['annual'])),
+                icon: Icons.stacked_line_chart,
+              ),
               const SizedBox(height: 12),
-              VHStatCard(label: 'All-time platform income', value: moneyFormat.format(_num(data['allTime'])), icon: Icons.savings),
+              VHStatCard(
+                label: 'All-time platform income',
+                value: moneyFormat.format(_num(data['allTime'])),
+                icon: Icons.savings,
+              ),
             ],
           );
         },
@@ -2354,15 +3390,25 @@ class _AdminJsonCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final title = item['name'] ?? item['email'] ?? item['id'] ?? 'Record';
-    final subtitle = item['role'] ?? item['status'] ?? item['paymentStatus'] ?? item['location'] ?? '';
+    final subtitle =
+        item['role'] ??
+        item['status'] ??
+        item['paymentStatus'] ??
+        item['location'] ??
+        '';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Card(
         child: ListTile(
-          title: Text(title.toString(), style: const TextStyle(fontWeight: FontWeight.w900)),
+          title: Text(
+            title.toString(),
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
           subtitle: Text(subtitle.toString()),
-          trailing: item['status'] == null ? null : VHStatusChip(item['status'].toString()),
+          trailing: item['status'] == null
+              ? null
+              : VHStatusChip(item['status'].toString()),
         ),
       ),
     );
@@ -2379,7 +3425,11 @@ IconData _paymentIcon(String method) {
 }
 
 List<String> _csv(String text) {
-  return text.split(',').map((item) => item.trim()).where((item) => item.isNotEmpty).toList();
+  return text
+      .split(',')
+      .map((item) => item.trim())
+      .where((item) => item.isNotEmpty)
+      .toList();
 }
 
 num _num(dynamic value) {
@@ -2395,14 +3445,21 @@ num _balanceDue(Map<String, dynamic> booking) {
 
   final payments = booking['payments'];
   if (payments is List) {
-    final paid = payments.fold<num>(0, (sum, payment) => sum + _num((payment as Map<String, dynamic>)['amount']));
+    final paid = payments.fold<num>(
+      0,
+      (sum, payment) => sum + _num((payment as Map<String, dynamic>)['amount']),
+    );
     return (_num(booking['totalAmount']) - paid).clamp(0, double.infinity);
   }
 
   return _num(booking['remainingBalance']);
 }
 
-List<dynamic> _filterSortBookings(List<dynamic> source, String query, String sort) {
+List<dynamic> _filterSortBookings(
+  List<dynamic> source,
+  String query,
+  String sort,
+) {
   final normalizedQuery = query.trim().toLowerCase();
   final results = source.where((item) {
     final booking = item as Map<String, dynamic>;
@@ -2427,14 +3484,61 @@ List<dynamic> _filterSortBookings(List<dynamic> source, String query, String sor
     final right = b as Map<String, dynamic>;
 
     return switch (sort) {
-      'oldest' => DateTime.parse(left['createdAt']).compareTo(DateTime.parse(right['createdAt'])),
-      'status' => '${left['status']}${left['paymentStatus']}'.compareTo('${right['status']}${right['paymentStatus']}'),
-      'price' => _num(right['totalAmount']).compareTo(_num(left['totalAmount'])),
-      _ => DateTime.parse(right['createdAt']).compareTo(DateTime.parse(left['createdAt'])),
+      'oldest' => DateTime.parse(
+        left['createdAt'],
+      ).compareTo(DateTime.parse(right['createdAt'])),
+      'status' => '${left['status']}${left['paymentStatus']}'.compareTo(
+        '${right['status']}${right['paymentStatus']}',
+      ),
+      'price' => _num(
+        right['totalAmount'],
+      ).compareTo(_num(left['totalAmount'])),
+      _ => DateTime.parse(
+        right['createdAt'],
+      ).compareTo(DateTime.parse(left['createdAt'])),
     };
   });
 
   return results;
+}
+
+Future<bool> _confirmAction(
+  BuildContext context, {
+  required String title,
+  required String message,
+  required String confirmLabel,
+}) async {
+  return await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(confirmLabel),
+            ),
+          ],
+        ),
+      ) ??
+      false;
+}
+
+String _prettyStatus(String status) {
+  return status.toLowerCase().replaceAll('_', ' ');
+}
+
+String _prettyStatusAction(String status) {
+  return switch (status) {
+    'APPROVED' => 'Approve',
+    'REJECTED' => 'Reject',
+    'COMPLETED' => 'Complete',
+    _ => 'Update',
+  };
 }
 
 void _snack(BuildContext context, String message) {
