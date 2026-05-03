@@ -4255,12 +4255,16 @@ String _locationLabel(dynamic value) {
     'Tacloban',
     'Palo',
     'Ormoc',
+    'Baybay',
+    'Guiuan',
+    'Catbalogan',
+    'Borongan',
+    'Naval',
+    'Maasin',
+    'Calbayog',
     'Tanauan',
     'Dulag',
     'Tolosa',
-    'Makati',
-    'Pasay',
-    'Mandaluyong',
   ];
   final lower = text.toLowerCase();
   for (final place in knownPlaces) {
@@ -4275,7 +4279,21 @@ String _locationLabel(dynamic value) {
 }
 
 List<String> _venueLocations(List<Map<String, dynamic>> venues) {
-  const preferred = ['Tacloban', 'Palo', 'Ormoc', 'Tanauan', 'Dulag', 'Tolosa'];
+  const preferred = [
+    'Tacloban',
+    'Palo',
+    'Ormoc',
+    'Baybay',
+    'Guiuan',
+    'Catbalogan',
+    'Borongan',
+    'Naval',
+    'Maasin',
+    'Calbayog',
+    'Tanauan',
+    'Dulag',
+    'Tolosa',
+  ];
   final labels = venues
       .map((venue) => _locationLabel(venue['location']))
       .toSet();

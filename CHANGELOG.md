@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.3+4 - 2026-05-03
+
+- Limited the customer location category scope to Eastern Visayas places only.
+- Replaced seed venues with temporary Eastern Visayas demo venues across Leyte, Samar, and Eastern Samar.
+- Kept Packages and Services visible as inactive/blank demo tabs for now.
+
 ## 1.0.2+3 - 2026-05-03
 
 - Refined the customer explore screen with an Airbnb-inspired floating search pill, animated tabs, horizontal location categories, and side-scroll venue sections.

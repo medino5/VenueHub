@@ -3,11 +3,15 @@ const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
-const imageUrls = [
+const venueImages = [
   'https://images.unsplash.com/photo-1519167758481-83f29c8f8c17?auto=format&fit=crop&w=1200&q=80',
   'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&w=1200&q=80',
   'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1505236858219-8359eb29e329?auto=format&fit=crop&w=1200&q=80'
+  'https://images.unsplash.com/photo-1505236858219-8359eb29e329?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1527529482837-4698179dc6ce?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1507504031003-b417219a0fde?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80'
 ];
 
 const bookingAmounts = (price) => ({
@@ -16,6 +20,115 @@ const bookingAmounts = (price) => ({
   remainingBalance: price * 0.5,
   serviceFee: price * 0.1
 });
+
+const temporaryVenues = [
+  {
+    name: 'Tacloban Bayfront Events Hall',
+    description: 'A clean seaside-inspired hall for birthdays, seminars, receptions, and community celebrations near downtown Tacloban.',
+    pricePerDay: 42000,
+    capacity: 160,
+    location: 'Tacloban City, Leyte',
+    address: 'Magsaysay Boulevard, Tacloban City, Leyte',
+    status: 'APPROVED',
+    imageIndexes: [0, 2],
+    amenities: ['Air conditioning', 'Parking', 'Catering partner', 'Wi-Fi'],
+    facilities: ['Main event hall', 'Stage area', 'Sound system', 'Prep room']
+  },
+  {
+    name: 'Palo Heritage Garden Venue',
+    description: 'An outdoor garden-style venue for weddings, debuts, and family milestones in Palo.',
+    pricePerDay: 38000,
+    capacity: 120,
+    location: 'Palo, Leyte',
+    address: 'Palo Town Center, Palo, Leyte',
+    status: 'APPROVED',
+    imageIndexes: [1, 5],
+    amenities: ['Garden setup', 'Parking', 'Basic lights', 'Photo area'],
+    facilities: ['Garden lawn', 'Covered dining area', 'Bridal room', 'Pantry']
+  },
+  {
+    name: 'Ormoc Grand Social Hall',
+    description: 'A polished indoor venue for corporate gatherings, reunions, and formal family events.',
+    pricePerDay: 46000,
+    capacity: 190,
+    location: 'Ormoc City, Leyte',
+    address: 'Aviles Street, Ormoc City, Leyte',
+    status: 'APPROVED',
+    imageIndexes: [3, 6],
+    amenities: ['Air conditioning', 'LED wall', 'Catering partner', 'Security'],
+    facilities: ['Grand ballroom', 'Lobby', 'VIP room', 'Audio booth']
+  },
+  {
+    name: 'Baybay Hilltop Pavilion',
+    description: 'A breezy pavilion suited for intimate weddings, retreats, and private dinners in Baybay.',
+    pricePerDay: 35000,
+    capacity: 95,
+    location: 'Baybay City, Leyte',
+    address: 'Diversion Road, Baybay City, Leyte',
+    status: 'APPROVED',
+    imageIndexes: [4, 7],
+    amenities: ['Scenic view', 'Parking', 'Outdoor lights', 'Backup generator'],
+    facilities: ['Open pavilion', 'Dining deck', 'Kitchen area', 'Changing room']
+  },
+  {
+    name: 'Guiuan Coastal Function House',
+    description: 'A relaxed coastal venue for beach-themed birthdays, small receptions, and weekend celebrations.',
+    pricePerDay: 30000,
+    capacity: 80,
+    location: 'Guiuan, Eastern Samar',
+    address: 'Poblacion, Guiuan, Eastern Samar',
+    status: 'APPROVED',
+    imageIndexes: [2, 4],
+    amenities: ['Coastal view', 'Basic sound', 'Parking', 'E-wallet accepted'],
+    facilities: ['Function room', 'Outdoor dining space', 'Prep area', 'Storage room']
+  },
+  {
+    name: 'Catbalogan City Events Loft',
+    description: 'A compact modern loft for meetings, birthdays, showers, and small social events.',
+    pricePerDay: 28000,
+    capacity: 70,
+    location: 'Catbalogan City, Samar',
+    address: 'Downtown Catbalogan City, Samar',
+    status: 'APPROVED',
+    imageIndexes: [5, 0],
+    amenities: ['Wi-Fi', 'Air conditioning', 'Projector', 'Coffee station'],
+    facilities: ['Event loft', 'Meeting corner', 'Pantry', 'Reception desk']
+  },
+  {
+    name: 'Borongan Riverside Hall',
+    description: 'A pending listing for admin review demos in Eastern Samar.',
+    pricePerDay: 32000,
+    capacity: 100,
+    location: 'Borongan City, Eastern Samar',
+    address: 'Riverside Road, Borongan City, Eastern Samar',
+    status: 'PENDING',
+    imageIndexes: [6],
+    amenities: ['Parking', 'Basic lights', 'Tables and chairs'],
+    facilities: ['Main hall', 'Kitchenette']
+  }
+];
+
+const createVenue = (hostId, venue) =>
+  prisma.venue.create({
+    data: {
+      hostId,
+      name: venue.name,
+      description: venue.description,
+      pricePerDay: venue.pricePerDay,
+      capacity: venue.capacity,
+      location: venue.location,
+      address: venue.address,
+      status: venue.status,
+      images: {
+        create: venue.imageIndexes.map((imageIndex, sortOrder) => ({
+          imageUrl: venueImages[imageIndex],
+          sortOrder
+        }))
+      },
+      amenities: { create: venue.amenities.map((name) => ({ name })) },
+      facilities: { create: venue.facilities.map((name) => ({ name })) }
+    }
+  });
 
 async function main() {
   await prisma.review.deleteMany();
@@ -64,61 +177,15 @@ async function main() {
     })
   ]);
 
-  const venues = await Promise.all([
-    prisma.venue.create({
-      data: {
-        hostId: host.id,
-        name: 'The Glass Garden Pavilion',
-        description: 'A bright garden event venue with glass walls, floral styling, and an elegant reception hall.',
-        pricePerDay: 85000,
-        capacity: 180,
-        location: 'Tagaytay',
-        address: 'Aguinaldo Highway, Tagaytay City',
-        status: 'APPROVED',
-        images: { create: imageUrls.slice(0, 2).map((imageUrl, sortOrder) => ({ imageUrl, sortOrder })) },
-        amenities: { create: ['Air conditioning', 'Parking', 'Catering partner', 'Bridal room'].map((name) => ({ name })) },
-        facilities: { create: ['Garden ceremony area', 'Reception hall', 'Sound system', 'Prep suite'].map((name) => ({ name })) }
-      }
-    }),
-    prisma.venue.create({
-      data: {
-        hostId: host.id,
-        name: 'Harbor Lights Rooftop',
-        description: 'A skyline rooftop venue made for birthdays, corporate cocktails, and intimate evening events.',
-        pricePerDay: 62000,
-        capacity: 120,
-        location: 'Pasay',
-        address: 'Seaside Boulevard, Pasay City',
-        status: 'APPROVED',
-        images: { create: imageUrls.slice(2, 4).map((imageUrl, sortOrder) => ({ imageUrl, sortOrder })) },
-        amenities: { create: ['City view', 'Bar access', 'LED wall', 'Valet parking'].map((name) => ({ name })) },
-        facilities: { create: ['Rooftop deck', 'Indoor lounge', 'DJ booth', 'VIP room'].map((name) => ({ name })) }
-      }
-    }),
-    prisma.venue.create({
-      data: {
-        hostId: host.id,
-        name: 'Casa Amara Events Hall',
-        description: 'A pending listing for admin approval demos.',
-        pricePerDay: 43000,
-        capacity: 90,
-        location: 'Quezon City',
-        address: 'Scout Area, Quezon City',
-        status: 'PENDING',
-        images: { create: [{ imageUrl: imageUrls[1], sortOrder: 0 }] },
-        amenities: { create: ['Wi-Fi', 'Basic lights'].map((name) => ({ name })) },
-        facilities: { create: ['Main hall', 'Pantry'].map((name) => ({ name })) }
-      }
-    })
-  ]);
+  const venues = await Promise.all(temporaryVenues.map((venue) => createVenue(host.id, venue)));
 
-  const amounts = bookingAmounts(85000);
+  const amounts = bookingAmounts(temporaryVenues[0].pricePerDay);
   const booking = await prisma.booking.create({
     data: {
       customerId: customer.id,
       venueId: venues[0].id,
       eventDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 21),
-      notes: 'Demo booking for a wedding reception.',
+      notes: 'Demo booking for an Eastern Visayas wedding reception.',
       status: 'APPROVED',
       paymentStatus: 'PARTIALLY_PAID',
       ...amounts
@@ -149,7 +216,7 @@ async function main() {
     }
   });
 
-  console.log('Seed complete.');
+  console.log('Seed complete. Temporary Eastern Visayas venues are ready.');
   console.table([
     { role: 'customer', email: customer.email, password: 'password123' },
     { role: 'host', email: host.email, password: 'password123' },
