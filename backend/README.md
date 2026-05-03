@@ -30,6 +30,22 @@ If Supabase says `Not IPv4 compatible`, use the Supabase Session Pooler connecti
 
 Do not add the Next.js files from the Supabase prompt, such as `page.tsx`, `utils/supabase/server.ts`, `utils/supabase/client.ts`, or `utils/supabase/middleware.ts`. Those are for Next.js SSR projects, not this Express API.
 
+## Email Setup
+
+Password reset and receipt emails use SMTP through Nodemailer. Add these variables locally and in Render:
+
+```text
+APP_BASE_URL="https://your-render-service.onrender.com"
+SMTP_HOST="smtp.example.com"
+SMTP_PORT="587"
+SMTP_SECURE="false"
+SMTP_USER="your smtp username"
+SMTP_PASS="your smtp password"
+SMTP_FROM="VenueHub <no-reply@yourdomain.com>"
+```
+
+If SMTP variables are missing, the backend logs email contents instead of sending them. This keeps local demos working while making production email configurable.
+
 ## Scripts
 
 ```text
@@ -45,6 +61,10 @@ npm run prisma:deploy Apply migrations
 POST /api/auth/register
 POST /api/auth/login
 GET  /api/auth/me
+POST /api/auth/forgot-password
+POST /api/auth/reset-password
+PUT  /api/auth/change-password
+GET  /api/auth/reset-password-page
 
 GET    /api/venues
 GET    /api/venues/:id

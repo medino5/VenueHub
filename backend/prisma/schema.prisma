@@ -62,6 +62,8 @@ model User {
   phone           String?
   profileImageUrl String?
   role            Role     @default(CUSTOMER)
+  resetTokenHash  String?
+  resetTokenExpires DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

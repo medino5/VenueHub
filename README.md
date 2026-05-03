@@ -105,7 +105,16 @@ DATABASE_URL=your Supabase PostgreSQL URL
 JWT_SECRET=your long random secret
 JWT_EXPIRES_IN=7d
 CLIENT_ORIGIN=*
+APP_BASE_URL=https://your-render-service.onrender.com
+SMTP_HOST=your SMTP host
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your SMTP username
+SMTP_PASS=your SMTP password
+SMTP_FROM=VenueHub <no-reply@yourdomain.com>
 ```
+
+Email is used for password reset and booking/payment receipt emails. If SMTP is not configured, the backend will log email contents for development.
 
 ## 5. Deploy Backend On Render
 
@@ -162,6 +171,12 @@ releases/VenueHub-release.apk
 
 Whenever that file is pushed to `main`, GitHub Actions publishes or updates the `VenueHub Latest APK` release so the APK can be downloaded from GitHub Releases.
 
+Download the latest APK here:
+
+```text
+https://github.com/medino5/VenueHub/releases/tag/venuehub-latest
+```
+
 ## 8. Client Installs APK And Tests With Internet
 
 Install the APK on an Android phone. The phone must have internet access because the app connects to Render, and Render connects to Supabase.
@@ -173,3 +188,19 @@ Install the APK on an Android phone. The phone must have internet access because
 - Remaining 50% balance is due before or on event day.
 - VenueHub service fee is 10%.
 - Simulated payment creates payment and receipt records.
+
+## Client Turnover Checklist
+
+- Backend deployed on Render and connected to Supabase through `DATABASE_URL`.
+- Render environment variables include JWT and SMTP settings.
+- Supabase migrations are applied through Render build command.
+- Demo accounts are seeded with `npx prisma db seed`.
+- Latest APK is available from GitHub Releases.
+- Mobile APK is built with `--dart-define=API_BASE_URL=https://your-render-service.onrender.com/api`.
+
+## Common Troubleshooting
+
+- If login says host lookup or network error, confirm the APK was built with the Render API URL and Android internet permission is present.
+- If Render cannot reach Supabase, use the Supabase Session Pooler URL, not the direct database host.
+- If password reset emails do not arrive, verify SMTP variables in Render and check Render logs.
+- If demo accounts do not work, run `npx prisma db seed` against the deployed Supabase database.

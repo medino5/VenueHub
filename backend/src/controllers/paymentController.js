@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
+const { sendReceiptEmail } = require('../services/emailService');
 const { simulatePayment } = require('../services/paymentService');
 const { formatBooking } = require('./bookingController');
 const { toNumber } = require('../utils/formatters');
@@ -17,6 +18,10 @@ const simulate = asyncHandler(async (req, res) => {
     method,
     paymentType,
     customerId: req.user.role === 'CUSTOMER' ? req.user.id : null
+  });
+
+  sendReceiptEmail({ booking: result.booking, receipt: result.receipt }).catch((error) => {
+    console.error('Receipt email failed:', error.message);
   });
 
   res.status(201).json({

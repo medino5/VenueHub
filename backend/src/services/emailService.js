@@ -1,0 +1,92 @@
+const nodemailer = require('nodemailer');
+
+const { toNumber } = require('../utils/formatters');
+
+const hasSmtpConfig = () => Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+
+const transporter = () => {
+  if (!hasSmtpConfig()) return null;
+
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: String(process.env.SMTP_SECURE || 'false') === 'true',
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS
+    }
+  });
+};
+
+const sendMail = async ({ to, subject, html, text }) => {
+  const mailer = transporter();
+
+  if (!mailer) {
+    console.log('[email disabled]', { to, subject, text });
+    return { skipped: true };
+  }
+
+  return mailer.sendMail({
+    from: process.env.SMTP_FROM || 'VenueHub <no-reply@venuehub.demo>',
+    to,
+    subject,
+    html,
+    text
+  });
+};
+
+const sendPasswordResetEmail = async ({ user, resetUrl, token }) => {
+  return sendMail({
+    to: user.email,
+    subject: 'Reset your VenueHub password',
+    text: `Reset your VenueHub password here: ${resetUrl}\n\nReset code: ${token}`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#05264D">
+        <h2>Reset your VenueHub password</h2>
+        <p>Hello ${user.name},</p>
+        <p>Use the secure link below to set a new password. This link expires in 30 minutes.</p>
+        <p><a href="${resetUrl}" style="background:#05264D;color:white;padding:12px 18px;border-radius:10px;text-decoration:none">Reset password</a></p>
+        <p style="color:#52616f">If the button does not open, copy this link: ${resetUrl}</p>
+        <p style="color:#52616f">For in-app reset, use this code: <strong>${token}</strong></p>
+      </div>
+    `
+  });
+};
+
+const sendReceiptEmail = async ({ booking, receipt }) => {
+  const customer = booking.customer;
+  const venue = booking.venue;
+
+  return sendMail({
+    to: customer.email,
+    subject: `VenueHub receipt ${receipt.receiptNumber}`,
+    text: `VenueHub receipt ${receipt.receiptNumber}
+Customer: ${customer.name}
+Venue: ${venue.name}
+Booking date: ${new Date(booking.eventDate).toLocaleString()}
+Guests: ${venue.capacity}
+Total cost: PHP ${toNumber(booking.totalAmount).toLocaleString()}
+Payment status: ${booking.paymentStatus}
+Thank you for booking with VenueHub.`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#05264D;border:1px solid #E6EDF5;border-radius:18px;padding:24px">
+        <h2 style="margin-top:0">VenueHub Receipt</h2>
+        <p style="color:#52616f">Receipt No. ${receipt.receiptNumber}</p>
+        <table style="width:100%;border-collapse:collapse">
+          <tr><td style="padding:8px 0;color:#52616f">Customer</td><td style="text-align:right;font-weight:700">${customer.name}</td></tr>
+          <tr><td style="padding:8px 0;color:#52616f">Venue</td><td style="text-align:right;font-weight:700">${venue.name}</td></tr>
+          <tr><td style="padding:8px 0;color:#52616f">Booking date</td><td style="text-align:right;font-weight:700">${new Date(booking.eventDate).toLocaleString()}</td></tr>
+          <tr><td style="padding:8px 0;color:#52616f">Guests</td><td style="text-align:right;font-weight:700">${venue.capacity}</td></tr>
+          <tr><td style="padding:8px 0;color:#52616f">Total cost</td><td style="text-align:right;font-weight:700">PHP ${toNumber(booking.totalAmount).toLocaleString()}</td></tr>
+          <tr><td style="padding:8px 0;color:#52616f">Payment status</td><td style="text-align:right;font-weight:700">${booking.paymentStatus}</td></tr>
+        </table>
+        <p style="margin-top:22px">Thank you for booking with VenueHub. Please keep this receipt for your event records.</p>
+      </div>
+    `
+  });
+};
+
+module.exports = {
+  sendPasswordResetEmail,
+  sendReceiptEmail
+};

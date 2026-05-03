@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -78,8 +79,28 @@ class _VenueHubAppState extends State<VenueHubApp> {
   }
 }
 
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  int dot = 0;
+  Timer? timer;
+
+  @override
+  void initState() {
+    super.initState();
+    timer = Timer.periodic(const Duration(milliseconds: 360), (_) => setState(() => dot = (dot + 1) % 4));
+  }
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +108,7 @@ class SplashScreen extends StatelessWidget {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFFF5A5F), Color(0xFFFFB067)],
+            colors: [Color(0xFF031B3A), Color(0xFF0B61B3), Color(0xFF43B5F5)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -102,8 +123,22 @@ class SplashScreen extends StatelessWidget {
                 child: const VenueHubLogo(size: 112),
               ),
               const SizedBox(height: 18),
-              const Text('VenueHub', style: TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.w900)),
-              const Text('Find the perfect event place', style: TextStyle(color: Colors.white70)),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(
+                  4,
+                  (index) => AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    height: 8,
+                    width: dot == index ? 20 : 8,
+                    decoration: BoxDecoration(
+                      color: dot == index ? Colors.white : Colors.white.withValues(alpha: 0.45),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -160,6 +195,13 @@ class _LoginScreenState extends State<LoginScreen> {
             TextField(controller: email, decoration: const InputDecoration(labelText: 'Email')),
             const SizedBox(height: 12),
             TextField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'Password')),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ForgotPasswordScreen(api: widget.api))),
+                child: const Text('Forgot password?'),
+              ),
+            ),
             const SizedBox(height: 18),
             ElevatedButton(onPressed: loading ? null : _login, child: Text(loading ? 'Signing in...' : 'Login')),
             TextButton(
@@ -286,6 +328,82 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 }
 
+class ForgotPasswordScreen extends StatefulWidget {
+  const ForgotPasswordScreen({super.key, required this.api});
+
+  final ApiClient api;
+
+  @override
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+}
+
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+  final email = TextEditingController();
+  final token = TextEditingController();
+  final password = TextEditingController();
+  final confirmPassword = TextEditingController();
+  bool loading = false;
+
+  Future<void> _sendReset() async {
+    setState(() => loading = true);
+    try {
+      final response = await widget.api.post('/auth/forgot-password', {'email': email.text.trim()});
+      if (!mounted) return;
+      if (response['resetToken'] != null) token.text = response['resetToken'].toString();
+      _snack(context, response['message']?.toString() ?? 'Reset email sent.');
+    } catch (error) {
+      if (!mounted) return;
+      _snack(context, error.toString());
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  Future<void> _resetPassword() async {
+    setState(() => loading = true);
+    try {
+      final response = await widget.api.post('/auth/reset-password', {
+        'token': token.text.trim(),
+        'password': password.text,
+        'confirmPassword': confirmPassword.text,
+      });
+      if (!mounted) return;
+      _snack(context, response['message']?.toString() ?? 'Password updated.');
+      Navigator.pop(context);
+    } catch (error) {
+      if (!mounted) return;
+      _snack(context, error.toString());
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Forgot password')),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          const Text('Enter your account email. VenueHub will send a reset link and code if the email exists.'),
+          const SizedBox(height: 14),
+          TextField(controller: email, decoration: const InputDecoration(labelText: 'Account email')),
+          const SizedBox(height: 12),
+          ElevatedButton(onPressed: loading ? null : _sendReset, child: const Text('Send reset email')),
+          const VHSectionTitle('Set new password'),
+          TextField(controller: token, decoration: const InputDecoration(labelText: 'Reset code from email')),
+          const SizedBox(height: 10),
+          TextField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'New password')),
+          const SizedBox(height: 10),
+          TextField(controller: confirmPassword, obscureText: true, decoration: const InputDecoration(labelText: 'Confirm new password')),
+          const SizedBox(height: 14),
+          OutlinedButton(onPressed: loading ? null : _resetPassword, child: const Text('Update password')),
+        ],
+      ),
+    );
+  }
+}
+
 class RoleHome extends StatelessWidget {
   const RoleHome({super.key, required this.api, required this.user, required this.onLogout});
 
@@ -322,7 +440,7 @@ class _CustomerHomeState extends State<CustomerHome> {
     final pages = [
       VenueBrowseScreen(api: widget.api),
       MyBookingsScreen(api: widget.api),
-      ProfileScreen(user: widget.user, onLogout: widget.onLogout),
+      ProfileScreen(api: widget.api, user: widget.user, onLogout: widget.onLogout),
     ];
 
     return Scaffold(
@@ -892,6 +1010,8 @@ class MyBookingsScreen extends StatefulWidget {
 
 class _MyBookingsScreenState extends State<MyBookingsScreen> {
   late Future<List<dynamic>> bookings = _load();
+  final search = TextEditingController();
+  String sort = 'newest';
 
   Future<List<dynamic>> _load() async {
     final response = await widget.api.get('/bookings/my');
@@ -906,13 +1026,26 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
         future: bookings,
         builder: (context, snapshot) {
           if (!snapshot.hasData) return snapshot.hasError ? EmptyState(title: 'Could not load bookings', message: snapshot.error.toString()) : const LoadingView();
-          final data = snapshot.data!;
-          if (data.isEmpty) return const EmptyState(title: 'No bookings', message: 'Your venue reservations will show here.');
+          final raw = snapshot.data!;
+          if (raw.isEmpty) return const EmptyState(title: 'No bookings', message: 'Your venue reservations will show here.');
+          final data = _filterSortBookings(raw, search.text, sort);
           return RefreshIndicator(
             onRefresh: () async => setState(() => bookings = _load()),
             child: ListView(
               padding: const EdgeInsets.all(16),
-              children: data.map((booking) => BookingTile(api: widget.api, booking: booking as Map<String, dynamic>)).toList(),
+              children: [
+                BookingSearchSortBar(
+                  controller: search,
+                  sort: sort,
+                  onChanged: () => setState(() {}),
+                  onSortChanged: (value) => setState(() => sort = value),
+                ),
+                const SizedBox(height: 12),
+                if (data.isEmpty)
+                  const EmptyState(title: 'No matches', message: 'Try searching a venue, customer, status, or date.')
+                else
+                  ...data.map((booking) => BookingTile(api: widget.api, booking: booking as Map<String, dynamic>)),
+              ],
             ),
           );
         },
@@ -932,6 +1065,62 @@ class BookingTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final venue = booking['venue'] as Map<String, dynamic>;
+    final paymentStatus = booking['paymentStatus']?.toString() ?? 'UNPAID';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BookingDetailsScreen(api: api, booking: booking, hostControls: hostControls, onStatus: onStatus),
+          ),
+        ),
+        child: Padding(
+          padding: EdgeInsets.zero,
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(venue['name'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                        const SizedBox(height: 6),
+                        Text(dateFormat.format(DateTime.parse(booking['eventDate'])), style: const TextStyle(color: Colors.black54)),
+                        const SizedBox(height: 8),
+                        Wrap(spacing: 8, children: [
+                          VHStatusChip(booking['status']?.toString() ?? 'PENDING'),
+                          VHStatusChip(paymentStatus),
+                        ]),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right_rounded, color: Colors.black38),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class BookingDetailsScreen extends StatelessWidget {
+  const BookingDetailsScreen({super.key, required this.api, required this.booking, this.hostControls = false, this.onStatus});
+
+  final ApiClient api;
+  final Map<String, dynamic> booking;
+  final bool hostControls;
+  final Future<void> Function(String status)? onStatus;
+
+  @override
+  Widget build(BuildContext context) {
+    final venue = booking['venue'] as Map<String, dynamic>;
     final customer = booking['customer'] as Map<String, dynamic>?;
     final payments = booking['payments'] as List<dynamic>? ?? [];
     final receipt = booking['receipt'] as Map<String, dynamic>?;
@@ -939,75 +1128,127 @@ class BookingTile extends StatelessWidget {
     final balanceDue = _balanceDue(booking);
     final paymentStatus = booking['paymentStatus']?.toString() ?? 'UNPAID';
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+    return Scaffold(
+      appBar: AppBar(title: const Text('Booking details')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(child: Text(venue['name'] ?? '', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900))),
-                  VHStatusChip(booking['status']?.toString() ?? 'PENDING'),
+                  Text(venue['name'] ?? '', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      VHStatusChip(booking['status']?.toString() ?? 'PENDING'),
+                      VHStatusChip(paymentStatus),
+                      if (receipt != null) Chip(label: Text(receipt['receiptNumber']?.toString() ?? 'Receipt issued')),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _InfoLine(Icons.calendar_today_outlined, 'Event date', dateFormat.format(DateTime.parse(booking['eventDate']))),
+                  if (customer != null) _InfoLine(Icons.person_outline, 'Customer', '${customer['name'] ?? 'Guest'} - ${customer['email'] ?? ''}'),
+                  _InfoLine(Icons.payments_outlined, 'Total amount', moneyFormat.format(_num(booking['totalAmount']))),
+                  _InfoLine(Icons.savings_outlined, 'Deposit', moneyFormat.format(_num(booking['depositAmount']))),
+                  _InfoLine(Icons.account_balance_wallet_outlined, 'Paid so far', moneyFormat.format(paid)),
+                  _InfoLine(Icons.pending_actions_outlined, 'Balance due', moneyFormat.format(balanceDue)),
+                  if ((booking['notes']?.toString() ?? '').isNotEmpty) _InfoLine(Icons.notes_outlined, 'Notes', booking['notes'].toString()),
                 ],
               ),
-              const SizedBox(height: 6),
-              _InfoLine(Icons.calendar_today_outlined, 'Event date', dateFormat.format(DateTime.parse(booking['eventDate']))),
-              if (customer != null) _InfoLine(Icons.person_outline, 'Customer', '${customer['name'] ?? 'Guest'} - ${customer['email'] ?? ''}'),
-              _InfoLine(Icons.payments_outlined, 'Total amount', moneyFormat.format(_num(booking['totalAmount']))),
-              _InfoLine(Icons.savings_outlined, 'Deposit required', moneyFormat.format(_num(booking['depositAmount']))),
-              _InfoLine(Icons.account_balance_wallet_outlined, 'Paid so far', moneyFormat.format(paid)),
-              _InfoLine(Icons.pending_actions_outlined, 'Balance due', moneyFormat.format(balanceDue)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  VHStatusChip(booking['status']?.toString() ?? 'PENDING'),
-                  VHStatusChip(paymentStatus),
-                  if (receipt != null) Chip(label: Text(receipt['receiptNumber']?.toString() ?? 'Receipt issued')),
-                ],
-              ),
-              if (payments.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Text('Transactions', style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w900)),
-                const SizedBox(height: 4),
-                ...payments.map((payment) {
-                  final map = payment as Map<String, dynamic>;
-                  return Text('${map['type']} via ${map['method']} - ${moneyFormat.format(_num(map['amount']))}', style: const TextStyle(color: Colors.black54));
-                }),
+            ),
+          ),
+          if (payments.isNotEmpty) ...[
+            const VHSectionTitle('Transactions'),
+            ...payments.map((payment) {
+              final map = payment as Map<String, dynamic>;
+              return Card(
+                child: ListTile(
+                  leading: const Icon(Icons.receipt_long_outlined, color: AppTheme.blue),
+                  title: Text('${map['type']} via ${map['method']}'),
+                  subtitle: Text(map['transactionRef']?.toString() ?? ''),
+                  trailing: Text(moneyFormat.format(_num(map['amount'])), style: const TextStyle(fontWeight: FontWeight.w900)),
+                ),
+              );
+            }),
+          ],
+          const SizedBox(height: 12),
+          if (!hostControls && paymentStatus == 'UNPAID')
+            OutlinedButton.icon(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentScreen(api: api, booking: booking))),
+              icon: const Icon(Icons.lock_outline),
+              label: const Text('Pay 50% deposit'),
+            ),
+          if (!hostControls && paymentStatus == 'PARTIALLY_PAID')
+            ElevatedButton.icon(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentScreen(api: api, booking: booking, paymentType: 'BALANCE'))),
+              icon: const Icon(Icons.check_circle_outline),
+              label: const Text('Pay remaining balance'),
+            ),
+          if (!hostControls && paymentStatus == 'PAID')
+            const Text('Fully paid. The host can mark this booking completed after the event.', style: TextStyle(color: Colors.black54)),
+          if (hostControls)
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton(onPressed: () => onStatus?.call('APPROVED'), child: const Text('Approve')),
+                OutlinedButton(onPressed: () => onStatus?.call('REJECTED'), child: const Text('Reject')),
+                ElevatedButton(onPressed: () => onStatus?.call('COMPLETED'), child: const Text('Complete')),
               ],
-              const SizedBox(height: 12),
-              if (!hostControls && paymentStatus == 'UNPAID')
-                OutlinedButton.icon(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentScreen(api: api, booking: booking))),
-                  icon: const Icon(Icons.lock_outline),
-                  label: const Text('Pay 50% deposit'),
-                ),
-              if (!hostControls && paymentStatus == 'PARTIALLY_PAID')
-                ElevatedButton.icon(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentScreen(api: api, booking: booking, paymentType: 'BALANCE'))),
-                  icon: const Icon(Icons.check_circle_outline),
-                  label: const Text('Pay remaining balance'),
-                ),
-              if (!hostControls && paymentStatus == 'PAID')
-                const Text('Fully paid. The host can mark this booking completed after the event.', style: TextStyle(color: Colors.black54)),
-              if (hostControls)
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    OutlinedButton(onPressed: () => onStatus?.call('APPROVED'), child: const Text('Approve')),
-                    OutlinedButton(onPressed: () => onStatus?.call('REJECTED'), child: const Text('Reject')),
-                    OutlinedButton(onPressed: () => onStatus?.call('COMPLETED'), child: const Text('Complete')),
-                  ],
-                ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class BookingSearchSortBar extends StatelessWidget {
+  const BookingSearchSortBar({
+    super.key,
+    required this.controller,
+    required this.sort,
+    required this.onChanged,
+    required this.onSortChanged,
+  });
+
+  final TextEditingController controller;
+  final String sort;
+  final VoidCallback onChanged;
+  final ValueChanged<String> onSortChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+            children: [
+              TextField(
+                controller: controller,
+                onChanged: (_) => onChanged(),
+                decoration: const InputDecoration(prefixIcon: Icon(Icons.search_rounded), hintText: 'Search venue, customer, status, or date'),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                initialValue: sort,
+                decoration: const InputDecoration(prefixIcon: Icon(Icons.sort_rounded), labelText: 'Sort by'),
+                items: const [
+                  DropdownMenuItem(value: 'newest', child: Text('Newest first')),
+                  DropdownMenuItem(value: 'oldest', child: Text('Oldest first')),
+                  DropdownMenuItem(value: 'status', child: Text('Status')),
+                  DropdownMenuItem(value: 'price', child: Text('Price')),
+                ],
+                onChanged: (value) => onSortChanged(value ?? 'newest'),
+              ),
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 }
 
@@ -1036,8 +1277,9 @@ class _InfoLine extends StatelessWidget {
 }
 
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key, required this.user, required this.onLogout});
+  const ProfileScreen({super.key, required this.api, required this.user, required this.onLogout});
 
+  final ApiClient api;
   final Map<String, dynamic> user;
   final VoidCallback onLogout;
 
@@ -1063,7 +1305,67 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChangePasswordScreen(api: api))),
+            icon: const Icon(Icons.lock_reset),
+            label: const Text('Change password'),
+          ),
+          const SizedBox(height: 10),
           OutlinedButton.icon(onPressed: onLogout, icon: const Icon(Icons.logout), label: const Text('Logout')),
+        ],
+      ),
+    );
+  }
+}
+
+class ChangePasswordScreen extends StatefulWidget {
+  const ChangePasswordScreen({super.key, required this.api});
+
+  final ApiClient api;
+
+  @override
+  State<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
+}
+
+class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
+  final currentPassword = TextEditingController();
+  final newPassword = TextEditingController();
+  final confirmPassword = TextEditingController();
+  bool loading = false;
+
+  Future<void> _changePassword() async {
+    setState(() => loading = true);
+    try {
+      final response = await widget.api.put('/auth/change-password', {
+        'currentPassword': currentPassword.text,
+        'newPassword': newPassword.text,
+        'confirmPassword': confirmPassword.text,
+      });
+      if (!mounted) return;
+      _snack(context, response['message']?.toString() ?? 'Password changed.');
+      Navigator.pop(context);
+    } catch (error) {
+      if (!mounted) return;
+      _snack(context, error.toString());
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Change password')),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          TextField(controller: currentPassword, obscureText: true, decoration: const InputDecoration(labelText: 'Current password')),
+          const SizedBox(height: 10),
+          TextField(controller: newPassword, obscureText: true, decoration: const InputDecoration(labelText: 'New password')),
+          const SizedBox(height: 10),
+          TextField(controller: confirmPassword, obscureText: true, decoration: const InputDecoration(labelText: 'Confirm new password')),
+          const SizedBox(height: 16),
+          ElevatedButton(onPressed: loading ? null : _changePassword, child: Text(loading ? 'Updating...' : 'Update password')),
         ],
       ),
     );
@@ -1090,7 +1392,7 @@ class _HostHomeState extends State<HostHome> {
       HostDashboard(api: widget.api, user: widget.user),
       HostBookingsScreen(api: widget.api),
       HostVenuesScreen(api: widget.api),
-      ProfileScreen(user: widget.user, onLogout: widget.onLogout),
+      ProfileScreen(api: widget.api, user: widget.user, onLogout: widget.onLogout),
     ];
 
     return Scaffold(
@@ -1166,6 +1468,8 @@ class HostBookingsScreen extends StatefulWidget {
 
 class _HostBookingsScreenState extends State<HostBookingsScreen> {
   late Future<List<dynamic>> bookings = _load();
+  final search = TextEditingController();
+  String sort = 'newest';
 
   Future<List<dynamic>> _load() async {
     final response = await widget.api.get('/bookings/host');
@@ -1190,14 +1494,27 @@ class _HostBookingsScreenState extends State<HostBookingsScreen> {
         future: bookings,
         builder: (context, snapshot) {
           if (!snapshot.hasData) return snapshot.hasError ? EmptyState(title: 'Could not load host bookings', message: snapshot.error.toString()) : const LoadingView();
-          final data = snapshot.data!;
-          if (data.isEmpty) return const EmptyState(title: 'No requests yet', message: 'Customer booking requests for your venues will appear here.');
+          final raw = snapshot.data!;
+          if (raw.isEmpty) return const EmptyState(title: 'No requests yet', message: 'Customer booking requests for your venues will appear here.');
+          final data = _filterSortBookings(raw, search.text, sort);
           return ListView(
             padding: const EdgeInsets.all(16),
-            children: data.map((booking) {
-              final map = booking as Map<String, dynamic>;
-              return BookingTile(api: widget.api, booking: map, hostControls: true, onStatus: (status) => _status(map['id'] as String, status));
-            }).toList(),
+            children: [
+              BookingSearchSortBar(
+                controller: search,
+                sort: sort,
+                onChanged: () => setState(() {}),
+                onSortChanged: (value) => setState(() => sort = value),
+              ),
+              const SizedBox(height: 12),
+              if (data.isEmpty)
+                const EmptyState(title: 'No matches', message: 'Try searching a venue, customer, status, or date.')
+              else
+                ...data.map((booking) {
+                  final map = booking as Map<String, dynamic>;
+                  return BookingTile(api: widget.api, booking: map, hostControls: true, onStatus: (status) => _status(map['id'] as String, status));
+                }),
+            ],
           );
         },
       ),
@@ -1607,9 +1924,9 @@ class _AdminHomeState extends State<AdminHome> {
       AdminDashboard(api: widget.api),
       AdminListScreen(api: widget.api, title: 'Users', endpoint: '/admin/users', listKey: 'users'),
       AdminVenuesScreen(api: widget.api),
-      AdminListScreen(api: widget.api, title: 'Bookings', endpoint: '/admin/bookings', listKey: 'bookings'),
+      AdminBookingsScreen(api: widget.api),
       AdminIncomeScreen(api: widget.api),
-      ProfileScreen(user: widget.user, onLogout: widget.onLogout),
+      ProfileScreen(api: widget.api, user: widget.user, onLogout: widget.onLogout),
     ];
 
     return Scaffold(
@@ -1709,6 +2026,72 @@ class _AdminListScreenState extends State<AdminListScreen> {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: data.map((item) => _AdminJsonCard(item: item as Map<String, dynamic>)).toList(),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class AdminBookingsScreen extends StatefulWidget {
+  const AdminBookingsScreen({super.key, required this.api});
+
+  final ApiClient api;
+
+  @override
+  State<AdminBookingsScreen> createState() => _AdminBookingsScreenState();
+}
+
+class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
+  late Future<List<dynamic>> bookings = _load();
+  final search = TextEditingController();
+  String sort = 'newest';
+
+  Future<List<dynamic>> _load() async {
+    final response = await widget.api.get('/admin/bookings');
+    return response['bookings'] as List<dynamic>;
+  }
+
+  Future<void> _status(String id, String status) async {
+    try {
+      await widget.api.put('/bookings/$id/status', {'status': status});
+      if (mounted) setState(() => bookings = _load());
+    } catch (error) {
+      if (!mounted) return;
+      _snack(context, error.toString());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Admin bookings')),
+      body: FutureBuilder<List<dynamic>>(
+        future: bookings,
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return snapshot.hasError ? EmptyState(title: 'Could not load bookings', message: snapshot.error.toString()) : const LoadingView();
+          final raw = snapshot.data!;
+          if (raw.isEmpty) return const EmptyState(title: 'No bookings found', message: 'Bookings will appear here when customers reserve venues.');
+          final data = _filterSortBookings(raw, search.text, sort);
+
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              BookingSearchSortBar(
+                controller: search,
+                sort: sort,
+                onChanged: () => setState(() {}),
+                onSortChanged: (value) => setState(() => sort = value),
+              ),
+              const SizedBox(height: 12),
+              if (data.isEmpty)
+                const EmptyState(title: 'No matches', message: 'Try searching a venue, customer, status, or date.')
+              else
+                ...data.map((booking) {
+                  final map = booking as Map<String, dynamic>;
+                  return BookingTile(api: widget.api, booking: map, hostControls: true, onStatus: (status) => _status(map['id'] as String, status));
+                }),
+            ],
           );
         },
       ),
@@ -2017,6 +2400,41 @@ num _balanceDue(Map<String, dynamic> booking) {
   }
 
   return _num(booking['remainingBalance']);
+}
+
+List<dynamic> _filterSortBookings(List<dynamic> source, String query, String sort) {
+  final normalizedQuery = query.trim().toLowerCase();
+  final results = source.where((item) {
+    final booking = item as Map<String, dynamic>;
+    final venue = booking['venue'] as Map<String, dynamic>? ?? {};
+    final customer = booking['customer'] as Map<String, dynamic>? ?? {};
+    final dateText = booking['eventDate']?.toString() ?? '';
+    final haystack = [
+      venue['name'],
+      customer['name'],
+      customer['email'],
+      booking['status'],
+      booking['paymentStatus'],
+      dateText,
+      dateText.isEmpty ? '' : dateFormat.format(DateTime.parse(dateText)),
+    ].join(' ').toLowerCase();
+
+    return normalizedQuery.isEmpty || haystack.contains(normalizedQuery);
+  }).toList();
+
+  results.sort((a, b) {
+    final left = a as Map<String, dynamic>;
+    final right = b as Map<String, dynamic>;
+
+    return switch (sort) {
+      'oldest' => DateTime.parse(left['createdAt']).compareTo(DateTime.parse(right['createdAt'])),
+      'status' => '${left['status']}${left['paymentStatus']}'.compareTo('${right['status']}${right['paymentStatus']}'),
+      'price' => _num(right['totalAmount']).compareTo(_num(left['totalAmount'])),
+      _ => DateTime.parse(right['createdAt']).compareTo(DateTime.parse(left['createdAt'])),
+    };
+  });
+
+  return results;
 }
 
 void _snack(BuildContext context, String message) {
