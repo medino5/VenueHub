@@ -114,9 +114,12 @@ SMTP_PASS=your SMTP password
 SMTP_FROM=VenueHub <no-reply@yourdomain.com>
 SMTP_TIMEOUT_MS=10000
 RESEND_API_KEY=optional Resend API key instead of SMTP
+BREVO_API_KEY=optional Brevo API key instead of SMTP
 ```
 
-Email is used for password reset and booking/payment receipt emails. Configure either SMTP variables or `RESEND_API_KEY` in Render. If no email provider is configured, password reset will show a clear setup error instead of pretending the email was sent.
+Email is used for password reset and booking/payment receipt emails. Configure SMTP, `RESEND_API_KEY`, or `BREVO_API_KEY` in Render. If no email provider is configured, password reset will show a clear setup error instead of pretending the email was sent.
+
+Render Free can block outbound SMTP ports such as `25`, `465`, and `587`. If Gmail SMTP times out on Render, use a provider API such as Brevo or Resend because API email sends over HTTPS instead of SMTP.
 
 For the quickest client demo email setup, use Resend:
 
@@ -128,6 +131,15 @@ SMTP_FROM=VenueHub <onboarding@resend.dev>
 If you use your own sender domain, verify that domain in Resend first, then replace `SMTP_FROM` with your verified sender address.
 
 For Gmail SMTP, paste the Google app password into `SMTP_PASS` without spaces. The backend also strips accidental spaces before connecting, but storing it without spaces in Render is cleaner.
+
+For a no-domain demo, Brevo can be easier than SMTP on Render Free:
+
+```text
+BREVO_API_KEY=your_brevo_api_key
+SMTP_FROM=VenueHub <your_verified_sender_email@gmail.com>
+```
+
+In Brevo, add and verify the sender email first. Then redeploy Render.
 
 ## 5. Deploy Backend On Render
 

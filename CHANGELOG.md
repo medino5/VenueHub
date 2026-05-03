@@ -1,5 +1,10 @@
 # Changelog
 
+## Backend email API hotfix - 2026-05-03
+
+- Added Brevo transactional email API support for Render Free deployments where SMTP ports time out.
+- Documented the no-domain Brevo setup path for demo email delivery.
+
 ## Backend email hotfix - 2026-05-03
 
 - Gmail app passwords are now sanitized by removing accidental spaces from `SMTP_PASS`.

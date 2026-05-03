@@ -7,10 +7,28 @@ const cleanSecret = (value) => cleanEnv(value).replace(/\s+/g, '');
 
 const hasSmtpConfig = () => Boolean(cleanEnv(process.env.SMTP_HOST) && cleanEnv(process.env.SMTP_USER) && cleanSecret(process.env.SMTP_PASS));
 const hasResendConfig = () => Boolean(process.env.RESEND_API_KEY);
+const hasBrevoConfig = () => Boolean(process.env.BREVO_API_KEY);
 const fromAddress = () => cleanEnv(process.env.SMTP_FROM || process.env.EMAIL_FROM) || 'VenueHub <no-reply@venuehub.demo>';
 const smtpTimeoutMs = () => Number(process.env.SMTP_TIMEOUT_MS || 10000);
 
-const isEmailConfigured = () => hasSmtpConfig() || hasResendConfig();
+const isEmailConfigured = () => hasSmtpConfig() || hasResendConfig() || hasBrevoConfig();
+
+const parseSender = () => {
+  const from = fromAddress();
+  const match = from.match(/^(.*?)\s*<([^>]+)>$/);
+
+  if (match) {
+    return {
+      name: match[1].trim() || 'VenueHub',
+      email: match[2].trim()
+    };
+  }
+
+  return {
+    name: process.env.EMAIL_FROM_NAME || 'VenueHub',
+    email: from.trim()
+  };
+};
 
 const transporter = () => {
   if (!hasSmtpConfig()) return null;
@@ -49,6 +67,32 @@ const sendMail = async ({ to, subject, html, text }) => {
     if (!response.ok) {
       const detail = await response.text();
       throw new Error(`Resend email failed: ${detail}`);
+    }
+
+    return response.json();
+  }
+
+  if (hasBrevoConfig()) {
+    const sender = parseSender();
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'api-key': process.env.BREVO_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        sender,
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+        textContent: text
+      })
+    });
+
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new Error(`Brevo email failed: ${detail}`);
     }
 
     return response.json();
