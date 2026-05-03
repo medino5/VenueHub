@@ -1,5 +1,11 @@
 # Changelog
 
+## Backend email hotfix - 2026-05-03
+
+- Gmail app passwords are now sanitized by removing accidental spaces from `SMTP_PASS`.
+- SMTP email sending now uses a 10-second timeout so the app returns a clear error instead of loading too long.
+- Added clearer SMTP error messages for login failures and connection timeouts.
+
 ## 1.0.1+2 - 2026-05-03
 
 - Fixed email handling so password reset clearly reports missing provider setup instead of silently skipping emails.

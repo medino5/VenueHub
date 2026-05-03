@@ -112,6 +112,7 @@ SMTP_SECURE=false
 SMTP_USER=your SMTP username
 SMTP_PASS=your SMTP password
 SMTP_FROM=VenueHub <no-reply@yourdomain.com>
+SMTP_TIMEOUT_MS=10000
 RESEND_API_KEY=optional Resend API key instead of SMTP
 ```
 
@@ -125,6 +126,8 @@ SMTP_FROM=VenueHub <onboarding@resend.dev>
 ```
 
 If you use your own sender domain, verify that domain in Resend first, then replace `SMTP_FROM` with your verified sender address.
+
+For Gmail SMTP, paste the Google app password into `SMTP_PASS` without spaces. The backend also strips accidental spaces before connecting, but storing it without spaces in Render is cleaner.
 
 ## 5. Deploy Backend On Render
 

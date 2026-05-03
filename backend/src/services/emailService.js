@@ -2,9 +2,13 @@ const nodemailer = require('nodemailer');
 
 const { toNumber } = require('../utils/formatters');
 
-const hasSmtpConfig = () => Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+const cleanEnv = (value) => String(value || '').trim();
+const cleanSecret = (value) => cleanEnv(value).replace(/\s+/g, '');
+
+const hasSmtpConfig = () => Boolean(cleanEnv(process.env.SMTP_HOST) && cleanEnv(process.env.SMTP_USER) && cleanSecret(process.env.SMTP_PASS));
 const hasResendConfig = () => Boolean(process.env.RESEND_API_KEY);
-const fromAddress = () => process.env.SMTP_FROM || process.env.EMAIL_FROM || 'VenueHub <no-reply@venuehub.demo>';
+const fromAddress = () => cleanEnv(process.env.SMTP_FROM || process.env.EMAIL_FROM) || 'VenueHub <no-reply@venuehub.demo>';
+const smtpTimeoutMs = () => Number(process.env.SMTP_TIMEOUT_MS || 10000);
 
 const isEmailConfigured = () => hasSmtpConfig() || hasResendConfig();
 
@@ -12,12 +16,15 @@ const transporter = () => {
   if (!hasSmtpConfig()) return null;
 
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
+    host: cleanEnv(process.env.SMTP_HOST),
     port: Number(process.env.SMTP_PORT || 587),
     secure: String(process.env.SMTP_SECURE || 'false') === 'true',
+    connectionTimeout: smtpTimeoutMs(),
+    greetingTimeout: smtpTimeoutMs(),
+    socketTimeout: smtpTimeoutMs(),
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
+      user: cleanEnv(process.env.SMTP_USER),
+      pass: cleanSecret(process.env.SMTP_PASS)
     }
   });
 };
@@ -53,13 +60,23 @@ const sendMail = async ({ to, subject, html, text }) => {
     throw new Error('Email is not configured. Add SMTP_* variables or RESEND_API_KEY in Render.');
   }
 
-  return mailer.sendMail({
-    from: fromAddress(),
-    to,
-    subject,
-    html,
-    text
-  });
+  try {
+    return await mailer.sendMail({
+      from: fromAddress(),
+      to,
+      subject,
+      html,
+      text
+    });
+  } catch (error) {
+    if (error.code === 'EAUTH') {
+      throw new Error('Email login failed. Check SMTP_USER and the Gmail app password in SMTP_PASS.');
+    }
+    if (['ECONNECTION', 'ETIMEDOUT', 'ESOCKET'].includes(error.code)) {
+      throw new Error('Email server did not respond. Check SMTP_HOST, SMTP_PORT, SMTP_SECURE, and network access.');
+    }
+    throw error;
+  }
 };
 
 const sendPasswordResetEmail = async ({ user, resetUrl, token }) => {
