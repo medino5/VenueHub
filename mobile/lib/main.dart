@@ -56,6 +56,10 @@ class _VenueHubAppState extends State<VenueHubApp> {
     setState(() => user = nextUser);
   }
 
+  void _updateUser(Map<String, dynamic> nextUser) {
+    setState(() => user = nextUser);
+  }
+
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
@@ -73,7 +77,12 @@ class _VenueHubAppState extends State<VenueHubApp> {
           ? const SplashScreen()
           : user == null
           ? LoginScreen(api: api, onAuthenticated: _setSession)
-          : RoleHome(api: api, user: user!, onLogout: _logout),
+          : RoleHome(
+              api: api,
+              user: user!,
+              onLogout: _logout,
+              onUserUpdated: _updateUser,
+            ),
     );
   }
 }
@@ -512,18 +521,35 @@ class RoleHome extends StatelessWidget {
     required this.api,
     required this.user,
     required this.onLogout,
+    required this.onUserUpdated,
   });
 
   final ApiClient api;
   final Map<String, dynamic> user;
   final VoidCallback onLogout;
+  final ValueChanged<Map<String, dynamic>> onUserUpdated;
 
   @override
   Widget build(BuildContext context) {
     return switch (user['role']) {
-      'HOST' => HostHome(api: api, user: user, onLogout: onLogout),
-      'VENUEHUB_ADMIN' => AdminHome(api: api, user: user, onLogout: onLogout),
-      _ => CustomerHome(api: api, user: user, onLogout: onLogout),
+      'HOST' => HostHome(
+        api: api,
+        user: user,
+        onLogout: onLogout,
+        onUserUpdated: onUserUpdated,
+      ),
+      'VENUEHUB_ADMIN' => AdminHome(
+        api: api,
+        user: user,
+        onLogout: onLogout,
+        onUserUpdated: onUserUpdated,
+      ),
+      _ => CustomerHome(
+        api: api,
+        user: user,
+        onLogout: onLogout,
+        onUserUpdated: onUserUpdated,
+      ),
     };
   }
 }
@@ -534,11 +560,13 @@ class CustomerHome extends StatefulWidget {
     required this.api,
     required this.user,
     required this.onLogout,
+    required this.onUserUpdated,
   });
 
   final ApiClient api;
   final Map<String, dynamic> user;
   final VoidCallback onLogout;
+  final ValueChanged<Map<String, dynamic>> onUserUpdated;
 
   @override
   State<CustomerHome> createState() => _CustomerHomeState();
@@ -556,6 +584,7 @@ class _CustomerHomeState extends State<CustomerHome> {
         api: widget.api,
         user: widget.user,
         onLogout: widget.onLogout,
+        onUserUpdated: widget.onUserUpdated,
       ),
     ];
 
@@ -597,6 +626,7 @@ class VenueBrowseScreen extends StatefulWidget {
 class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
   final query = TextEditingController();
   final location = TextEditingController();
+  String selectedLocation = 'All';
   late Future<List<dynamic>> venues = _loadVenues();
 
   Future<List<dynamic>> _loadVenues() async {
@@ -609,6 +639,9 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
       final response = await widget.api.get(
         '/venues/search?query=${Uri.encodeComponent(query.text)}&location=${Uri.encodeComponent(location.text)}',
       );
+      selectedLocation = location.text.trim().isEmpty
+          ? 'All'
+          : _locationLabel(location.text);
       setState(
         () => venues = Future.value(response['venues'] as List<dynamic>),
       );
@@ -616,6 +649,81 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
       if (!mounted) return;
       _snack(context, error.toString());
     }
+  }
+
+  Future<void> _openSearchSheet() async {
+    final shouldSearch = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      builder: (context) => Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          16,
+          20,
+          MediaQuery.of(context).viewInsets.bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.black12,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Where is your next event?',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: query,
+              autofocus: true,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search_rounded),
+                hintText: 'Venue name, event type, or keyword',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: location,
+              textInputAction: TextInputAction.search,
+              onSubmitted: (_) => Navigator.pop(context, true),
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.place_outlined),
+                hintText: 'Tacloban, Palo, Ormoc...',
+              ),
+            ),
+            const SizedBox(height: 18),
+            ElevatedButton.icon(
+              onPressed: () => Navigator.pop(context, true),
+              icon: const Icon(Icons.arrow_forward_rounded),
+              label: const Text('Search venues'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (shouldSearch == true) await _search();
+  }
+
+  void _selectLocation(String value) {
+    setState(() => selectedLocation = value);
   }
 
   @override
@@ -637,28 +745,68 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
                 );
               }
               final data = snapshot.data ?? [];
+              final cards = data.cast<Map<String, dynamic>>();
+              final locations = _venueLocations(cards);
+              final displayed = selectedLocation == 'All'
+                  ? cards
+                  : cards
+                        .where(
+                          (venue) =>
+                              _locationLabel(venue['location']) ==
+                              selectedLocation,
+                        )
+                        .toList();
+              final grouped = _groupVenuesByLocation(displayed);
+              final sectionEntries = grouped.entries.take(5).toList();
 
               return ListView(
                 padding: const EdgeInsets.only(bottom: 24),
                 children: [
-                  _HeroSearch(
-                    query: query,
-                    location: location,
-                    onSearch: _search,
+                  _ExploreSearchHeader(
+                    query: query.text,
+                    location: location.text,
+                    onTap: _openSearchSheet,
                   ),
-                  const VHSectionTitle('Popular venues'),
-                  if (data.isEmpty)
+                  _ExploreTabs(),
+                  LocationCategoryRail(
+                    locations: locations,
+                    selected: selectedLocation,
+                    onSelected: _selectLocation,
+                  ),
+                  if (cards.isEmpty)
                     const EmptyState(
                       title: 'No venues yet',
                       message: 'Approved venues will appear here.',
                     )
-                  else
-                    ...data.map(
-                      (venue) => VenueCard(
-                        venue: venue as Map<String, dynamic>,
+                  else if (displayed.isEmpty)
+                    EmptyState(
+                      title: 'No venues in $selectedLocation',
+                      message:
+                          'Try another location or use search to widen the results.',
+                    )
+                  else ...[
+                    ContinueSearchingCard(
+                      location: selectedLocation == 'All'
+                          ? _locationLabel(displayed.first['location'])
+                          : selectedLocation,
+                      imageUrl: _firstVenueImage(displayed.first),
+                      onTap: _openSearchSheet,
+                    ),
+                    VenueHorizontalSection(
+                      title: selectedLocation == 'All'
+                          ? 'Recommended event places'
+                          : '$selectedLocation event places',
+                      venues: displayed.take(8).toList(),
+                      api: widget.api,
+                    ),
+                    ...sectionEntries.map(
+                      (entry) => VenueHorizontalSection(
+                        title: '${entry.key} venues',
+                        venues: entry.value,
                         api: widget.api,
                       ),
                     ),
+                  ],
                 ],
               );
             },
@@ -669,93 +817,417 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
   }
 }
 
-class _HeroSearch extends StatelessWidget {
-  const _HeroSearch({
+class _ExploreSearchHeader extends StatelessWidget {
+  const _ExploreSearchHeader({
     required this.query,
     required this.location,
-    required this.onSearch,
+    required this.onTap,
   });
 
-  final TextEditingController query;
-  final TextEditingController location;
-  final VoidCallback onSearch;
+  final String query;
+  final String location;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: AppTheme.line),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.navy.withValues(alpha: 0.08),
-            blurRadius: 28,
-            offset: const Offset(0, 14),
+    final label = query.trim().isEmpty && location.trim().isEmpty
+        ? 'Where is your next event?'
+        : [
+            if (query.trim().isNotEmpty) query.trim(),
+            if (location.trim().isNotEmpty) location.trim(),
+          ].join(' in ');
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 10),
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.95, end: 1),
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, child) =>
+            Transform.scale(scale: value, child: child),
+        child: Material(
+          color: Colors.white,
+          elevation: 10,
+          shadowColor: AppTheme.navy.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(999),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(999),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+              child: Row(
+                children: [
+                  const Icon(Icons.search_rounded, size: 30),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: AppTheme.ink,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: AppTheme.sky,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.tune_rounded,
+                      size: 18,
+                      color: AppTheme.navy,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ExploreTabs extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    const tabs = [
+      (Icons.home_work_outlined, 'Venues', true),
+      (Icons.celebration_outlined, 'Packages', false),
+      (Icons.room_service_outlined, 'Services', false),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 4, 28, 10),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              for (final tab in tabs)
+                Column(
+                  children: [
+                    Icon(
+                      tab.$1,
+                      color: tab.$3 ? AppTheme.ink : Colors.black45,
+                      size: 30,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      tab.$2,
+                      style: TextStyle(
+                        fontWeight: tab.$3 ? FontWeight.w900 : FontWeight.w700,
+                        color: tab.$3 ? AppTheme.ink : Colors.black45,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 240),
+                      height: 3,
+                      width: tab.$3 ? 58 : 0,
+                      decoration: BoxDecoration(
+                        color: AppTheme.ink,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+          const Divider(height: 16),
         ],
       ),
+    );
+  }
+}
+
+class LocationCategoryRail extends StatelessWidget {
+  const LocationCategoryRail({
+    super.key,
+    required this.locations,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final List<String> locations;
+  final String selected;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = ['All', ...locations];
+
+    return SizedBox(
+      height: 78,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        scrollDirection: Axis.horizontal,
+        itemCount: items.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          final item = items[index];
+          final active = selected == item;
+
+          return InkWell(
+            borderRadius: BorderRadius.circular(22),
+            onTap: () => onSelected(item),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              width: 104,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: active ? AppTheme.navy : Colors.white,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: active ? AppTheme.navy : AppTheme.line,
+                ),
+                boxShadow: active
+                    ? [
+                        BoxShadow(
+                          color: AppTheme.navy.withValues(alpha: 0.18),
+                          blurRadius: 16,
+                          offset: const Offset(0, 8),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    item == 'All'
+                        ? Icons.grid_view_rounded
+                        : Icons.location_city_rounded,
+                    color: active ? Colors.white : AppTheme.navy,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    item,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: active ? Colors.white : AppTheme.ink,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class ContinueSearchingCard extends StatelessWidget {
+  const ContinueSearchingCard({
+    super.key,
+    required this.location,
+    required this.imageUrl,
+    required this.onTap,
+  });
+
+  final String location;
+  final String imageUrl;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 12, 18, 22),
+      child: Material(
+        color: Colors.white,
+        elevation: 10,
+        shadowColor: AppTheme.navy.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(30),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(30),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Continue searching for venues in $location',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Pick dates, guests, and event style',
+                        style: TextStyle(color: Colors.black54),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 14),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: VenueImageView(
+                    imageUrl: imageUrl,
+                    height: 86,
+                    width: 86,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class VenueHorizontalSection extends StatelessWidget {
+  const VenueHorizontalSection({
+    super.key,
+    required this.title,
+    required this.venues,
+    required this.api,
+  });
+
+  final String title;
+  final List<Map<String, dynamic>> venues;
+  final ApiClient api;
+
+  @override
+  Widget build(BuildContext context) {
+    if (venues.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const VenueHubLogo(size: 44),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Find venues that fit the moment',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppTheme.blue,
-                    fontWeight: FontWeight.w900,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          const Text(
-            'Where is your next event?',
-            style: TextStyle(
-              color: AppTheme.navy,
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Search by venue name or city to start booking.',
-            style: TextStyle(color: Colors.black54),
-          ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: query,
-            textInputAction: TextInputAction.search,
-            onSubmitted: (_) => onSearch(),
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.search_rounded),
-              hintText: 'Search venue name',
-            ),
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: location,
-            textInputAction: TextInputAction.search,
-            onSubmitted: (_) => onSearch(),
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.place_outlined),
-              hintText: 'City or location',
+                Container(
+                  decoration: const BoxDecoration(
+                    color: AppTheme.sky,
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    onPressed: () {},
+                    icon: const Icon(Icons.arrow_forward_rounded),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: onSearch,
-            icon: const Icon(Icons.tune_rounded),
-            label: const Text('Search venues'),
+          SizedBox(
+            height: 282,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              scrollDirection: Axis.horizontal,
+              itemCount: venues.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 14),
+              itemBuilder: (context, index) =>
+                  VenueMiniCard(venue: venues[index], api: api),
+            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class VenueMiniCard extends StatelessWidget {
+  const VenueMiniCard({super.key, required this.venue, required this.api});
+
+  final Map<String, dynamic> venue;
+  final ApiClient api;
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = _firstVenueImage(venue);
+
+    return SizedBox(
+      width: 190,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(26),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                VenueDetailsScreen(api: api, venueId: venue['id'] as String),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(26),
+                  child: VenueImageView(
+                    imageUrl: imageUrl,
+                    height: 176,
+                    width: 190,
+                  ),
+                ),
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: Icon(
+                    Icons.favorite_border_rounded,
+                    color: Colors.white,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black.withValues(alpha: 0.45),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              venue['name']?.toString() ?? 'Venue',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${_locationLabel(venue['location'])} - ${venue['capacity']} guests',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.black54),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${moneyFormat.format(_num(venue['pricePerDay']))} / day',
+              style: const TextStyle(
+                fontWeight: FontWeight.w900,
+                color: AppTheme.ink,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1788,35 +2260,202 @@ class _InfoLine extends StatelessWidget {
   }
 }
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
     super.key,
     required this.api,
     required this.user,
     required this.onLogout,
+    required this.onUserUpdated,
   });
 
   final ApiClient api;
   final Map<String, dynamic> user;
   final VoidCallback onLogout;
+  final ValueChanged<Map<String, dynamic>> onUserUpdated;
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  late Map<String, dynamic> user = Map<String, dynamic>.from(widget.user);
+  final picker = ImagePicker();
+  bool savingPhoto = false;
+
+  @override
+  void didUpdateWidget(ProfileScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.user != widget.user) {
+      user = Map<String, dynamic>.from(widget.user);
+    }
+  }
+
+  Future<void> _saveProfile(Map<String, dynamic> payload) async {
+    final response = await widget.api.put('/auth/profile', payload);
+    final nextUser = response['user'] as Map<String, dynamic>;
+    setState(() => user = nextUser);
+    widget.onUserUpdated(nextUser);
+    if (mounted) {
+      _snack(context, response['message']?.toString() ?? 'Profile updated.');
+    }
+  }
+
+  Future<void> _changePhoto() async {
+    setState(() => savingPhoto = true);
+    try {
+      final image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 72,
+        maxWidth: 900,
+      );
+      if (image == null) return;
+
+      final bytes = await image.readAsBytes();
+      if (bytes.length > 2.5 * 1024 * 1024) {
+        throw ApiException(
+          'Profile photo is too large. Choose a smaller image.',
+        );
+      }
+
+      await _saveProfile({
+        'profileImageUrl': 'data:image/jpeg;base64,${base64Encode(bytes)}',
+      });
+    } catch (error) {
+      if (!mounted) return;
+      _snack(context, error.toString());
+    } finally {
+      if (mounted) setState(() => savingPhoto = false);
+    }
+  }
+
+  Future<void> _editDetails() async {
+    final name = TextEditingController(text: user['name']?.toString() ?? '');
+    final phone = TextEditingController(text: user['phone']?.toString() ?? '');
+    final gender = TextEditingController(
+      text: user['gender']?.toString() ?? '',
+    );
+
+    final payload = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      builder: (context) => Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          16,
+          20,
+          MediaQuery.of(context).viewInsets.bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Edit profile',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: name,
+              decoration: const InputDecoration(labelText: 'Full name'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: phone,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(labelText: 'Contact number'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: gender,
+              decoration: const InputDecoration(labelText: 'Gender'),
+            ),
+            const SizedBox(height: 18),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, {
+                'name': name.text.trim(),
+                'phone': phone.text.trim(),
+                'gender': gender.text.trim(),
+              }),
+              child: const Text('Done'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (payload == null) return;
+
+    try {
+      await _saveProfile(payload);
+    } catch (error) {
+      if (!mounted) return;
+      _snack(context, error.toString());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
         children: [
-          CircleAvatar(
-            radius: 46,
-            backgroundImage: user['profileImageUrl'] == null
-                ? null
-                : NetworkImage(user['profileImageUrl'] as String),
-            child: user['profileImageUrl'] == null
-                ? const Icon(Icons.person, size: 48)
-                : null,
+          Center(
+            child: Stack(
+              alignment: Alignment.bottomCenter,
+              clipBehavior: Clip.none,
+              children: [
+                _ProfileAvatar(
+                  imageUrl: user['profileImageUrl']?.toString(),
+                  name: user['name']?.toString() ?? 'VenueHub user',
+                  size: 168,
+                ),
+                Positioned(
+                  bottom: -18,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: AppTheme.ink,
+                      elevation: 6,
+                      shadowColor: Colors.black26,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 12,
+                      ),
+                    ),
+                    onPressed: savingPhoto ? null : _changePhoto,
+                    icon: savingPhoto
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.photo_camera_rounded),
+                    label: Text(savingPhoto ? 'Saving...' : 'Add'),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 42),
           Center(
             child: Text(
               user['name'] ?? '',
@@ -1831,42 +2470,189 @@ class ProfileScreen extends StatelessWidget {
               style: const TextStyle(color: Colors.black54),
             ),
           ),
+          const SizedBox(height: 28),
+          Text(
+            'My profile',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Hosts and customers can see your profile details to help build trust before an event booking.',
+            style: TextStyle(color: Colors.black54, height: 1.45),
+          ),
           const SizedBox(height: 24),
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.email),
-                  title: Text(user['email'] ?? ''),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.phone),
-                  title: Text(user['phone'] ?? 'No phone yet'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.wc),
-                  title: Text(user['gender'] ?? 'No gender set'),
-                ),
-              ],
-            ),
+          _ProfileDetailCard(
+            children: [
+              _ProfileDetailTile(
+                icon: Icons.email_outlined,
+                title: user['email'] ?? '',
+                subtitle: 'Email address',
+              ),
+              _ProfileDetailTile(
+                icon: Icons.phone_outlined,
+                title: user['phone'] ?? 'Add contact number',
+                subtitle: 'Contact info',
+              ),
+              _ProfileDetailTile(
+                icon: Icons.wc_outlined,
+                title: user['gender'] ?? 'Add gender',
+                subtitle: 'Personal detail',
+              ),
+              _ProfileDetailTile(
+                icon: Icons.badge_outlined,
+                title: user['role'] ?? '',
+                subtitle: 'Account type',
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          OutlinedButton.icon(
+            onPressed: _editDetails,
+            icon: const Icon(Icons.edit_outlined),
+            label: const Text('Edit account details'),
+          ),
+          const SizedBox(height: 10),
+          _ProfileDetailCard(
+            children: const [
+              _ProfileDetailTile(
+                icon: Icons.travel_explore_outlined,
+                title: 'Where I want to host or celebrate',
+                subtitle: 'Tacloban, Palo, Ormoc, and nearby places',
+              ),
+              _ProfileDetailTile(
+                icon: Icons.work_outline_rounded,
+                title: 'My work',
+                subtitle: 'Add work or organization details',
+              ),
+              _ProfileDetailTile(
+                icon: Icons.favorite_border_rounded,
+                title: 'Favorite event style',
+                subtitle: 'Garden, hall, beach, or intimate dinner',
+              ),
+            ],
           ),
           const SizedBox(height: 18),
           OutlinedButton.icon(
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => ChangePasswordScreen(api: api)),
+              MaterialPageRoute(
+                builder: (_) => ChangePasswordScreen(api: widget.api),
+              ),
             ),
             icon: const Icon(Icons.lock_reset),
             label: const Text('Change password'),
           ),
           const SizedBox(height: 10),
           OutlinedButton.icon(
-            onPressed: onLogout,
+            onPressed: widget.onLogout,
             icon: const Icon(Icons.logout),
             label: const Text('Logout'),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ProfileAvatar extends StatelessWidget {
+  const _ProfileAvatar({
+    required this.imageUrl,
+    required this.name,
+    required this.size,
+  });
+
+  final String? imageUrl;
+  final String name;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = name.trim().isEmpty ? 'V' : name.trim()[0].toUpperCase();
+    final image = imageUrl;
+
+    Widget child;
+    if (image != null && image.startsWith('data:image')) {
+      child = Image.memory(
+        base64Decode(image.split(',').last),
+        fit: BoxFit.cover,
+        height: size,
+        width: size,
+      );
+    } else if (image != null && image.isNotEmpty) {
+      child = Image.network(
+        image,
+        fit: BoxFit.cover,
+        height: size,
+        width: size,
+        errorBuilder: (context, error, stackTrace) => Center(
+          child: Text(
+            initial,
+            style: TextStyle(fontSize: size * 0.34, color: Colors.white),
+          ),
+        ),
+      );
+    } else {
+      child = Center(
+        child: Text(
+          initial,
+          style: TextStyle(fontSize: size * 0.34, color: Colors.white),
+        ),
+      );
+    }
+
+    return Container(
+      height: size,
+      width: size,
+      decoration: const BoxDecoration(
+        color: Color(0xFF1F1F1F),
+        shape: BoxShape.circle,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: child,
+    );
+  }
+}
+
+class _ProfileDetailCard extends StatelessWidget {
+  const _ProfileDetailCard({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Column(
+        children: [
+          for (var i = 0; i < children.length; i++) ...[
+            children[i],
+            if (i != children.length - 1) const Divider(height: 1, indent: 68),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileDetailTile extends StatelessWidget {
+  const _ProfileDetailTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      minLeadingWidth: 30,
+      leading: Icon(icon, color: AppTheme.ink),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+      subtitle: Text(subtitle),
     );
   }
 }
@@ -1948,11 +2734,13 @@ class HostHome extends StatefulWidget {
     required this.api,
     required this.user,
     required this.onLogout,
+    required this.onUserUpdated,
   });
 
   final ApiClient api;
   final Map<String, dynamic> user;
   final VoidCallback onLogout;
+  final ValueChanged<Map<String, dynamic>> onUserUpdated;
 
   @override
   State<HostHome> createState() => _HostHomeState();
@@ -1971,6 +2759,7 @@ class _HostHomeState extends State<HostHome> {
         api: widget.api,
         user: widget.user,
         onLogout: widget.onLogout,
+        onUserUpdated: widget.onUserUpdated,
       ),
     ];
 
@@ -2714,11 +3503,13 @@ class AdminHome extends StatefulWidget {
     required this.api,
     required this.user,
     required this.onLogout,
+    required this.onUserUpdated,
   });
 
   final ApiClient api;
   final Map<String, dynamic> user;
   final VoidCallback onLogout;
+  final ValueChanged<Map<String, dynamic>> onUserUpdated;
 
   @override
   State<AdminHome> createState() => _AdminHomeState();
@@ -2744,6 +3535,7 @@ class _AdminHomeState extends State<AdminHome> {
         api: widget.api,
         user: widget.user,
         onLogout: widget.onLogout,
+        onUserUpdated: widget.onUserUpdated,
       ),
     ];
 
@@ -3453,6 +4245,67 @@ num _balanceDue(Map<String, dynamic> booking) {
   }
 
   return _num(booking['remainingBalance']);
+}
+
+String _locationLabel(dynamic value) {
+  final text = value?.toString().trim() ?? '';
+  if (text.isEmpty) return 'Nearby';
+
+  const knownPlaces = [
+    'Tacloban',
+    'Palo',
+    'Ormoc',
+    'Tanauan',
+    'Dulag',
+    'Tolosa',
+    'Makati',
+    'Pasay',
+    'Mandaluyong',
+  ];
+  final lower = text.toLowerCase();
+  for (final place in knownPlaces) {
+    if (lower.contains(place.toLowerCase())) return place;
+  }
+
+  return text
+      .split(RegExp(r'[,\\-]'))
+      .first
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+}
+
+List<String> _venueLocations(List<Map<String, dynamic>> venues) {
+  const preferred = ['Tacloban', 'Palo', 'Ormoc', 'Tanauan', 'Dulag', 'Tolosa'];
+  final labels = venues
+      .map((venue) => _locationLabel(venue['location']))
+      .toSet();
+  final extras = labels.where((label) => !preferred.contains(label)).toList()
+    ..sort();
+  final ordered = [...preferred.where(labels.contains), ...extras];
+
+  return ordered.isEmpty ? preferred : ordered;
+}
+
+Map<String, List<Map<String, dynamic>>> _groupVenuesByLocation(
+  List<Map<String, dynamic>> venues,
+) {
+  final grouped = <String, List<Map<String, dynamic>>>{};
+  for (final venue in venues) {
+    final label = _locationLabel(venue['location']);
+    grouped.putIfAbsent(label, () => []).add(venue);
+  }
+  return grouped;
+}
+
+String _firstVenueImage(Map<String, dynamic> venue) {
+  final images = venue['images'];
+  if (images is List && images.isNotEmpty) {
+    final first = images.first;
+    if (first is Map<String, dynamic>) {
+      return first['url']?.toString() ?? '';
+    }
+  }
+  return '';
 }
 
 List<dynamic> _filterSortBookings(

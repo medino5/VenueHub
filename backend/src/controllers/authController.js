@@ -106,6 +106,29 @@ const me = asyncHandler(async (req, res) => {
   res.json({ user: publicUser(req.user) });
 });
 
+const updateProfile = asyncHandler(async (req, res) => {
+  const { name, gender, phone, profileImageUrl } = req.body;
+
+  if (profileImageUrl && String(profileImageUrl).length > 2_500_000) {
+    throw new ApiError(400, 'Profile photo is too large. Please choose a smaller image.');
+  }
+
+  const user = await prisma.user.update({
+    where: { id: req.user.id },
+    data: {
+      ...(name !== undefined && { name: String(name).trim() || req.user.name }),
+      ...(gender !== undefined && { gender: String(gender).trim() || null }),
+      ...(phone !== undefined && { phone: String(phone).trim() || null }),
+      ...(profileImageUrl !== undefined && { profileImageUrl: profileImageUrl || null })
+    }
+  });
+
+  res.json({
+    message: 'Profile updated successfully.',
+    user: publicUser(user)
+  });
+});
+
 const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
 
@@ -228,5 +251,6 @@ module.exports = {
   register,
   resetPassword,
   resetPasswordForm,
-  resetPasswordPage
+  resetPasswordPage,
+  updateProfile
 };

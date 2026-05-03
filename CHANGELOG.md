@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2+3 - 2026-05-03
+
+- Refined the customer explore screen with an Airbnb-inspired floating search pill, animated tabs, horizontal location categories, and side-scroll venue sections.
+- Added saved profile editing with gallery-based profile photo upload, editable name, phone, and gender fields.
+- Added a protected backend profile update endpoint for account detail changes.
+
 ## Backend email API hotfix - 2026-05-03
 
 - Added Brevo transactional email API support for Render Free deployments where SMTP ports time out.
