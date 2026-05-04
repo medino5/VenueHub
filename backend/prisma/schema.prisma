@@ -61,15 +61,20 @@ model User {
   gender          String?
   phone           String?
   profileImageUrl String?
+  preferences     String?
+  likes           String?
+  dislikes        String?
+  specialNotes    String?
   role            Role     @default(CUSTOMER)
   resetTokenHash  String?
   resetTokenExpires DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  venues   Venue[]   @relation("HostVenues")
-  bookings Booking[] @relation("CustomerBookings")
-  reviews  Review[]
+  venues        Venue[]        @relation("HostVenues")
+  bookings      Booking[]      @relation("CustomerBookings")
+  reviews       Review[]
+  notifications Notification[]
 }
 
 model Venue {
@@ -184,4 +189,26 @@ model Review {
   booking  Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   venue    Venue   @relation(fields: [venueId], references: [id], onDelete: Cascade)
   customer User    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String
+  readAt    DateTime?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([createdAt])
+}
+
+model PlatformSetting {
+  id                String   @id @default("platform")
+  serviceFeePercent Decimal  @default(10) @db.Decimal(5, 2)
+  updatedAt         DateTime @updatedAt
 }

@@ -766,6 +766,7 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
                     query: query.text,
                     location: location.text,
                     onTap: _openSearchSheet,
+                    trailing: NotificationBell(api: widget.api),
                   ),
                   _ExploreTabs(),
                   LocationCategoryRail(
@@ -822,11 +823,13 @@ class _ExploreSearchHeader extends StatelessWidget {
     required this.query,
     required this.location,
     required this.onTap,
+    required this.trailing,
   });
 
   final String query;
   final String location;
   final VoidCallback onTap;
+  final Widget trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -840,21 +843,23 @@ class _ExploreSearchHeader extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 10),
       child: TweenAnimationBuilder<double>(
-        tween: Tween(begin: 0.95, end: 1),
-        duration: const Duration(milliseconds: 420),
-        curve: Curves.easeOutCubic,
-        builder: (context, value, child) =>
-            Transform.scale(scale: value, child: child),
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 520),
+        curve: Curves.elasticOut,
+        builder: (context, value, child) => Transform.translate(
+          offset: Offset(0, (1 - value) * 10),
+          child: Transform.scale(scale: 0.96 + (value * 0.04), child: child),
+        ),
         child: Material(
           color: Colors.white,
-          elevation: 10,
-          shadowColor: AppTheme.navy.withValues(alpha: 0.14),
+          elevation: 14,
+          shadowColor: AppTheme.navy.withValues(alpha: 0.20),
           borderRadius: BorderRadius.circular(999),
           child: InkWell(
             borderRadius: BorderRadius.circular(999),
             onTap: onTap,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
               child: Row(
                 children: [
                   const Icon(Icons.search_rounded, size: 30),
@@ -883,12 +888,159 @@ class _ExploreSearchHeader extends StatelessWidget {
                       color: AppTheme.navy,
                     ),
                   ),
+                  const SizedBox(width: 6),
+                  trailing,
                 ],
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class NotificationBell extends StatefulWidget {
+  const NotificationBell({super.key, required this.api});
+
+  final ApiClient api;
+
+  @override
+  State<NotificationBell> createState() => _NotificationBellState();
+}
+
+class _NotificationBellState extends State<NotificationBell> {
+  int unreadCount = 0;
+  List<dynamic> notifications = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final response = await widget.api.get('/notifications');
+      if (!mounted) return;
+      setState(() {
+        unreadCount = _num(response['unreadCount']).toInt();
+        notifications = response['notifications'] as List<dynamic>? ?? [];
+      });
+    } catch (_) {
+      // Notifications should never block the main explore experience.
+    }
+  }
+
+  Future<void> _openNotifications() async {
+    await _load();
+    if (!mounted) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Notifications',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (notifications.isEmpty)
+              const EmptyState(
+                title: 'Nothing yet',
+                message: 'Booking and transaction updates will appear here.',
+              )
+            else
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: notifications.length,
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final item = notifications[index] as Map<String, dynamic>;
+                    final unread = item['readAt'] == null;
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        unread
+                            ? Icons.notifications_active_outlined
+                            : Icons.notifications_none_rounded,
+                        color: unread ? AppTheme.blue : Colors.black45,
+                      ),
+                      title: Text(
+                        item['title']?.toString() ?? 'Update',
+                        style: TextStyle(
+                          fontWeight: unread
+                              ? FontWeight.w800
+                              : FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Text(item['message']?.toString() ?? ''),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      await widget.api.put('/notifications/read', {});
+      if (mounted) setState(() => unreadCount = 0);
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        IconButton(
+          tooltip: 'Notifications',
+          onPressed: _openNotifications,
+          icon: const Icon(Icons.notifications_none_rounded),
+          style: IconButton.styleFrom(
+            backgroundColor: AppTheme.sky,
+            foregroundColor: AppTheme.navy,
+          ),
+        ),
+        if (unreadCount > 0)
+          Positioned(
+            top: 6,
+            right: 6,
+            child: Container(
+              height: 9,
+              width: 9,
+              decoration: const BoxDecoration(
+                color: Colors.redAccent,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -1404,6 +1556,11 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
                       title: 'Facilities',
                       items: venue['facilities'] as List<dynamic>? ?? [],
                     ),
+                    DemoMapPreview(
+                      location:
+                          venue['location']?.toString() ?? 'Eastern Visayas',
+                      address: venue['address']?.toString() ?? 'Demo address',
+                    ),
                     _Reviews(reviews: venue['reviews'] as List<dynamic>? ?? []),
                   ],
                 ),
@@ -1414,6 +1571,142 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
       },
     );
   }
+}
+
+class DemoMapPreview extends StatelessWidget {
+  const DemoMapPreview({
+    super.key,
+    required this.location,
+    required this.address,
+  });
+
+  final String location;
+  final String address;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Demo map location',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            height: 190,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(26),
+              gradient: const LinearGradient(
+                colors: [Color(0xFFEAF6FF), Color(0xFFFFFFFF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              border: Border.all(color: AppTheme.line),
+            ),
+            child: Stack(
+              children: [
+                Positioned.fill(child: CustomPaint(painter: _DemoMapPainter())),
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppTheme.navy,
+                      borderRadius: BorderRadius.circular(999),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.navy.withValues(alpha: 0.22),
+                          blurRadius: 18,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.place_rounded,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 14,
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.map_outlined, color: AppTheme.blue),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            '$location - $address',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Map preview is a placeholder for demo venues.',
+            style: TextStyle(color: Colors.black54, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DemoMapPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final road = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 12
+      ..strokeCap = StrokeCap.round;
+    final line = Paint()
+      ..color = AppTheme.blue.withValues(alpha: 0.18)
+      ..strokeWidth = 2;
+
+    for (var y = 28.0; y < size.height; y += 42) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y + 18), line);
+    }
+    for (var x = 24.0; x < size.width; x += 64) {
+      canvas.drawLine(Offset(x, 0), Offset(x - 34, size.height), line);
+    }
+    final path = Path()
+      ..moveTo(18, size.height * 0.7)
+      ..quadraticBezierTo(
+        size.width * 0.35,
+        size.height * 0.35,
+        size.width * 0.62,
+        size.height * 0.48,
+      )
+      ..quadraticBezierTo(
+        size.width * 0.82,
+        size.height * 0.58,
+        size.width - 18,
+        size.height * 0.26,
+      );
+    canvas.drawPath(path, road);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _InfoPill extends StatelessWidget {
@@ -2070,6 +2363,41 @@ class BookingDetailsScreen extends StatelessWidget {
                       'Customer',
                       '${customer['name'] ?? 'Guest'} - ${customer['email'] ?? ''}',
                     ),
+                  if (customer != null &&
+                      (customer['phone']?.toString() ?? '').isNotEmpty)
+                    _InfoLine(
+                      Icons.phone_outlined,
+                      'Contact',
+                      customer['phone'].toString(),
+                    ),
+                  if (customer != null &&
+                      (customer['preferences']?.toString() ?? '').isNotEmpty)
+                    _InfoLine(
+                      Icons.travel_explore_outlined,
+                      'Preferences',
+                      customer['preferences'].toString(),
+                    ),
+                  if (customer != null &&
+                      (customer['likes']?.toString() ?? '').isNotEmpty)
+                    _InfoLine(
+                      Icons.thumb_up_alt_outlined,
+                      'Likes',
+                      customer['likes'].toString(),
+                    ),
+                  if (customer != null &&
+                      (customer['dislikes']?.toString() ?? '').isNotEmpty)
+                    _InfoLine(
+                      Icons.thumb_down_alt_outlined,
+                      'Dislikes',
+                      customer['dislikes'].toString(),
+                    ),
+                  if (customer != null &&
+                      (customer['specialNotes']?.toString() ?? '').isNotEmpty)
+                    _InfoLine(
+                      Icons.notes_outlined,
+                      'Notes',
+                      customer['specialNotes'].toString(),
+                    ),
                   _InfoLine(
                     Icons.payments_outlined,
                     'Total amount',
@@ -2228,6 +2556,58 @@ class BookingSearchSortBar extends StatelessWidget {
   }
 }
 
+class VenueSearchFilterBar extends StatelessWidget {
+  const VenueSearchFilterBar({
+    super.key,
+    required this.controller,
+    required this.status,
+    required this.onChanged,
+    required this.onStatusChanged,
+  });
+
+  final TextEditingController controller;
+  final String status;
+  final VoidCallback onChanged;
+  final ValueChanged<String> onStatusChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: const Color(0xFFF8FBFE),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            TextField(
+              controller: controller,
+              onChanged: (_) => onChanged(),
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search_rounded),
+                hintText: 'Search venues by name or location',
+              ),
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              initialValue: status,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.filter_list_rounded),
+                labelText: 'Status filter',
+              ),
+              items: const [
+                DropdownMenuItem(value: 'ALL', child: Text('All venues')),
+                DropdownMenuItem(value: 'PENDING', child: Text('Pending')),
+                DropdownMenuItem(value: 'APPROVED', child: Text('Approved')),
+                DropdownMenuItem(value: 'REJECTED', child: Text('Rejected')),
+              ],
+              onChanged: (value) => onStatusChanged(value ?? 'ALL'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _InfoLine extends StatelessWidget {
   const _InfoLine(this.icon, this.label, this.value);
 
@@ -2335,6 +2715,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final gender = TextEditingController(
       text: user['gender']?.toString() ?? '',
     );
+    final preferences = TextEditingController(
+      text: user['preferences']?.toString() ?? '',
+    );
+    final likes = TextEditingController(text: user['likes']?.toString() ?? '');
+    final dislikes = TextEditingController(
+      text: user['dislikes']?.toString() ?? '',
+    );
+    final specialNotes = TextEditingController(
+      text: user['specialNotes']?.toString() ?? '',
+    );
 
     final payload = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
@@ -2387,12 +2777,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
               controller: gender,
               decoration: const InputDecoration(labelText: 'Gender'),
             ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: preferences,
+              minLines: 1,
+              maxLines: 3,
+              decoration: const InputDecoration(labelText: 'Venue preferences'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: likes,
+              minLines: 1,
+              maxLines: 3,
+              decoration: const InputDecoration(labelText: 'Likes'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: dislikes,
+              minLines: 1,
+              maxLines: 3,
+              decoration: const InputDecoration(labelText: 'Dislikes'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: specialNotes,
+              minLines: 1,
+              maxLines: 3,
+              decoration: const InputDecoration(labelText: 'Special notes'),
+            ),
             const SizedBox(height: 18),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, {
                 'name': name.text.trim(),
                 'phone': phone.text.trim(),
                 'gender': gender.text.trim(),
+                'preferences': preferences.text.trim(),
+                'likes': likes.text.trim(),
+                'dislikes': dislikes.text.trim(),
+                'specialNotes': specialNotes.text.trim(),
               }),
               child: const Text('Done'),
             ),
@@ -2515,24 +2937,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 10),
           _ProfileDetailCard(
-            children: const [
+            children: [
               _ProfileDetailTile(
                 icon: Icons.travel_explore_outlined,
-                title: 'Where I want to host or celebrate',
-                subtitle: 'Tacloban, Palo, Ormoc, and nearby places',
+                title: user['preferences'] ?? 'Add venue preferences',
+                subtitle: 'Venue preferences',
               ),
               _ProfileDetailTile(
-                icon: Icons.work_outline_rounded,
-                title: 'My work',
-                subtitle: 'Add work or organization details',
+                icon: Icons.thumb_up_alt_outlined,
+                title: user['likes'] ?? 'Add likes',
+                subtitle: 'Likes',
               ),
               _ProfileDetailTile(
-                icon: Icons.favorite_border_rounded,
-                title: 'Favorite event style',
-                subtitle: 'Garden, hall, beach, or intimate dinner',
+                icon: Icons.thumb_down_alt_outlined,
+                title: user['dislikes'] ?? 'Add dislikes',
+                subtitle: 'Dislikes',
+              ),
+              _ProfileDetailTile(
+                icon: Icons.notes_outlined,
+                title: user['specialNotes'] ?? 'Add special notes',
+                subtitle: 'Special notes for hosts/admins',
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          _PolicyCard(),
           const SizedBox(height: 18),
           OutlinedButton.icon(
             onPressed: () => Navigator.push(
@@ -2653,6 +3082,30 @@ class _ProfileDetailTile extends StatelessWidget {
       leading: Icon(icon, color: AppTheme.ink),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
       subtitle: Text(subtitle),
+    );
+  }
+}
+
+class _PolicyCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: AppTheme.sky,
+      child: ExpansionTile(
+        leading: const Icon(Icons.policy_outlined, color: AppTheme.navy),
+        title: const Text(
+          'No Refund Policy',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
+        subtitle: const Text('Tap to read before booking'),
+        childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+        children: const [
+          Text(
+            'VenueHub demo bookings require a 50% non-refundable security deposit. The remaining balance is paid before or on the event day. Rejected bookings cannot be paid, and completed demo payments are receipt records only.',
+            style: TextStyle(color: Colors.black87, height: 1.45),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -2829,33 +3282,67 @@ class _HostDashboardState extends State<HostDashboard> {
                 : const LoadingView();
           }
           final data = snapshot.data!;
-          return GridView.count(
+          final recent = data['recentActivity'] as List<dynamic>? ?? [];
+          return ListView(
             padding: const EdgeInsets.all(16),
-            crossAxisCount: 2,
-            childAspectRatio: 1.05,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
             children: [
-              VHStatCard(
-                label: 'Paid bookings',
-                value: '${data['paidBookings']}',
-                icon: Icons.event_available,
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                childAspectRatio: 1.05,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                children: [
+                  VHStatCard(
+                    label: 'Pending requests',
+                    value: '${data['pendingBookings'] ?? 0}',
+                    icon: Icons.pending_actions,
+                  ),
+                  VHStatCard(
+                    label: 'Active venues',
+                    value: '${data['activeVenues'] ?? 0}',
+                    icon: Icons.home_work_outlined,
+                  ),
+                  VHStatCard(
+                    label: 'Gross paid',
+                    value: moneyFormat.format(_num(data['grossPaid'])),
+                    icon: Icons.payments,
+                  ),
+                  VHStatCard(
+                    label: 'Host income',
+                    value: moneyFormat.format(
+                      _num(data['estimatedHostIncome']),
+                    ),
+                    icon: Icons.trending_up,
+                  ),
+                ],
               ),
-              VHStatCard(
-                label: 'Gross paid',
-                value: moneyFormat.format(_num(data['grossPaid'])),
-                icon: Icons.payments,
-              ),
-              VHStatCard(
-                label: 'App fees',
-                value: moneyFormat.format(_num(data['estimatedPlatformFees'])),
-                icon: Icons.receipt,
-              ),
-              VHStatCard(
-                label: 'Host income',
-                value: moneyFormat.format(_num(data['estimatedHostIncome'])),
-                icon: Icons.trending_up,
-              ),
+              const VHSectionTitle('Recent activity'),
+              if (recent.isEmpty)
+                const EmptyState(
+                  title: 'No activity yet',
+                  message: 'New booking requests will appear here.',
+                )
+              else
+                ...recent.map((item) {
+                  final activity = item as Map<String, dynamic>;
+                  return Card(
+                    child: ListTile(
+                      leading: const Icon(
+                        Icons.event_note_outlined,
+                        color: AppTheme.blue,
+                      ),
+                      title: Text(activity['venueName']?.toString() ?? 'Venue'),
+                      subtitle: Text(
+                        '${activity['status']} - ${activity['paymentStatus']}',
+                      ),
+                      trailing: VHStatusChip(
+                        activity['status']?.toString() ?? 'PENDING',
+                      ),
+                    ),
+                  );
+                }),
             ],
           );
         },
@@ -2972,6 +3459,8 @@ class HostVenuesScreen extends StatefulWidget {
 
 class _HostVenuesScreenState extends State<HostVenuesScreen> {
   late Future<List<dynamic>> venues = _load();
+  final search = TextEditingController();
+  String statusFilter = 'ALL';
 
   Future<List<dynamic>> _load() async {
     final response = await widget.api.get('/venues/host/my');
@@ -3018,73 +3507,113 @@ class _HostVenuesScreenState extends State<HostVenuesScreen> {
                   )
                 : const LoadingView();
           }
-          final data = snapshot.data!;
+          final raw = snapshot.data!;
+          final data = _filterVenues(raw, search.text, statusFilter);
           if (data.isEmpty) {
-            return const EmptyState(
-              title: 'No venues listed',
-              message: 'Tap Add venue to create your first listing.',
+            return ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                VenueSearchFilterBar(
+                  controller: search,
+                  status: statusFilter,
+                  onChanged: () => setState(() {}),
+                  onStatusChanged: (value) =>
+                      setState(() => statusFilter = value),
+                ),
+                const SizedBox(height: 18),
+                EmptyState(
+                  title: raw.isEmpty ? 'No venues listed' : 'No venues match',
+                  message: raw.isEmpty
+                      ? 'Tap Add venue to create your first listing.'
+                      : 'Try another search or status filter.',
+                ),
+              ],
             );
           }
           return ListView(
             padding: const EdgeInsets.all(16),
-            children: data.map((item) {
-              final venue = item as Map<String, dynamic>;
-              final images = venue['images'] as List<dynamic>? ?? [];
-              return Card(
-                clipBehavior: Clip.antiAlias,
-                child: Padding(
-                  padding: EdgeInsets.zero,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      VenueImageCarousel(images: images, height: 150),
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    venue['name'],
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w900,
+            children: [
+              VenueSearchFilterBar(
+                controller: search,
+                status: statusFilter,
+                onChanged: () => setState(() {}),
+                onStatusChanged: (value) =>
+                    setState(() => statusFilter = value),
+              ),
+              const SizedBox(height: 12),
+              ...data.map((item) {
+                final venue = item as Map<String, dynamic>;
+                final images = venue['images'] as List<dynamic>? ?? [];
+                return Card(
+                  clipBehavior: Clip.antiAlias,
+                  child: Padding(
+                    padding: EdgeInsets.zero,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        VenueImageCarousel(images: images, height: 150),
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: VenueImageView(
+                                      imageUrl: _firstVenueImage(venue),
+                                      height: 54,
+                                      width: 64,
                                     ),
                                   ),
-                                ),
-                                VHStatusChip(venue['status']),
-                              ],
-                            ),
-                            Text(
-                              '${venue['location']} - ${moneyFormat.format(_num(venue['pricePerDay']))}',
-                            ),
-                            const SizedBox(height: 10),
-                            Wrap(
-                              spacing: 8,
-                              children: [
-                                OutlinedButton.icon(
-                                  onPressed: () => _openForm(venue),
-                                  icon: const Icon(Icons.edit),
-                                  label: const Text('Edit'),
-                                ),
-                                OutlinedButton.icon(
-                                  onPressed: () =>
-                                      _delete(venue['id'] as String),
-                                  icon: const Icon(Icons.delete_outline),
-                                  label: const Text('Delete'),
-                                ),
-                              ],
-                            ),
-                          ],
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      venue['name'],
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ),
+                                  VHStatusChip(venue['status']),
+                                ],
+                              ),
+                              Text(
+                                '${venue['location']} - ${moneyFormat.format(_num(venue['pricePerDay']))}',
+                              ),
+                              const SizedBox(height: 10),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  _InfoPill(
+                                    Icons.people_outline,
+                                    '${venue['capacity']} guests',
+                                  ),
+                                  OutlinedButton.icon(
+                                    onPressed: () => _openForm(venue),
+                                    icon: const Icon(Icons.edit),
+                                    label: const Text('Edit'),
+                                  ),
+                                  OutlinedButton.icon(
+                                    onPressed: () =>
+                                        _delete(venue['id'] as String),
+                                    icon: const Icon(Icons.delete_outline),
+                                    label: const Text('Delete'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              );
-            }).toList(),
+                );
+              }),
+            ],
           );
         },
       ),
@@ -3641,13 +4170,23 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 icon: Icons.event,
               ),
               VHStatCard(
+                label: 'Pending approvals',
+                value: '${data['pendingVenues'] ?? 0}',
+                icon: Icons.pending_actions,
+              ),
+              VHStatCard(
+                label: 'Pending bookings',
+                value: '${data['pendingBookings'] ?? 0}',
+                icon: Icons.hourglass_top_rounded,
+              ),
+              VHStatCard(
                 label: 'Platform income',
                 value: moneyFormat.format(_num(data['platformIncome'])),
                 icon: Icons.savings,
               ),
-              const VHStatCard(
+              VHStatCard(
                 label: 'Service fee',
-                value: '10%',
+                value: '${_num(data['serviceFeePercent'])}%',
                 icon: Icons.percent,
               ),
             ],
@@ -3678,6 +4217,8 @@ class AdminListScreen extends StatefulWidget {
 
 class _AdminListScreenState extends State<AdminListScreen> {
   late Future<List<dynamic>> items = _load();
+  final search = TextEditingController();
+  String roleFilter = 'ALL';
 
   Future<List<dynamic>> _load() async {
     final response = await widget.api.get(widget.endpoint);
@@ -3699,16 +4240,87 @@ class _AdminListScreenState extends State<AdminListScreen> {
                   )
                 : const LoadingView();
           }
-          final data = snapshot.data!;
+          final data = widget.listKey == 'users'
+              ? _filterUsers(snapshot.data!, search.text, roleFilter)
+              : snapshot.data!;
           return ListView(
             padding: const EdgeInsets.all(16),
-            children: data
-                .map(
-                  (item) => _AdminJsonCard(item: item as Map<String, dynamic>),
+            children: [
+              if (widget.listKey == 'users') ...[
+                _UserSearchFilterBar(
+                  controller: search,
+                  role: roleFilter,
+                  onChanged: () => setState(() {}),
+                  onRoleChanged: (value) => setState(() => roleFilter = value),
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (data.isEmpty)
+                const EmptyState(
+                  title: 'No accounts match',
+                  message: 'Try another search or role filter.',
                 )
-                .toList(),
+              else
+                ...data.map(
+                  (item) => _AdminJsonCard(item: item as Map<String, dynamic>),
+                ),
+            ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _UserSearchFilterBar extends StatelessWidget {
+  const _UserSearchFilterBar({
+    required this.controller,
+    required this.role,
+    required this.onChanged,
+    required this.onRoleChanged,
+  });
+
+  final TextEditingController controller;
+  final String role;
+  final VoidCallback onChanged;
+  final ValueChanged<String> onRoleChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: const Color(0xFFF8FBFE),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            TextField(
+              controller: controller,
+              onChanged: (_) => onChanged(),
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search_rounded),
+                hintText: 'Search name, email, phone',
+              ),
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              initialValue: role,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.group_outlined),
+                labelText: 'Account type',
+              ),
+              items: const [
+                DropdownMenuItem(value: 'ALL', child: Text('All accounts')),
+                DropdownMenuItem(value: 'CUSTOMER', child: Text('Customers')),
+                DropdownMenuItem(value: 'HOST', child: Text('Hosts')),
+                DropdownMenuItem(
+                  value: 'VENUEHUB_ADMIN',
+                  child: Text('Admins'),
+                ),
+              ],
+              onChanged: (value) => onRoleChanged(value ?? 'ALL'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -3823,6 +4435,8 @@ class AdminVenuesScreen extends StatefulWidget {
 
 class _AdminVenuesScreenState extends State<AdminVenuesScreen> {
   late Future<List<dynamic>> venues = _load();
+  final search = TextEditingController();
+  String statusFilter = 'ALL';
 
   Future<List<dynamic>> _load() async {
     final response = await widget.api.get('/admin/venues');
@@ -3866,82 +4480,105 @@ class _AdminVenuesScreenState extends State<AdminVenuesScreen> {
                   )
                 : const LoadingView();
           }
+          final data = _filterVenues(snapshot.data!, search.text, statusFilter);
           return ListView(
             padding: const EdgeInsets.all(16),
-            children: snapshot.data!.map((item) {
-              final venue = item as Map<String, dynamic>;
-              final images = venue['images'] as List<dynamic>? ?? [];
-              return Card(
-                clipBehavior: Clip.antiAlias,
-                child: Padding(
-                  padding: EdgeInsets.zero,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      VenueImageCarousel(images: images, height: 150),
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
+            children: [
+              VenueSearchFilterBar(
+                controller: search,
+                status: statusFilter,
+                onChanged: () => setState(() {}),
+                onStatusChanged: (value) =>
+                    setState(() => statusFilter = value),
+              ),
+              const SizedBox(height: 12),
+              if (data.isEmpty)
+                const EmptyState(
+                  title: 'No venues match',
+                  message: 'Try another search or filter.',
+                )
+              else
+                ...data.map((item) {
+                  final venue = item as Map<String, dynamic>;
+                  final images = venue['images'] as List<dynamic>? ?? [];
+                  return Card(
+                    clipBehavior: Clip.antiAlias,
+                    child: Padding(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          VenueImageCarousel(images: images, height: 150),
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(
-                                  child: Text(
-                                    venue['name'],
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                ),
-                                VHStatusChip(venue['status']),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${venue['location']} - ${moneyFormat.format(_num(venue['pricePerDay']))}',
-                              style: const TextStyle(color: Colors.black54),
-                            ),
-                            const SizedBox(height: 10),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                ElevatedButton.icon(
-                                  onPressed: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => AdminVenueDetailsScreen(
-                                        venue: venue,
-                                        onStatus: (status) =>
-                                            _setStatus(venue['id'], status),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        venue['name'],
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w900,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  icon: const Icon(Icons.visibility_outlined),
-                                  label: const Text('Review details'),
+                                    VHStatusChip(venue['status']),
+                                  ],
                                 ),
-                                OutlinedButton(
-                                  onPressed: () =>
-                                      _setStatus(venue['id'], 'APPROVED'),
-                                  child: const Text('Approve'),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${venue['location']} - ${moneyFormat.format(_num(venue['pricePerDay']))}',
+                                  style: const TextStyle(color: Colors.black54),
                                 ),
-                                OutlinedButton(
-                                  onPressed: () =>
-                                      _setStatus(venue['id'], 'REJECTED'),
-                                  child: const Text('Reject'),
+                                const SizedBox(height: 10),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    ElevatedButton.icon(
+                                      onPressed: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              AdminVenueDetailsScreen(
+                                                venue: venue,
+                                                onStatus: (status) =>
+                                                    _setStatus(
+                                                      venue['id'],
+                                                      status,
+                                                    ),
+                                              ),
+                                        ),
+                                      ),
+                                      icon: const Icon(
+                                        Icons.visibility_outlined,
+                                      ),
+                                      label: const Text('Review details'),
+                                    ),
+                                    OutlinedButton(
+                                      onPressed: () =>
+                                          _setStatus(venue['id'], 'APPROVED'),
+                                      child: const Text('Approve'),
+                                    ),
+                                    OutlinedButton(
+                                      onPressed: () =>
+                                          _setStatus(venue['id'], 'REJECTED'),
+                                      child: const Text('Reject'),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
+                    ),
+                  );
+                }),
+            ],
           );
         },
       ),
@@ -4121,7 +4758,57 @@ class _AdminIncomeScreenState extends State<AdminIncomeScreen> {
 
   Future<Map<String, dynamic>> _load() async {
     final response = await widget.api.get('/admin/income-summary');
-    return response['income'] as Map<String, dynamic>;
+    return response;
+  }
+
+  Future<void> _changeServiceFee(num currentFee) async {
+    final controller = TextEditingController(text: currentFee.toString());
+    final next = await showDialog<num>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Change service fee'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(labelText: 'New fee percent'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, _num(controller.text)),
+            child: const Text('Review'),
+          ),
+        ],
+      ),
+    );
+    if (next == null) return;
+    if (!mounted) return;
+    final confirmed = await _confirmAction(
+      context,
+      title: 'Apply service fee change?',
+      message:
+          'Old fee: $currentFee%. New fee: $next%. Future bookings will use the new fee.',
+      confirmLabel: 'Apply fee',
+    );
+    if (!confirmed) return;
+
+    try {
+      final response = await widget.api.put('/admin/service-fee', {
+        'serviceFeePercent': next,
+      });
+      if (!mounted) return;
+      setState(() => income = _load());
+      _snack(
+        context,
+        response['message']?.toString() ?? 'Service fee updated.',
+      );
+    } catch (error) {
+      if (!mounted) return;
+      _snack(context, error.toString());
+    }
   }
 
   @override
@@ -4139,12 +4826,54 @@ class _AdminIncomeScreenState extends State<AdminIncomeScreen> {
                   )
                 : const LoadingView();
           }
-          final data = snapshot.data!;
+          final response = snapshot.data!;
+          final data = response['income'] as Map<String, dynamic>;
+          final serviceFeePercent = _num(response['serviceFeePercent']);
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              Card(
+                color: AppTheme.sky,
+                child: ListTile(
+                  leading: const Icon(Icons.percent, color: AppTheme.navy),
+                  title: Text(
+                    'Current service fee: $serviceFeePercent%',
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  subtitle: const Text(
+                    'Applies to future booking calculations.',
+                  ),
+                  trailing: FilledButton(
+                    onPressed: () => _changeServiceFee(serviceFeePercent),
+                    child: const Text('Change'),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
               VHStatCard(
-                label: 'Weekly platform income',
+                label: 'Gross paid',
+                value: moneyFormat.format(_num(data['grossPaid'])),
+                icon: Icons.payments_outlined,
+              ),
+              const SizedBox(height: 12),
+              VHStatCard(
+                label: 'Platform fees',
+                value: moneyFormat.format(_num(data['allTime'])),
+                icon: Icons.savings,
+              ),
+              const SizedBox(height: 12),
+              _MiniBarChart(
+                values: [
+                  _num(data['weekly']),
+                  _num(data['monthly']),
+                  _num(data['annual']),
+                  _num(data['allTime']),
+                ],
+                labels: const ['Week', 'Month', 'Year', 'All'],
+              ),
+              const SizedBox(height: 12),
+              VHStatCard(
+                label: 'Weekly fees',
                 value: moneyFormat.format(_num(data['weekly'])),
                 icon: Icons.calendar_view_week,
               ),
@@ -4166,9 +4895,78 @@ class _AdminIncomeScreenState extends State<AdminIncomeScreen> {
                 value: moneyFormat.format(_num(data['allTime'])),
                 icon: Icons.savings,
               ),
+              const VHSectionTitle('Recent income activity'),
+              ...((data['recent'] as List<dynamic>? ?? []).map((item) {
+                final row = item as Map<String, dynamic>;
+                return Card(
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.receipt_long_outlined,
+                      color: AppTheme.blue,
+                    ),
+                    title: Text(row['venueName']?.toString() ?? 'Venue'),
+                    subtitle: Text(
+                      'Paid ${moneyFormat.format(_num(row['paid']))}',
+                    ),
+                    trailing: Text(
+                      moneyFormat.format(_num(row['serviceFee'])),
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                );
+              })),
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _MiniBarChart extends StatelessWidget {
+  const _MiniBarChart({required this.values, required this.labels});
+
+  final List<num> values;
+  final List<String> labels;
+
+  @override
+  Widget build(BuildContext context) {
+    final maxValue = values.fold<num>(
+      1,
+      (max, value) => value > max ? value : max,
+    );
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: List.generate(values.length, (index) {
+            final height = 24 + (values[index] / maxValue * 86);
+            return Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 420),
+                    height: height.toDouble(),
+                    width: 30,
+                    decoration: BoxDecoration(
+                      color: AppTheme.blue.withValues(
+                        alpha: 0.18 + (index * 0.12).clamp(0, 0.5),
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    labels[index],
+                    style: const TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ),
       ),
     );
   }
@@ -4193,6 +4991,7 @@ class _AdminJsonCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Card(
         child: ListTile(
+          onTap: () => _showAdminRecordDetails(context, item),
           title: Text(
             title.toString(),
             style: const TextStyle(fontWeight: FontWeight.w900),
@@ -4205,6 +5004,60 @@ class _AdminJsonCard extends StatelessWidget {
       ),
     );
   }
+}
+
+void _showAdminRecordDetails(BuildContext context, Map<String, dynamic> item) {
+  showModalBottomSheet<void>(
+    context: context,
+    useSafeArea: true,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
+    builder: (context) {
+      final entries = item.entries
+          .where(
+            (entry) => ![
+              'password',
+              'resetTokenHash',
+              'resetTokenExpires',
+            ].contains(entry.key),
+          )
+          .take(18)
+          .toList();
+      return ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  item['name']?.toString() ??
+                      item['email']?.toString() ??
+                      'Account details',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close_rounded),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...entries.map(
+            (entry) => _InfoLine(
+              Icons.info_outline,
+              entry.key,
+              entry.value?.toString() ?? '',
+            ),
+          ),
+        ],
+      );
+    },
+  );
 }
 
 IconData _paymentIcon(String method) {
@@ -4320,10 +5173,53 @@ String _firstVenueImage(Map<String, dynamic> venue) {
   if (images is List && images.isNotEmpty) {
     final first = images.first;
     if (first is Map<String, dynamic>) {
-      return first['url']?.toString() ?? '';
+      return (first['imageUrl'] ?? first['url'])?.toString() ?? '';
     }
   }
   return '';
+}
+
+List<dynamic> _filterVenues(List<dynamic> source, String query, String status) {
+  final normalizedQuery = query.trim().toLowerCase();
+  return source.where((item) {
+    final venue = item as Map<String, dynamic>;
+    final matchesStatus =
+        status == 'ALL' || venue['status']?.toString() == status;
+    final haystack = [
+      venue['name'],
+      venue['location'],
+      venue['address'],
+      venue['status'],
+      venue['capacity'],
+    ].join(' ').toLowerCase();
+    return matchesStatus &&
+        (normalizedQuery.isEmpty || haystack.contains(normalizedQuery));
+  }).toList()..sort((a, b) {
+    final left = a as Map<String, dynamic>;
+    final right = b as Map<String, dynamic>;
+    return (right['createdAt']?.toString() ?? '').compareTo(
+      left['createdAt']?.toString() ?? '',
+    );
+  });
+}
+
+List<dynamic> _filterUsers(List<dynamic> source, String query, String role) {
+  final normalizedQuery = query.trim().toLowerCase();
+  return source.where((item) {
+    final user = item as Map<String, dynamic>;
+    final matchesRole = role == 'ALL' || user['role']?.toString() == role;
+    final haystack = [
+      user['name'],
+      user['email'],
+      user['phone'],
+      user['preferences'],
+      user['likes'],
+      user['dislikes'],
+      user['specialNotes'],
+    ].join(' ').toLowerCase();
+    return matchesRole &&
+        (normalizedQuery.isEmpty || haystack.contains(normalizedQuery));
+  }).toList();
 }
 
 List<dynamic> _filterSortBookings(

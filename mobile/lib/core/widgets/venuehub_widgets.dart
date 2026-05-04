@@ -77,9 +77,14 @@ class VenueImageView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final child = _isDataImage(imageUrl)
+    if (imageUrl.trim().isEmpty) {
+      return _ImageFallback(height: height, width: width);
+    }
+
+    final bytes = _isDataImage(imageUrl) ? _dataImageBytes(imageUrl) : null;
+    final child = bytes != null
         ? Image.memory(
-            _dataImageBytes(imageUrl),
+            bytes,
             height: height,
             width: width,
             fit: BoxFit.cover,
@@ -131,7 +136,11 @@ class _VenueImageCarouselState extends State<VenueImageCarousel> {
   @override
   Widget build(BuildContext context) {
     final urls = widget.images
-        .map((image) => image is String ? image : image['imageUrl']?.toString())
+        .map(
+          (image) => image is String
+              ? image
+              : (image['imageUrl'] ?? image['url'])?.toString(),
+        )
         .whereType<String>()
         .where((imageUrl) => imageUrl.isNotEmpty)
         .toList();
@@ -205,13 +214,14 @@ class _ImageFallback extends StatelessWidget {
 
 bool _isDataImage(String value) => value.startsWith('data:image');
 
-Uint8List _dataImageBytes(String value) {
+Uint8List? _dataImageBytes(String value) {
   try {
     final comma = value.indexOf(',');
     final payload = comma >= 0 ? value.substring(comma + 1) : value;
-    return base64Decode(payload);
+    final bytes = base64Decode(payload);
+    return bytes.isEmpty ? null : bytes;
   } catch (_) {
-    return Uint8List(0);
+    return null;
   }
 }
 

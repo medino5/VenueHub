@@ -107,7 +107,7 @@ const me = asyncHandler(async (req, res) => {
 });
 
 const updateProfile = asyncHandler(async (req, res) => {
-  const { name, gender, phone, profileImageUrl } = req.body;
+  const { name, gender, phone, profileImageUrl, preferences, likes, dislikes, specialNotes } = req.body;
 
   if (profileImageUrl && String(profileImageUrl).length > 2_500_000) {
     throw new ApiError(400, 'Profile photo is too large. Please choose a smaller image.');
@@ -119,7 +119,11 @@ const updateProfile = asyncHandler(async (req, res) => {
       ...(name !== undefined && { name: String(name).trim() || req.user.name }),
       ...(gender !== undefined && { gender: String(gender).trim() || null }),
       ...(phone !== undefined && { phone: String(phone).trim() || null }),
-      ...(profileImageUrl !== undefined && { profileImageUrl: profileImageUrl || null })
+      ...(profileImageUrl !== undefined && { profileImageUrl: profileImageUrl || null }),
+      ...(preferences !== undefined && { preferences: String(preferences).trim() || null }),
+      ...(likes !== undefined && { likes: String(likes).trim() || null }),
+      ...(dislikes !== undefined && { dislikes: String(dislikes).trim() || null }),
+      ...(specialNotes !== undefined && { specialNotes: String(specialNotes).trim() || null })
     }
   });
 

@@ -135,6 +135,7 @@ async function main() {
   await prisma.receipt.deleteMany();
   await prisma.payment.deleteMany();
   await prisma.booking.deleteMany();
+  await prisma.notification.deleteMany();
   await prisma.facility.deleteMany();
   await prisma.amenity.deleteMany();
   await prisma.venueImage.deleteMany();
@@ -152,6 +153,10 @@ async function main() {
         role: 'CUSTOMER',
         gender: 'Female',
         phone: '+63 917 000 1000',
+        preferences: 'Indoor venues with parking and simple blue-white styling.',
+        likes: 'Garden receptions, clean halls, responsive hosts',
+        dislikes: 'Hidden fees, poor parking, unclear cancellation terms',
+        specialNotes: 'Usually books for family milestones and school events.',
         profileImageUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80'
       }
     }),
@@ -163,6 +168,10 @@ async function main() {
         role: 'HOST',
         gender: 'Male',
         phone: '+63 917 000 2000',
+        preferences: 'Prefers complete event details before approving requests.',
+        likes: 'Organized customers, clear headcount, early deposit payment',
+        dislikes: 'Last-minute changes',
+        specialNotes: 'Demo host account for Eastern Visayas venues.',
         profileImageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80'
       }
     }),
@@ -214,6 +223,31 @@ async function main() {
       paymentMethod: 'GCASH',
       securityNote: '50% security deposit is non-refundable. Remaining balance is due before or on event day.'
     }
+  });
+
+  await prisma.platformSetting.upsert({
+    where: { id: 'platform' },
+    update: { serviceFeePercent: 10 },
+    create: { id: 'platform', serviceFeePercent: 10 }
+  });
+
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: customer.id,
+        title: 'Booking approved',
+        message: `${temporaryVenues[0].name} is approved for your demo event.`,
+        type: 'BOOKING_STATUS',
+        metadata: { bookingId: booking.id, venueId: venues[0].id, status: 'APPROVED' }
+      },
+      {
+        userId: customer.id,
+        title: 'Payment recorded',
+        message: 'Your demo GCash deposit was recorded successfully.',
+        type: 'PAYMENT',
+        metadata: { bookingId: booking.id }
+      }
+    ]
   });
 
   console.log('Seed complete. Temporary Eastern Visayas venues are ready.');

@@ -4,11 +4,23 @@ const prisma = require('../config/prisma');
 const ApiError = require('../utils/apiError');
 const { normalizePaymentMethod, toNumber } = require('../utils/formatters');
 
-const calculateBookingAmounts = (pricePerDay) => {
+const DEFAULT_SERVICE_FEE_PERCENT = 10;
+
+const getServiceFeePercent = async () => {
+  const setting = await prisma.platformSetting.upsert({
+    where: { id: 'platform' },
+    update: {},
+    create: { id: 'platform', serviceFeePercent: DEFAULT_SERVICE_FEE_PERCENT }
+  });
+
+  return toNumber(setting.serviceFeePercent) || DEFAULT_SERVICE_FEE_PERCENT;
+};
+
+const calculateBookingAmounts = (pricePerDay, serviceFeePercent = DEFAULT_SERVICE_FEE_PERCENT) => {
   const subtotal = toNumber(pricePerDay);
   const depositAmount = Number((subtotal * 0.5).toFixed(2));
   const remainingBalance = Number((subtotal - depositAmount).toFixed(2));
-  const serviceFee = Number((subtotal * 0.1).toFixed(2));
+  const serviceFee = Number((subtotal * (toNumber(serviceFeePercent) / 100)).toFixed(2));
 
   return {
     subtotal,
@@ -122,5 +134,6 @@ const simulatePayment = async ({ bookingId, customerId, method, paymentType = 'D
 
 module.exports = {
   calculateBookingAmounts,
+  getServiceFeePercent,
   simulatePayment
 };

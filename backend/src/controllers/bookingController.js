@@ -1,11 +1,25 @@
 const prisma = require('../config/prisma');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
-const { calculateBookingAmounts } = require('../services/paymentService');
+const { calculateBookingAmounts, getServiceFeePercent } = require('../services/paymentService');
+const { createNotification } = require('../services/notificationService');
 const { toNumber } = require('../utils/formatters');
 
 const bookingInclude = {
-  customer: { select: { id: true, name: true, email: true, phone: true } },
+  customer: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      gender: true,
+      profileImageUrl: true,
+      preferences: true,
+      likes: true,
+      dislikes: true,
+      specialNotes: true
+    }
+  },
   venue: {
     include: {
       host: { select: { id: true, name: true, email: true } },
@@ -65,7 +79,8 @@ const createBooking = asyncHandler(async (req, res) => {
     throw new ApiError(409, 'This venue already has a booking for the selected date.');
   }
 
-  const amounts = calculateBookingAmounts(venue.pricePerDay);
+  const serviceFeePercent = await getServiceFeePercent();
+  const amounts = calculateBookingAmounts(venue.pricePerDay, serviceFeePercent);
   const booking = await prisma.booking.create({
     data: {
       customerId: req.user.id,
@@ -80,11 +95,19 @@ const createBooking = asyncHandler(async (req, res) => {
     include: bookingInclude
   });
 
+  await createNotification({
+    userId: venue.hostId,
+    title: 'New booking request',
+    message: `${req.user.name} requested ${venue.name} for ${parsedDate.toLocaleDateString()}.`,
+    type: 'BOOKING_REQUEST',
+    metadata: { bookingId: booking.id, venueId }
+  });
+
   res.status(201).json({
     booking: formatBooking(booking),
     paymentRules: {
       depositRequiredPercent: 50,
-      serviceFeePercent: 10,
+      serviceFeePercent,
       depositRefundable: false,
       note: '50% security deposit is required and non-refundable.'
     }
@@ -133,23 +156,48 @@ const updateBookingStatus = asyncHandler(async (req, res) => {
     throw new ApiError(403, 'You can only update bookings for your own venues.');
   }
 
-  const updatedBooking = await prisma.booking.update({
-    where: { id: req.params.id },
-    data: { status: nextStatus },
-    include: bookingInclude
+  const updatedBooking = await prisma.$transaction(async (tx) => {
+    const nextBooking = await tx.booking.update({
+      where: { id: req.params.id },
+      data: { status: nextStatus },
+      include: bookingInclude
+    });
+
+    if (['APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED'].includes(nextStatus)) {
+      await tx.notification.create({
+        data: {
+          userId: nextBooking.customerId,
+          title: `Booking ${nextStatus.toLowerCase()}`,
+          message: `${nextBooking.venue.name} was marked ${nextStatus.toLowerCase().replaceAll('_', ' ')}.`,
+          type: 'BOOKING_STATUS',
+          metadata: { bookingId: nextBooking.id, venueId: nextBooking.venueId, status: nextStatus }
+        }
+      });
+    }
+
+    return nextBooking;
   });
 
   res.json({ booking: formatBooking(updatedBooking) });
 });
 
 const hostIncomeSummary = asyncHandler(async (req, res) => {
-  const bookings = await prisma.booking.findMany({
-    where: {
-      venue: { hostId: req.user.id },
-      paymentStatus: { in: ['PARTIALLY_PAID', 'PAID'] }
-    },
-    include: { payments: true, venue: true }
-  });
+  const [bookings, allHostBookings, venues] = await Promise.all([
+    prisma.booking.findMany({
+      where: {
+        venue: { hostId: req.user.id },
+        paymentStatus: { in: ['PARTIALLY_PAID', 'PAID'] }
+      },
+      include: { payments: true, venue: true }
+    }),
+    prisma.booking.findMany({
+      where: { venue: { hostId: req.user.id } },
+      include: { venue: true },
+      orderBy: { createdAt: 'desc' },
+      take: 6
+    }),
+    prisma.venue.findMany({ where: { hostId: req.user.id } })
+  ]);
 
   const grossPaid = bookings.reduce(
     (sum, booking) => sum + booking.payments.reduce((paymentSum, payment) => paymentSum + toNumber(payment.amount), 0),
@@ -160,9 +208,20 @@ const hostIncomeSummary = asyncHandler(async (req, res) => {
   res.json({
     summary: {
       paidBookings: bookings.length,
+      totalBookings: allHostBookings.length,
+      pendingBookings: allHostBookings.filter((booking) => booking.status === 'PENDING').length,
+      activeVenues: venues.filter((venue) => venue.status === 'APPROVED').length,
+      pendingVenues: venues.filter((venue) => venue.status === 'PENDING').length,
       grossPaid: Number(grossPaid.toFixed(2)),
       estimatedPlatformFees: Number(platformFees.toFixed(2)),
-      estimatedHostIncome: Number((grossPaid - platformFees).toFixed(2))
+      estimatedHostIncome: Number((grossPaid - platformFees).toFixed(2)),
+      recentActivity: allHostBookings.map((booking) => ({
+        id: booking.id,
+        venueName: booking.venue.name,
+        status: booking.status,
+        paymentStatus: booking.paymentStatus,
+        createdAt: booking.createdAt
+      }))
     }
   });
 });

@@ -1,6 +1,6 @@
 const express = require('express');
 
-const { bookings, dashboard, hosts, incomeSummary, users, venues } = require('../controllers/adminController');
+const { bookings, dashboard, hosts, incomeSummary, updateServiceFee, users, venues } = require('../controllers/adminController');
 const { protect, requireRoles } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -13,5 +13,6 @@ router.get('/hosts', hosts);
 router.get('/venues', venues);
 router.get('/bookings', bookings);
 router.get('/income-summary', incomeSummary);
+router.put('/service-fee', updateServiceFee);
 
 module.exports = router;

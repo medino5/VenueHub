@@ -2,6 +2,7 @@ const prisma = require('../config/prisma');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
 const { sendReceiptEmail } = require('../services/emailService');
+const { createNotification } = require('../services/notificationService');
 const { simulatePayment } = require('../services/paymentService');
 const { formatBooking } = require('./bookingController');
 const { toNumber } = require('../utils/formatters');
@@ -30,6 +31,14 @@ const simulate = asyncHandler(async (req, res) => {
     emailMessage = 'Payment saved, but receipt email could not be sent. Check backend email settings.';
     console.error('Receipt email failed:', error.message);
   }
+
+  await createNotification({
+    userId: result.booking.customerId,
+    title: 'Payment recorded',
+    message: `${result.payment.type} payment via ${result.payment.method} was recorded for ${result.booking.venue.name}.`,
+    type: 'PAYMENT',
+    metadata: { bookingId: result.booking.id, paymentId: result.payment.id }
+  });
 
   res.status(201).json({
     message: 'Demo payment approved.',

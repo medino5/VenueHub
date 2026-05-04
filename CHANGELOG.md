@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.4+5 - 2026-05-04
+
+- Fixed venue image handling to support API `imageUrl` values and cleaner placeholders.
+- Added venue details demo map previews, profile no-refund policy, and editable profile preferences/likes/dislikes/notes.
+- Added backend notifications for booking status/payment updates with a customer notification bell.
+- Improved host/admin venue filtering, admin user filtering/detail views, dashboard stats, income charts, and confirmed service-fee changes.
+- Added backend notification and platform setting migrations.
+
 ## 1.0.3+4 - 2026-05-03
 
 - Limited the customer location category scope to Eastern Visayas places only.

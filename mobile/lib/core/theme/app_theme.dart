@@ -22,6 +22,21 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: scheme,
       scaffoldBackgroundColor: Colors.white,
+      textTheme: Typography.blackMountainView
+          .apply(bodyColor: ink, displayColor: ink)
+          .copyWith(
+            bodyMedium: const TextStyle(
+              fontWeight: FontWeight.w400,
+              height: 1.35,
+            ),
+            bodyLarge: const TextStyle(
+              fontWeight: FontWeight.w400,
+              height: 1.35,
+            ),
+            titleMedium: const TextStyle(fontWeight: FontWeight.w600),
+            titleLarge: const TextStyle(fontWeight: FontWeight.w700),
+            headlineSmall: const TextStyle(fontWeight: FontWeight.w800),
+          ),
       appBarTheme: const AppBarTheme(
         centerTitle: false,
         backgroundColor: Colors.white,
