@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.5+6 - 2026-05-17
+
+- Redesigned the customer Explore, Venue Details, Trips, and Profile screens with an Airbnb-inspired white editorial theme and Rausch CTA color.
+- Added centralized Flutter theme tokens, Google Fonts typography, reusable search/category/price/status/sticky booking widgets, and dark-mode semantic colors.
+- Upgraded venue cards with square image carousels, animated dots, guest-favorite badges, heart bounce feedback, and Hero transitions into venue details.
+- Updated booking cards to the Trips wording with Upcoming/Past/Cancelled tabs and compact horizontal cards.
+- Rebuilt the Android release APK with the deployed Render API URL.
+
 ## 1.0.4+5 - 2026-05-04
 
 - Fixed venue image handling to support API `imageUrl` values and cleaner placeholders.

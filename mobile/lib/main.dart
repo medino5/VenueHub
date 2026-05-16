@@ -73,6 +73,7 @@ class _VenueHubAppState extends State<VenueHubApp> {
       debugShowCheckedModeBanner: false,
       title: 'VenueHub',
       theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
       home: booting
           ? const SplashScreen()
           : user == null
@@ -590,25 +591,34 @@ class _CustomerHomeState extends State<CustomerHome> {
 
     return Scaffold(
       body: pages[index],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: index,
-        onTap: (value) => setState(() => index = value),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search_rounded),
-            label: 'Explore',
+      bottomNavigationBar: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          border: Border(
+            top: BorderSide(color: AppTheme.colorsOf(context).divider),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today_outlined),
-            activeIcon: Icon(Icons.calendar_month_rounded),
-            label: 'Bookings',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline_rounded),
-            activeIcon: Icon(Icons.person_rounded),
-            label: 'Profile',
-          ),
-        ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: index,
+          onTap: (value) => setState(() => index = value),
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.search_outlined),
+              activeIcon: Icon(Icons.search_rounded),
+              label: 'Explore',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_today_outlined),
+              activeIcon: Icon(Icons.calendar_today_rounded),
+              label: 'Trips',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline_rounded),
+              activeIcon: Icon(Icons.person_rounded),
+              label: 'Profile',
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -627,7 +637,17 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
   final query = TextEditingController();
   final location = TextEditingController();
   String selectedLocation = 'All';
+  String selectedCategory = 'Halls';
   late Future<List<dynamic>> venues = _loadVenues();
+  static const categories = [
+    CategoryItem(Icons.meeting_room_outlined, 'Halls'),
+    CategoryItem(Icons.yard_outlined, 'Gardens'),
+    CategoryItem(Icons.roofing_outlined, 'Rooftop'),
+    CategoryItem(Icons.beach_access_outlined, 'Beachfront'),
+    CategoryItem(Icons.hotel_outlined, 'Hotels'),
+    CategoryItem(Icons.restaurant_outlined, 'Restaurants'),
+    CategoryItem(Icons.co_present_outlined, 'Conference'),
+  ];
 
   Future<List<dynamic>> _loadVenues() async {
     final response = await widget.api.get('/venues');
@@ -722,10 +742,6 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
     if (shouldSearch == true) await _search();
   }
 
-  void _selectLocation(String value) {
-    setState(() => selectedLocation = value);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -746,7 +762,6 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
               }
               final data = snapshot.data ?? [];
               final cards = data.cast<Map<String, dynamic>>();
-              final locations = _venueLocations(cards);
               final displayed = selectedLocation == 'All'
                   ? cards
                   : cards
@@ -756,23 +771,28 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
                               selectedLocation,
                         )
                         .toList();
-              final grouped = _groupVenuesByLocation(displayed);
-              final sectionEntries = grouped.entries.take(5).toList();
 
               return ListView(
                 padding: const EdgeInsets.only(bottom: 24),
                 children: [
-                  _ExploreSearchHeader(
-                    query: query.text,
-                    location: location.text,
-                    onTap: _openSearchSheet,
-                    trailing: NotificationBell(api: widget.api),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: SearchPill(
+                      title: query.text.trim().isEmpty
+                          ? 'Start your search'
+                          : query.text.trim(),
+                      subtitle: location.text.trim().isEmpty
+                          ? 'Anywhere · Any week · Add guests'
+                          : '${_locationLabel(location.text)} · Any week · Add guests',
+                      onTap: _openSearchSheet,
+                      trailing: NotificationBell(api: widget.api),
+                    ),
                   ),
-                  _ExploreTabs(),
-                  LocationCategoryRail(
-                    locations: locations,
-                    selected: selectedLocation,
-                    onSelected: _selectLocation,
+                  CategoryRail(
+                    items: categories,
+                    selected: selectedCategory,
+                    onSelected: (value) =>
+                        setState(() => selectedCategory = value),
                   ),
                   if (cards.isEmpty)
                     const EmptyState(
@@ -786,26 +806,23 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
                           'Try another location or use search to widen the results.',
                     )
                   else ...[
-                    ContinueSearchingCard(
+                    _InlineExploreBanner(
                       location: selectedLocation == 'All'
                           ? _locationLabel(displayed.first['location'])
                           : selectedLocation,
-                      imageUrl: _firstVenueImage(displayed.first),
                       onTap: _openSearchSheet,
                     ),
-                    VenueHorizontalSection(
-                      title: selectedLocation == 'All'
-                          ? 'Recommended event places'
-                          : '$selectedLocation event places',
-                      venues: displayed.take(8).toList(),
-                      api: widget.api,
-                    ),
-                    ...sectionEntries.map(
-                      (entry) => VenueHorizontalSection(
-                        title: '${entry.key} venues',
-                        venues: entry.value,
-                        api: widget.api,
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 22, 16, 8),
+                      child: Text(
+                        selectedLocation == 'All'
+                            ? 'Recommended event places'
+                            : '$selectedLocation event places',
+                        style: Theme.of(context).textTheme.displaySmall,
                       ),
+                    ),
+                    ...displayed.map(
+                      (venue) => VenueCard(venue: venue, api: widget.api),
                     ),
                   ],
                 ],
@@ -818,81 +835,51 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
   }
 }
 
-class _ExploreSearchHeader extends StatelessWidget {
-  const _ExploreSearchHeader({
-    required this.query,
-    required this.location,
-    required this.onTap,
-    required this.trailing,
-  });
+class _InlineExploreBanner extends StatelessWidget {
+  const _InlineExploreBanner({required this.location, required this.onTap});
 
-  final String query;
   final String location;
   final VoidCallback onTap;
-  final Widget trailing;
 
   @override
   Widget build(BuildContext context) {
-    final label = query.trim().isEmpty && location.trim().isEmpty
-        ? 'Where is your next event?'
-        : [
-            if (query.trim().isNotEmpty) query.trim(),
-            if (location.trim().isNotEmpty) location.trim(),
-          ].join(' in ');
-
+    final colors = AppTheme.colorsOf(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 10),
-      child: TweenAnimationBuilder<double>(
-        tween: Tween(begin: 0, end: 1),
-        duration: const Duration(milliseconds: 520),
-        curve: Curves.elasticOut,
-        builder: (context, value, child) => Transform.translate(
-          offset: Offset(0, (1 - value) * 10),
-          child: Transform.scale(scale: 0.96 + (value * 0.04), child: child),
-        ),
-        child: Material(
-          color: Colors.white,
-          elevation: 14,
-          shadowColor: AppTheme.navy.withValues(alpha: 0.20),
-          borderRadius: BorderRadius.circular(999),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(999),
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-              child: Row(
-                children: [
-                  const Icon(Icons.search_rounded, size: 30),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        color: AppTheme.ink,
-                      ),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 2),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        highlightColor: colors.surfaceGray,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Continue searching in $location',
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(
-                      color: AppTheme.sky,
-                      shape: BoxShape.circle,
+                    const SizedBox(height: 4),
+                    Text(
+                      'Pick dates, guests, and event style',
+                      style: Theme.of(context).textTheme.bodySmall,
                     ),
-                    child: const Icon(
-                      Icons.tune_rounded,
-                      size: 18,
-                      color: AppTheme.navy,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  trailing,
-                ],
+                  ],
+                ),
               ),
-            ),
+              Container(
+                height: 44,
+                width: 44,
+                decoration: BoxDecoration(
+                  color: colors.surfaceGray,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.arrow_forward_rounded, color: colors.ink),
+              ),
+            ],
           ),
         ),
       ),
@@ -1041,59 +1028,6 @@ class _NotificationBellState extends State<NotificationBell> {
             ),
           ),
       ],
-    );
-  }
-}
-
-class _ExploreTabs extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    const tabs = [
-      (Icons.home_work_outlined, 'Venues', true),
-      (Icons.celebration_outlined, 'Packages', false),
-      (Icons.room_service_outlined, 'Services', false),
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 4, 28, 10),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              for (final tab in tabs)
-                Column(
-                  children: [
-                    Icon(
-                      tab.$1,
-                      color: tab.$3 ? AppTheme.ink : Colors.black45,
-                      size: 30,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      tab.$2,
-                      style: TextStyle(
-                        fontWeight: tab.$3 ? FontWeight.w900 : FontWeight.w700,
-                        color: tab.$3 ? AppTheme.ink : Colors.black45,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 240),
-                      height: 3,
-                      width: tab.$3 ? 58 : 0,
-                      decoration: BoxDecoration(
-                        color: AppTheme.ink,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                  ],
-                ),
-            ],
-          ),
-          const Divider(height: 16),
-        ],
-      ),
     );
   }
 }
@@ -1385,75 +1319,217 @@ class VenueMiniCard extends StatelessWidget {
   }
 }
 
-class VenueCard extends StatelessWidget {
+class VenueCard extends StatefulWidget {
   const VenueCard({super.key, required this.venue, required this.api});
 
   final Map<String, dynamic> venue;
   final ApiClient api;
 
   @override
+  State<VenueCard> createState() => _VenueCardState();
+}
+
+class _VenueCardState extends State<VenueCard> {
+  int page = 0;
+  bool favorite = false;
+
+  @override
   Widget build(BuildContext context) {
-    final images = venue['images'] as List<dynamic>? ?? [];
+    final venue = widget.venue;
+    final colors = AppTheme.colorsOf(context);
+    final urls = _venueImageUrls(venue);
+    final rating = _num(venue['averageRating']);
+    final heroTag = 'venue-${venue['id']}-image';
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       child: InkWell(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        highlightColor: colors.surfaceGray,
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) =>
-                VenueDetailsScreen(api: api, venueId: venue['id'] as String),
+            builder: (_) => VenueDetailsScreen(
+              api: widget.api,
+              venueId: venue['id'] as String,
+            ),
           ),
         ),
-        child: Card(
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              VenueImageCarousel(images: images, height: 190),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            venue['name'] ?? '',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AspectRatio(
+              aspectRatio: 1,
+              child: Stack(
+                children: [
+                  Hero(
+                    tag: heroTag,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+                      child: urls.isEmpty
+                          ? VenueImageView(
+                              imageUrl: '',
+                              width: double.infinity,
+                              height: double.infinity,
+                            )
+                          : PageView.builder(
+                              itemCount: urls.length,
+                              onPageChanged: (value) =>
+                                  setState(() => page = value),
+                              itemBuilder: (context, index) => VenueImageView(
+                                imageUrl: urls[index],
+                                width: double.infinity,
+                                height: double.infinity,
+                              ),
+                            ),
+                    ),
+                  ),
+                  if (rating >= 4.8)
+                    Positioned(
+                      top: 12,
+                      left: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.radiusPill,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              blurRadius: 12,
+                              color: Colors.black.withValues(alpha: 0.06),
+                            ),
+                          ],
+                        ),
+                        child: const Text(
+                          'Guest favorite',
+                          style: TextStyle(
+                            color: AppTheme.ink,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: IconButton(
+                      constraints: const BoxConstraints(
+                        minWidth: 44,
+                        minHeight: 44,
+                      ),
+                      onPressed: () => setState(() => favorite = !favorite),
+                      icon: AnimatedScale(
+                        duration: const Duration(milliseconds: 180),
+                        curve: Curves.easeOutBack,
+                        scale: favorite ? 1.18 : 1,
+                        child: Icon(
+                          favorite
+                              ? Icons.favorite_rounded
+                              : Icons.favorite_border_rounded,
+                          color: favorite ? AppTheme.rausch : Colors.white,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withValues(alpha: 0.35),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (urls.length > 1)
+                    Positioned(
+                      bottom: 12,
+                      left: 0,
+                      right: 0,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(
+                          urls.length,
+                          (index) => AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            margin: const EdgeInsets.symmetric(horizontal: 2),
+                            height: 6,
+                            width: page == index ? 7 : 6,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(
+                                alpha: page == index ? 0.95 : 0.55,
+                              ),
+                              shape: BoxShape.circle,
                             ),
                           ),
                         ),
-                        const Icon(Icons.star, color: Colors.amber, size: 18),
-                        Text('${venue['averageRating'] ?? 0}'),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${venue['location']} - up to ${venue['capacity']} guests',
-                      style: const TextStyle(color: Colors.black54),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${moneyFormat.format(_num(venue['pricePerDay']))} / day',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        color: AppTheme.blue,
                       ),
                     ),
-                  ],
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    venue['name']?.toString() ?? 'Venue',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Icon(Icons.star_rounded, size: 17, color: colors.ink),
+                const SizedBox(width: 3),
+                Text(
+                  rating == 0 ? 'New' : rating.toStringAsFixed(1),
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ),
+            const SizedBox(height: 3),
+            Text(
+              _locationLabel(venue['location']),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: colors.secondaryText),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              '${_demoDistance(venue)} away · up to ${venue['capacity'] ?? 'many'} guests',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: colors.secondaryText),
+            ),
+            const SizedBox(height: 6),
+            PriceText(amount: _num(venue['pricePerDay']), suffix: 'day'),
+          ],
         ),
       ),
     );
   }
+}
+
+String _demoDistance(Map<String, dynamic> venue) {
+  final label = _locationLabel(venue['location']);
+  return switch (label) {
+    'Tacloban' => '2 kilometers',
+    'Palo' => '9 kilometers',
+    'Ormoc' => '107 kilometers',
+    'Baybay' => '97 kilometers',
+    'Guiuan' => '150 kilometers',
+    _ => 'Nearby',
+  };
 }
 
 class VenueDetailsScreen extends StatefulWidget {
@@ -1472,6 +1548,9 @@ class VenueDetailsScreen extends StatefulWidget {
 
 class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
   late Future<Map<String, dynamic>> venue = _load();
+  int galleryPage = 0;
+  bool favorite = false;
+  bool showFullAbout = false;
 
   Future<Map<String, dynamic>> _load() async {
     final response = await widget.api.get('/venues/${widget.venueId}');
@@ -1496,72 +1575,193 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
         }
 
         final venue = snapshot.data!;
-        final images = venue['images'] as List<dynamic>? ?? [];
+        final urls = _venueImageUrls(venue);
+        final colors = AppTheme.colorsOf(context);
+        final rating = _num(venue['averageRating']);
+        final reviews = venue['reviews'] as List<dynamic>? ?? [];
+        final amenities = venue['amenities'] as List<dynamic>? ?? [];
+        final facilities = venue['facilities'] as List<dynamic>? ?? [];
+        final description = venue['description']?.toString() ?? '';
+        final host = venue['host'] as Map<String, dynamic>?;
 
         return Scaffold(
-          appBar: AppBar(title: Text(venue['name'] ?? 'Venue')),
-          bottomNavigationBar: Padding(
-            padding: const EdgeInsets.all(16),
-            child: ElevatedButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => BookingScreen(api: widget.api, venue: venue),
-                ),
+          extendBodyBehindAppBar: true,
+          bottomNavigationBar: StickyBookingBar(
+            price: _num(venue['pricePerDay']),
+            onReserve: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => BookingScreen(api: widget.api, venue: venue),
               ),
-              child: const Text('Choose date and book'),
             ),
           ),
           body: ListView(
+            padding: EdgeInsets.zero,
             children: [
-              VenueImageCarousel(images: images, height: 260),
+              Stack(
+                children: [
+                  Hero(
+                    tag: 'venue-${widget.venueId}-image',
+                    child: SizedBox(
+                      height: 330,
+                      width: double.infinity,
+                      child: urls.isEmpty
+                          ? const VenueImageView(
+                              imageUrl: '',
+                              width: double.infinity,
+                              height: 330,
+                            )
+                          : PageView.builder(
+                              itemCount: urls.length,
+                              onPageChanged: (value) =>
+                                  setState(() => galleryPage = value),
+                              itemBuilder: (context, index) => VenueImageView(
+                                imageUrl: urls[index],
+                                width: double.infinity,
+                                height: 330,
+                              ),
+                            ),
+                    ),
+                  ),
+                  Positioned(
+                    top: MediaQuery.of(context).padding.top + 12,
+                    left: 16,
+                    right: 16,
+                    child: Row(
+                      children: [
+                        _FloatingCircleButton(
+                          icon: Icons.arrow_back_rounded,
+                          onTap: () => Navigator.pop(context),
+                        ),
+                        const Spacer(),
+                        _FloatingCircleButton(
+                          icon: Icons.ios_share_rounded,
+                          onTap: () => _snack(context, 'Share link copied.'),
+                        ),
+                        const SizedBox(width: 10),
+                        _FloatingCircleButton(
+                          icon: favorite
+                              ? Icons.favorite_rounded
+                              : Icons.favorite_border_rounded,
+                          color: favorite ? AppTheme.rausch : AppTheme.ink,
+                          onTap: () => setState(() => favorite = !favorite),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (urls.length > 1)
+                    Positioned(
+                      right: 16,
+                      bottom: 16,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.65),
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.radiusPill,
+                          ),
+                        ),
+                        child: Text(
+                          '${galleryPage + 1} / ${urls.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
               Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.fromLTRB(16, 22, 16, 32),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      venue['name'],
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w900),
+                      venue['name']?.toString() ?? 'Venue',
+                      style: Theme.of(context).textTheme.displaySmall,
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '${venue['location']} - ${venue['address']}',
-                      style: const TextStyle(color: Colors.black54),
+                      '${venue['capacity'] ?? 'Many'} guests · ${_locationLabel(venue['location'])}, Eastern Visayas',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: colors.secondaryText,
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    Text(venue['description'] ?? ''),
-                    const SizedBox(height: 18),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                    const SizedBox(height: 8),
+                    Row(
                       children: [
-                        _InfoPill(Icons.people, '${venue['capacity']} guests'),
-                        _InfoPill(
-                          Icons.payments,
-                          moneyFormat.format(_num(venue['pricePerDay'])),
+                        Icon(Icons.star_rounded, size: 18, color: colors.ink),
+                        const SizedBox(width: 4),
+                        Text(
+                          rating == 0
+                              ? 'New'
+                              : '${rating.toStringAsFixed(1)} · ${reviews.length} reviews',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
                         ),
-                        _InfoPill(
-                          Icons.star,
-                          '${venue['averageRating']} rating',
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colors.surfaceGray,
+                            borderRadius: BorderRadius.circular(
+                              AppTheme.radiusPill,
+                            ),
+                          ),
+                          child: const Text(
+                            'Superhost-style venue',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    _ChipList(
-                      title: 'Amenities',
-                      items: venue['amenities'] as List<dynamic>? ?? [],
+                    const SectionDivider(),
+                    _HostedByRow(host: host),
+                    const SectionDivider(),
+                    Text(
+                      'About this venue',
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
-                    _ChipList(
-                      title: 'Facilities',
-                      items: venue['facilities'] as List<dynamic>? ?? [],
+                    const SizedBox(height: 10),
+                    Text(
+                      showFullAbout || description.length < 180
+                          ? description
+                          : '${description.substring(0, 180)}...',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    if (description.length >= 180)
+                      TextButton(
+                        onPressed: () =>
+                            setState(() => showFullAbout = !showFullAbout),
+                        child: Text(showFullAbout ? 'Show less' : 'Show more'),
+                      ),
+                    const SectionDivider(),
+                    _OfferList(
+                      title: 'What this place offers',
+                      items: [...amenities, ...facilities],
+                    ),
+                    const SectionDivider(),
+                    Text(
+                      "Where you'll be",
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
                     DemoMapPreview(
                       location:
                           venue['location']?.toString() ?? 'Eastern Visayas',
                       address: venue['address']?.toString() ?? 'Demo address',
                     ),
-                    _Reviews(reviews: venue['reviews'] as List<dynamic>? ?? []),
+                    const SectionDivider(),
+                    _Reviews(reviews: reviews),
                   ],
                 ),
               ),
@@ -1569,6 +1769,137 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+class _FloatingCircleButton extends StatelessWidget {
+  const _FloatingCircleButton({
+    required this.icon,
+    required this.onTap,
+    this.color = AppTheme.ink,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      shape: const CircleBorder(),
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: 0.12),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Icon(icon, color: color, size: 21),
+        ),
+      ),
+    );
+  }
+}
+
+class _HostedByRow extends StatelessWidget {
+  const _HostedByRow({required this.host});
+
+  final Map<String, dynamic>? host;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = host?['name']?.toString() ?? 'VenueHub host';
+    final initial = name.trim().isEmpty ? 'V' : name.trim()[0].toUpperCase();
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 24,
+          backgroundColor: AppTheme.surfaceGray,
+          child: Text(
+            initial,
+            style: const TextStyle(
+              color: AppTheme.ink,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Hosted by $name',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              Text(
+                'Responsive venue lister · Demo verified',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _OfferList extends StatelessWidget {
+  const _OfferList({required this.title, required this.items});
+
+  final String title;
+  final List<dynamic> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final values = items
+        .map((item) => item is Map ? item['name']?.toString() : item.toString())
+        .whereType<String>()
+        .where((value) => value.trim().isNotEmpty)
+        .take(8)
+        .toList();
+    final display = values.isEmpty
+        ? [
+            'Event-ready space',
+            'Parking nearby',
+            'Flexible setup',
+            'Staff assistance',
+          ]
+        : values;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 14),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: display.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 4.6,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 12,
+          ),
+          itemBuilder: (context, index) => Row(
+            children: [
+              const Icon(Icons.check_circle_outline_rounded, size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  display[index],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1585,28 +1916,23 @@ class DemoMapPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 22),
+      padding: const EdgeInsets.only(top: 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Demo map location',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           Container(
-            height: 190,
+            height: 200,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(26),
-              gradient: const LinearGradient(
-                colors: [Color(0xFFEAF6FF), Color(0xFFFFFFFF)],
+              borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+              gradient: LinearGradient(
+                colors: [colors.surfaceGray, Colors.white],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              border: Border.all(color: AppTheme.line),
+              border: Border.all(color: colors.divider),
             ),
             child: Stack(
               children: [
@@ -1615,11 +1941,11 @@ class DemoMapPreview extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppTheme.navy,
+                      color: AppTheme.rausch,
                       borderRadius: BorderRadius.circular(999),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.navy.withValues(alpha: 0.22),
+                          color: AppTheme.rausch.withValues(alpha: 0.20),
                           blurRadius: 18,
                           offset: const Offset(0, 8),
                         ),
@@ -1644,7 +1970,7 @@ class DemoMapPreview extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.map_outlined, color: AppTheme.blue),
+                        const Icon(Icons.map_outlined, color: AppTheme.rausch),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -1661,9 +1987,14 @@ class DemoMapPreview extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
+            '$location · $address',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 4),
+          Text(
             'Map preview is a placeholder for demo venues.',
-            style: TextStyle(color: Colors.black54, fontSize: 12),
+            style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
       ),
@@ -1721,31 +2052,6 @@ class _InfoPill extends StatelessWidget {
   }
 }
 
-class _ChipList extends StatelessWidget {
-  const _ChipList({required this.title, required this.items});
-
-  final String title;
-  final List<dynamic> items;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 18),
-        Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          children: items
-              .map((item) => Chip(label: Text(item['name'].toString())))
-              .toList(),
-        ),
-      ],
-    );
-  }
-}
-
 class _Reviews extends StatelessWidget {
   const _Reviews({required this.reviews});
 
@@ -1753,29 +2059,74 @@ class _Reviews extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
+    final ratings = reviews.map((review) => _num(review['rating'])).toList();
+    final average = ratings.isEmpty
+        ? 0
+        : ratings.fold<num>(0, (sum, value) => sum + value) / ratings.length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 18),
-        const Text(
-          'Guest feedback',
-          style: TextStyle(fontWeight: FontWeight.w900),
-        ),
-        if (reviews.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(top: 8),
-            child: Text(
-              'No reviews yet.',
-              style: TextStyle(color: Colors.black54),
+        Row(
+          children: [
+            Icon(Icons.star_rounded, size: 22, color: colors.ink),
+            const SizedBox(width: 6),
+            Text(
+              average == 0
+                  ? 'No reviews yet'
+                  : '${average.toStringAsFixed(1)} · ${reviews.length} reviews',
+              style: Theme.of(context).textTheme.titleLarge,
             ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        if (reviews.isEmpty)
+          Text(
+            'Reviews from completed demo bookings will appear here.',
+            style: Theme.of(context).textTheme.bodySmall,
           )
         else
-          ...reviews.map(
-            (review) => ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const CircleAvatar(child: Icon(Icons.person)),
-              title: Text('${review['rating']} stars'),
-              subtitle: Text(review['comment']?.toString() ?? ''),
+          SizedBox(
+            height: 150,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: reviews.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                final review = reviews[index] as Map<String, dynamic>;
+                return Container(
+                  width: 230,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+                    border: Border.all(color: colors.divider),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.star_rounded, size: 16, color: colors.ink),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${review['rating'] ?? 0}',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Expanded(
+                        child: Text(
+                          review['comment']?.toString() ?? '',
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
       ],
@@ -2139,6 +2490,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   late Future<List<dynamic>> bookings = _load();
   final search = TextEditingController();
   String sort = 'newest';
+  String tripTab = 'upcoming';
 
   Future<List<dynamic>> _load() async {
     final response = await widget.api.get('/bookings/my');
@@ -2148,7 +2500,6 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('My bookings')),
       body: FutureBuilder<List<dynamic>>(
         future: bookings,
         builder: (context, snapshot) {
@@ -2167,12 +2518,32 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
               message: 'Your venue reservations will show here.',
             );
           }
-          final data = _filterSortBookings(raw, search.text, sort);
+          final data = _filterSortBookings(
+            raw
+                .where((booking) => _bookingTripGroup(booking) == tripTab)
+                .toList(),
+            search.text,
+            sort,
+          );
           return RefreshIndicator(
             onRefresh: () async => setState(() => bookings = _load()),
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
               children: [
+                Text('Trips', style: Theme.of(context).textTheme.displaySmall),
+                const SizedBox(height: 16),
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'upcoming', label: Text('Upcoming')),
+                    ButtonSegment(value: 'past', label: Text('Past')),
+                    ButtonSegment(value: 'cancelled', label: Text('Cancelled')),
+                  ],
+                  selected: {tripTab},
+                  onSelectionChanged: (value) =>
+                      setState(() => tripTab = value.first),
+                  showSelectedIcon: false,
+                ),
+                const SizedBox(height: 16),
                 BookingSearchSortBar(
                   controller: search,
                   sort: sort,
@@ -2202,6 +2573,18 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   }
 }
 
+String _bookingTripGroup(dynamic item) {
+  final booking = item as Map<String, dynamic>;
+  final status = booking['status']?.toString().toUpperCase() ?? 'PENDING';
+  if (status == 'REJECTED' || status == 'CANCELLED') return 'cancelled';
+  final date = DateTime.tryParse(booking['eventDate']?.toString() ?? '');
+  if (status == 'COMPLETED' ||
+      (date != null && date.isBefore(DateTime.now()))) {
+    return 'past';
+  }
+  return 'upcoming';
+}
+
 class BookingTile extends StatelessWidget {
   const BookingTile({
     super.key,
@@ -2220,11 +2603,13 @@ class BookingTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final venue = booking['venue'] as Map<String, dynamic>;
     final paymentStatus = booking['paymentStatus']?.toString() ?? 'UNPAID';
+    final colors = AppTheme.colorsOf(context);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        highlightColor: colors.surfaceGray,
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
@@ -2236,53 +2621,54 @@ class BookingTile extends StatelessWidget {
             ),
           ),
         ),
-        child: Padding(
-          padding: EdgeInsets.zero,
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+            border: Border.all(color: colors.divider),
+          ),
+          child: Row(
+            children: [
+              VenueImageView(
+                imageUrl: _firstVenueImage(venue),
+                height: 88,
+                width: 88,
+                borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      venue['name'] ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      dateFormat.format(DateTime.parse(booking['eventDate'])),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
                       children: [
-                        Text(
-                          venue['name'] ?? '',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                          ),
+                        StatusPill(
+                          booking['status']?.toString() ?? 'PENDING',
+                          compact: true,
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          dateFormat.format(
-                            DateTime.parse(booking['eventDate']),
-                          ),
-                          style: const TextStyle(color: Colors.black54),
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            VHStatusChip(
-                              booking['status']?.toString() ?? 'PENDING',
-                            ),
-                            VHStatusChip(paymentStatus),
-                          ],
-                        ),
+                        StatusPill(paymentStatus, compact: true),
                       ],
                     ),
-                  ),
-                  const Icon(
-                    Icons.chevron_right_rounded,
-                    color: Colors.black38,
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+              Icon(Icons.chevron_right_rounded, color: colors.secondaryText),
+            ],
           ),
         ),
       ),
@@ -2835,76 +3221,98 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+        padding: const EdgeInsets.fromLTRB(16, 22, 16, 28),
         children: [
-          Center(
-            child: Stack(
-              alignment: Alignment.bottomCenter,
-              clipBehavior: Clip.none,
-              children: [
-                _ProfileAvatar(
-                  imageUrl: user['profileImageUrl']?.toString(),
-                  name: user['name']?.toString() ?? 'VenueHub user',
-                  size: 168,
-                ),
-                Positioned(
-                  bottom: -18,
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: AppTheme.ink,
-                      elevation: 6,
-                      shadowColor: Colors.black26,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 12,
+          Text('Profile', style: Theme.of(context).textTheme.displaySmall),
+          const SizedBox(height: 24),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  _ProfileAvatar(
+                    imageUrl: user['profileImageUrl']?.toString(),
+                    name: user['name']?.toString() ?? 'VenueHub user',
+                    size: 92,
+                  ),
+                  Positioned(
+                    right: -4,
+                    bottom: -4,
+                    child: Material(
+                      color: Colors.white,
+                      shape: const CircleBorder(),
+                      elevation: 2,
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: savingPhoto ? null : _changePhoto,
+                        child: SizedBox(
+                          width: 38,
+                          height: 38,
+                          child: savingPhoto
+                              ? const Padding(
+                                  padding: EdgeInsets.all(10),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.photo_camera_outlined,
+                                  size: 20,
+                                ),
+                        ),
                       ),
                     ),
-                    onPressed: savingPhoto ? null : _changePhoto,
-                    icon: savingPhoto
-                        ? const SizedBox(
-                            height: 16,
-                            width: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.photo_camera_rounded),
-                    label: Text(savingPhoto ? 'Saving...' : 'Add'),
                   ),
+                ],
+              ),
+              const SizedBox(width: 18),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user['name'] ?? '',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      user['email'] ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    TextButton(
+                      onPressed: _editDetails,
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(44, 32),
+                        alignment: Alignment.centerLeft,
+                        foregroundColor: colors.ink,
+                      ),
+                      child: const Text('Show profile'),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 42),
-          Center(
-            child: Text(
-              user['name'] ?? '',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
-            ),
-          ),
-          Center(
-            child: Text(
-              user['role'] ?? '',
-              style: const TextStyle(color: Colors.black54),
-            ),
+              ),
+            ],
           ),
           const SizedBox(height: 28),
+          Text('My profile', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
           Text(
-            'My profile',
+            'Hosts and customers can see your profile details to help build trust before an event booking.',
             style: Theme.of(
               context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            ).textTheme.bodyMedium?.copyWith(color: colors.secondaryText),
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'Hosts and customers can see your profile details to help build trust before an event booking.',
-            style: TextStyle(color: Colors.black54, height: 1.45),
-          ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           _ProfileDetailCard(
             children: [
               _ProfileDetailTile(
@@ -2930,12 +3338,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
           const SizedBox(height: 14),
-          OutlinedButton.icon(
-            onPressed: _editDetails,
-            icon: const Icon(Icons.edit_outlined),
-            label: const Text('Edit account details'),
-          ),
-          const SizedBox(height: 10),
           _ProfileDetailCard(
             children: [
               _ProfileDetailTile(
@@ -2960,25 +3362,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          _PolicyCard(),
-          const SizedBox(height: 18),
-          OutlinedButton.icon(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ChangePasswordScreen(api: widget.api),
+          const SizedBox(height: 14),
+          _ProfileDetailCard(
+            children: [
+              _ProfileDetailTile(
+                icon: Icons.edit_outlined,
+                title: 'Edit account details',
+                subtitle: 'Name, contact, preferences, likes, and notes',
+                onTap: _editDetails,
               ),
-            ),
-            icon: const Icon(Icons.lock_reset),
-            label: const Text('Change password'),
+              _ProfileDetailTile(
+                icon: Icons.lock_reset,
+                title: 'Change password',
+                subtitle: 'Update your account password',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ChangePasswordScreen(api: widget.api),
+                  ),
+                ),
+              ),
+              _ProfileDetailTile(
+                icon: Icons.logout,
+                title: 'Logout',
+                subtitle: 'Sign out of this device',
+                onTap: widget.onLogout,
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed: widget.onLogout,
-            icon: const Icon(Icons.logout),
-            label: const Text('Logout'),
-          ),
+          const SizedBox(height: 14),
+          _PolicyCard(),
         ],
       ),
     );
@@ -3051,12 +3464,22 @@ class _ProfileDetailCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(color: AppTheme.colorsOf(context).divider),
+      ),
       child: Column(
         children: [
           for (var i = 0; i < children.length; i++) ...[
             children[i],
-            if (i != children.length - 1) const Divider(height: 1, indent: 68),
+            if (i != children.length - 1)
+              Divider(
+                height: 1,
+                indent: 68,
+                color: AppTheme.colorsOf(context).divider,
+              ),
           ],
         ],
       ),
@@ -3069,19 +3492,28 @@ class _ProfileDetailTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
+    this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
+      onTap: onTap,
       minLeadingWidth: 30,
-      leading: Icon(icon, color: AppTheme.ink),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+      leading: Icon(icon, color: AppTheme.colorsOf(context).ink),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
       subtitle: Text(subtitle),
+      trailing: onTap == null
+          ? null
+          : Icon(
+              Icons.chevron_right_rounded,
+              color: AppTheme.colorsOf(context).secondaryText,
+            ),
     );
   }
 }
@@ -3089,13 +3521,18 @@ class _ProfileDetailTile extends StatelessWidget {
 class _PolicyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: AppTheme.sky,
+    final colors = AppTheme.colorsOf(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surfaceGray,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(color: colors.divider),
+      ),
       child: ExpansionTile(
-        leading: const Icon(Icons.policy_outlined, color: AppTheme.navy),
+        leading: Icon(Icons.policy_outlined, color: colors.ink),
         title: const Text(
           'No Refund Policy',
-          style: TextStyle(fontWeight: FontWeight.w800),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         subtitle: const Text('Tap to read before booking'),
         childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
@@ -5131,43 +5568,6 @@ String _locationLabel(dynamic value) {
       .trim();
 }
 
-List<String> _venueLocations(List<Map<String, dynamic>> venues) {
-  const preferred = [
-    'Tacloban',
-    'Palo',
-    'Ormoc',
-    'Baybay',
-    'Guiuan',
-    'Catbalogan',
-    'Borongan',
-    'Naval',
-    'Maasin',
-    'Calbayog',
-    'Tanauan',
-    'Dulag',
-    'Tolosa',
-  ];
-  final labels = venues
-      .map((venue) => _locationLabel(venue['location']))
-      .toSet();
-  final extras = labels.where((label) => !preferred.contains(label)).toList()
-    ..sort();
-  final ordered = [...preferred.where(labels.contains), ...extras];
-
-  return ordered.isEmpty ? preferred : ordered;
-}
-
-Map<String, List<Map<String, dynamic>>> _groupVenuesByLocation(
-  List<Map<String, dynamic>> venues,
-) {
-  final grouped = <String, List<Map<String, dynamic>>>{};
-  for (final venue in venues) {
-    final label = _locationLabel(venue['location']);
-    grouped.putIfAbsent(label, () => []).add(venue);
-  }
-  return grouped;
-}
-
 String _firstVenueImage(Map<String, dynamic> venue) {
   final images = venue['images'];
   if (images is List && images.isNotEmpty) {
@@ -5177,6 +5577,20 @@ String _firstVenueImage(Map<String, dynamic> venue) {
     }
   }
   return '';
+}
+
+List<String> _venueImageUrls(Map<String, dynamic> venue) {
+  final images = venue['images'];
+  if (images is! List) return const [];
+  return images
+      .map(
+        (image) => image is String
+            ? image
+            : (image['imageUrl'] ?? image['url'])?.toString(),
+      )
+      .whereType<String>()
+      .where((imageUrl) => imageUrl.trim().isNotEmpty)
+      .toList();
 }
 
 List<dynamic> _filterVenues(List<dynamic> source, String query, String status) {
