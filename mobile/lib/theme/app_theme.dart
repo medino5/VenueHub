@@ -63,14 +63,15 @@ class AppColors extends ThemeExtension<AppColors> {
 }
 
 class AppTheme {
-  static const ink = Color(0xFF182230);
-  static const navy = Color(0xFF05264D);
-  static const blue = Color(0xFF1689D6);
+  static const ink = Color(0xFF10243E);
+  static const navy = Color(0xFF0B3D73);
+  static const blue = Color(0xFF1D8FE8);
+  static const gold = Color(0xFFF4B23B);
   static const sky = Color(0xFFEAF6FF);
-  static const divider = Color(0xFFE6EDF5);
-  static const surfaceGray = Color(0xFFF7FAFC);
-  static const secondaryText = Color(0xFF667085);
-  static const rausch = navy;
+  static const divider = Color(0xFFE4ECF7);
+  static const surfaceGray = Color(0xFFF8FBFF);
+  static const secondaryText = Color(0xFF60758A);
+  static const rausch = blue;
   static const success = Color(0xFF008A05);
   static const warning = Color(0xFFB26A00);
   static const danger = Color(0xFFC13515);
@@ -126,8 +127,8 @@ class AppTheme {
       useMaterial3: true,
       brightness: brightness,
       colorScheme: baseScheme.copyWith(
-        primary: navy,
-        secondary: blue,
+        primary: blue,
+        secondary: gold,
         surface: isDark ? const Color(0xFF0F0F0F) : Colors.white,
         onSurface: appColors.ink,
         outline: appColors.divider,
@@ -188,7 +189,7 @@ class AppTheme {
       dividerTheme: DividerThemeData(color: appColors.divider, thickness: 1),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: isDark ? const Color(0xFF0F0F0F) : Colors.white,
-        selectedItemColor: navy,
+        selectedItemColor: blue,
         unselectedItemColor: appColors.secondaryText,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
@@ -235,7 +236,7 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: navy,
+          backgroundColor: blue,
           foregroundColor: Colors.white,
           minimumSize: const Size.fromHeight(52),
           elevation: 0,
@@ -247,7 +248,7 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: navy,
+          backgroundColor: blue,
           foregroundColor: Colors.white,
           minimumSize: const Size(44, 44),
           shape: RoundedRectangleBorder(

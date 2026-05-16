@@ -74,6 +74,7 @@ class _VenueHubAppState extends State<VenueHubApp> {
       title: 'VenueHub',
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.light,
       home: booting
           ? const SplashScreen()
           : user == null
@@ -1606,7 +1607,7 @@ class _VenueCardState extends State<VenueCard> {
                               ? Icons.favorite_rounded
                               : Icons.favorite_border_rounded,
                           color: widget.isFavorite
-                              ? AppTheme.blue
+                              ? AppTheme.gold
                               : Colors.white,
                           shadows: [
                             Shadow(
@@ -1828,7 +1829,7 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
                           icon: favorite
                               ? Icons.favorite_rounded
                               : Icons.favorite_border_rounded,
-                          color: favorite ? AppTheme.blue : AppTheme.ink,
+                          color: favorite ? AppTheme.gold : AppTheme.ink,
                           onTap: () {
                             setState(() => favorite = !favorite);
                             widget.onFavoriteChanged?.call(favorite);

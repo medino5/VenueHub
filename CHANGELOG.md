@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.7+8 - 2026-05-17
+
+- Forced the client APK to use the light theme for a clean demo presentation.
+- Restored a brighter VenueHub white, blue, and gold palette so actions, icons, and tabs are easier to read.
+- Rebuilt the Android release APK with the deployed Render API URL.
+
 ## 1.0.6+7 - 2026-05-17
 
 - Replaced decorative venue-type categories with Eastern Visayas location filters.
