@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.6+7 - 2026-05-17
+
+- Replaced decorative venue-type categories with Eastern Visayas location filters.
+- Added a customer Favourites tab backed by saved local heart selections.
+- Restored the VenueHub navy/blue palette while keeping the premium Airbnb-inspired layout and animations.
+- Rebuilt the Android release APK with the deployed Render API URL.
+
 ## 1.0.5+6 - 2026-05-17
 
 - Redesigned the customer Explore, Venue Details, Trips, and Profile screens with an Airbnb-inspired white editorial theme and Rausch CTA color.

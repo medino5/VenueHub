@@ -63,23 +63,23 @@ class AppColors extends ThemeExtension<AppColors> {
 }
 
 class AppTheme {
-  static const rausch = Color(0xFFFF385C);
-  static const ink = Color(0xFF222222);
-  static const secondaryText = Color(0xFF717171);
-  static const divider = Color(0xFFEBEBEB);
-  static const surfaceGray = Color(0xFFF7F7F7);
+  static const ink = Color(0xFF182230);
+  static const navy = Color(0xFF05264D);
+  static const blue = Color(0xFF1689D6);
+  static const sky = Color(0xFFEAF6FF);
+  static const divider = Color(0xFFE6EDF5);
+  static const surfaceGray = Color(0xFFF7FAFC);
+  static const secondaryText = Color(0xFF667085);
+  static const rausch = navy;
   static const success = Color(0xFF008A05);
   static const warning = Color(0xFFB26A00);
   static const danger = Color(0xFFC13515);
 
   // Compatibility aliases for the existing screens while the UI is migrated.
-  static const navy = ink;
-  static const blue = rausch;
-  static const sky = surfaceGray;
   static const line = divider;
-  static const coral = rausch;
+  static const coral = blue;
   static const sand = Colors.white;
-  static const teal = rausch;
+  static const teal = blue;
 
   static const radiusCard = 12.0;
   static const radiusInput = 8.0;
@@ -105,7 +105,7 @@ class AppTheme {
   static ThemeData _theme(Brightness brightness) {
     final isDark = brightness == Brightness.dark;
     final appColors = AppColors(
-      rausch: rausch,
+      rausch: blue,
       ink: isDark ? Colors.white : ink,
       secondaryText: isDark ? const Color(0xFFB0B0B0) : secondaryText,
       divider: isDark ? const Color(0xFF333333) : divider,
@@ -115,7 +115,7 @@ class AppTheme {
       danger: danger,
     );
     final baseScheme = ColorScheme.fromSeed(
-      seedColor: rausch,
+      seedColor: navy,
       brightness: brightness,
     );
     final textTheme = GoogleFonts.plusJakartaSansTextTheme(
@@ -126,8 +126,8 @@ class AppTheme {
       useMaterial3: true,
       brightness: brightness,
       colorScheme: baseScheme.copyWith(
-        primary: rausch,
-        secondary: ink,
+        primary: navy,
+        secondary: blue,
         surface: isDark ? const Color(0xFF0F0F0F) : Colors.white,
         onSurface: appColors.ink,
         outline: appColors.divider,
@@ -188,7 +188,7 @@ class AppTheme {
       dividerTheme: DividerThemeData(color: appColors.divider, thickness: 1),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: isDark ? const Color(0xFF0F0F0F) : Colors.white,
-        selectedItemColor: rausch,
+        selectedItemColor: navy,
         unselectedItemColor: appColors.secondaryText,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
@@ -230,12 +230,12 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusInput),
-          borderSide: const BorderSide(color: rausch, width: 1.4),
+          borderSide: const BorderSide(color: blue, width: 1.4),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: rausch,
+          backgroundColor: navy,
           foregroundColor: Colors.white,
           minimumSize: const Size.fromHeight(52),
           elevation: 0,
@@ -247,7 +247,7 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: rausch,
+          backgroundColor: navy,
           foregroundColor: Colors.white,
           minimumSize: const Size(44, 44),
           shape: RoundedRectangleBorder(

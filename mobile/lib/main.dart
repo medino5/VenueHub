@@ -575,11 +575,45 @@ class CustomerHome extends StatefulWidget {
 
 class _CustomerHomeState extends State<CustomerHome> {
   int index = 0;
+  Set<String> favoriteVenueIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreFavorites();
+  }
+
+  Future<void> _restoreFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getStringList('favoriteVenueIds') ?? const [];
+    if (mounted) setState(() => favoriteVenueIds = saved.toSet());
+  }
+
+  Future<void> _setFavorite(String venueId, bool value) async {
+    setState(() {
+      if (value) {
+        favoriteVenueIds.add(venueId);
+      } else {
+        favoriteVenueIds.remove(venueId);
+      }
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('favoriteVenueIds', favoriteVenueIds.toList());
+  }
 
   @override
   Widget build(BuildContext context) {
     final pages = [
-      VenueBrowseScreen(api: widget.api),
+      VenueBrowseScreen(
+        api: widget.api,
+        favoriteVenueIds: favoriteVenueIds,
+        onFavoriteChanged: _setFavorite,
+      ),
+      FavoritesScreen(
+        api: widget.api,
+        favoriteVenueIds: favoriteVenueIds,
+        onFavoriteChanged: _setFavorite,
+      ),
       MyBookingsScreen(api: widget.api),
       ProfileScreen(
         api: widget.api,
@@ -608,6 +642,11 @@ class _CustomerHomeState extends State<CustomerHome> {
               label: 'Explore',
             ),
             BottomNavigationBarItem(
+              icon: Icon(Icons.favorite_border_rounded),
+              activeIcon: Icon(Icons.favorite_rounded),
+              label: 'Favourites',
+            ),
+            BottomNavigationBarItem(
               icon: Icon(Icons.calendar_today_outlined),
               activeIcon: Icon(Icons.calendar_today_rounded),
               label: 'Trips',
@@ -625,9 +664,16 @@ class _CustomerHomeState extends State<CustomerHome> {
 }
 
 class VenueBrowseScreen extends StatefulWidget {
-  const VenueBrowseScreen({super.key, required this.api});
+  const VenueBrowseScreen({
+    super.key,
+    required this.api,
+    required this.favoriteVenueIds,
+    required this.onFavoriteChanged,
+  });
 
   final ApiClient api;
+  final Set<String> favoriteVenueIds;
+  final Future<void> Function(String venueId, bool value) onFavoriteChanged;
 
   @override
   State<VenueBrowseScreen> createState() => _VenueBrowseScreenState();
@@ -637,16 +683,17 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
   final query = TextEditingController();
   final location = TextEditingController();
   String selectedLocation = 'All';
-  String selectedCategory = 'Halls';
   late Future<List<dynamic>> venues = _loadVenues();
-  static const categories = [
-    CategoryItem(Icons.meeting_room_outlined, 'Halls'),
-    CategoryItem(Icons.yard_outlined, 'Gardens'),
-    CategoryItem(Icons.roofing_outlined, 'Rooftop'),
-    CategoryItem(Icons.beach_access_outlined, 'Beachfront'),
-    CategoryItem(Icons.hotel_outlined, 'Hotels'),
-    CategoryItem(Icons.restaurant_outlined, 'Restaurants'),
-    CategoryItem(Icons.co_present_outlined, 'Conference'),
+  static const locationCategories = [
+    CategoryItem(Icons.apps_rounded, 'All'),
+    CategoryItem(Icons.location_city_outlined, 'Tacloban'),
+    CategoryItem(Icons.account_balance_outlined, 'Palo'),
+    CategoryItem(Icons.apartment_outlined, 'Ormoc'),
+    CategoryItem(Icons.location_on_outlined, 'Baybay'),
+    CategoryItem(Icons.beach_access_outlined, 'Guiuan'),
+    CategoryItem(Icons.location_city_outlined, 'Catbalogan'),
+    CategoryItem(Icons.apartment_outlined, 'Borongan'),
+    CategoryItem(Icons.directions_boat_outlined, 'Naval'),
   ];
 
   Future<List<dynamic>> _loadVenues() async {
@@ -782,17 +829,25 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
                           ? 'Start your search'
                           : query.text.trim(),
                       subtitle: location.text.trim().isEmpty
-                          ? 'Anywhere · Any week · Add guests'
-                          : '${_locationLabel(location.text)} · Any week · Add guests',
+                          ? 'Anywhere - Any week - Add guests'
+                          : '${_locationLabel(location.text)} - Any week - Add guests',
                       onTap: _openSearchSheet,
                       trailing: NotificationBell(api: widget.api),
                     ),
                   ),
                   CategoryRail(
-                    items: categories,
-                    selected: selectedCategory,
-                    onSelected: (value) =>
-                        setState(() => selectedCategory = value),
+                    items: locationCategories,
+                    selected: selectedLocation,
+                    onSelected: (value) {
+                      setState(() {
+                        selectedLocation = value;
+                        if (value == 'All') {
+                          location.clear();
+                        } else {
+                          location.text = value;
+                        }
+                      });
+                    },
                   ),
                   if (cards.isEmpty)
                     const EmptyState(
@@ -822,7 +877,17 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
                       ),
                     ),
                     ...displayed.map(
-                      (venue) => VenueCard(venue: venue, api: widget.api),
+                      (venue) => VenueCard(
+                        venue: venue,
+                        api: widget.api,
+                        isFavorite: widget.favoriteVenueIds.contains(
+                          venue['id']?.toString(),
+                        ),
+                        onFavoriteChanged: (value) => widget.onFavoriteChanged(
+                          venue['id'].toString(),
+                          value,
+                        ),
+                      ),
                     ),
                   ],
                 ],
@@ -880,6 +945,98 @@ class _InlineExploreBanner extends StatelessWidget {
                 child: Icon(Icons.arrow_forward_rounded, color: colors.ink),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class FavoritesScreen extends StatefulWidget {
+  const FavoritesScreen({
+    super.key,
+    required this.api,
+    required this.favoriteVenueIds,
+    required this.onFavoriteChanged,
+  });
+
+  final ApiClient api;
+  final Set<String> favoriteVenueIds;
+  final Future<void> Function(String venueId, bool value) onFavoriteChanged;
+
+  @override
+  State<FavoritesScreen> createState() => _FavoritesScreenState();
+}
+
+class _FavoritesScreenState extends State<FavoritesScreen> {
+  late Future<List<dynamic>> venues = _loadVenues();
+
+  Future<List<dynamic>> _loadVenues() async {
+    final response = await widget.api.get('/venues');
+    return response['venues'] as List<dynamic>;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: () async => setState(() => venues = _loadVenues()),
+          child: FutureBuilder<List<dynamic>>(
+            future: venues,
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return snapshot.hasError
+                    ? EmptyState(
+                        title: 'Could not load favourites',
+                        message: snapshot.error.toString(),
+                      )
+                    : const LoadingView();
+              }
+
+              final cards = snapshot.data!
+                  .cast<Map<String, dynamic>>()
+                  .where(
+                    (venue) => widget.favoriteVenueIds.contains(
+                      venue['id']?.toString(),
+                    ),
+                  )
+                  .toList();
+
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+                children: [
+                  Text(
+                    'Favourites',
+                    style: Theme.of(context).textTheme.displaySmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Venues you liked are saved here on this device.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 20),
+                  if (cards.isEmpty)
+                    const EmptyState(
+                      title: 'No favourites yet',
+                      message:
+                          'Tap the heart on a venue to keep it in this list.',
+                    )
+                  else
+                    ...cards.map(
+                      (venue) => VenueCard(
+                        venue: venue,
+                        api: widget.api,
+                        isFavorite: true,
+                        onFavoriteChanged: (value) => widget.onFavoriteChanged(
+                          venue['id'].toString(),
+                          value,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -1320,10 +1477,18 @@ class VenueMiniCard extends StatelessWidget {
 }
 
 class VenueCard extends StatefulWidget {
-  const VenueCard({super.key, required this.venue, required this.api});
+  const VenueCard({
+    super.key,
+    required this.venue,
+    required this.api,
+    this.isFavorite = false,
+    this.onFavoriteChanged,
+  });
 
   final Map<String, dynamic> venue;
   final ApiClient api;
+  final bool isFavorite;
+  final ValueChanged<bool>? onFavoriteChanged;
 
   @override
   State<VenueCard> createState() => _VenueCardState();
@@ -1331,7 +1496,7 @@ class VenueCard extends StatefulWidget {
 
 class _VenueCardState extends State<VenueCard> {
   int page = 0;
-  bool favorite = false;
+  bool pulseFavorite = false;
 
   @override
   Widget build(BuildContext context) {
@@ -1352,6 +1517,8 @@ class _VenueCardState extends State<VenueCard> {
             builder: (_) => VenueDetailsScreen(
               api: widget.api,
               venueId: venue['id'] as String,
+              isFavorite: widget.isFavorite,
+              onFavoriteChanged: widget.onFavoriteChanged,
             ),
           ),
         ),
@@ -1423,16 +1590,24 @@ class _VenueCardState extends State<VenueCard> {
                         minWidth: 44,
                         minHeight: 44,
                       ),
-                      onPressed: () => setState(() => favorite = !favorite),
+                      onPressed: () {
+                        setState(() => pulseFavorite = true);
+                        widget.onFavoriteChanged?.call(!widget.isFavorite);
+                        Future.delayed(const Duration(milliseconds: 180), () {
+                          if (mounted) setState(() => pulseFavorite = false);
+                        });
+                      },
                       icon: AnimatedScale(
                         duration: const Duration(milliseconds: 180),
                         curve: Curves.easeOutBack,
-                        scale: favorite ? 1.18 : 1,
+                        scale: pulseFavorite ? 1.18 : 1,
                         child: Icon(
-                          favorite
+                          widget.isFavorite
                               ? Icons.favorite_rounded
                               : Icons.favorite_border_rounded,
-                          color: favorite ? AppTheme.rausch : Colors.white,
+                          color: widget.isFavorite
+                              ? AppTheme.blue
+                              : Colors.white,
                           shadows: [
                             Shadow(
                               color: Colors.black.withValues(alpha: 0.35),
@@ -1504,7 +1679,7 @@ class _VenueCardState extends State<VenueCard> {
             ),
             const SizedBox(height: 3),
             Text(
-              '${_demoDistance(venue)} away · up to ${venue['capacity'] ?? 'many'} guests',
+              '${_demoDistance(venue)} away - up to ${venue['capacity'] ?? 'many'} guests',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(
@@ -1537,10 +1712,14 @@ class VenueDetailsScreen extends StatefulWidget {
     super.key,
     required this.api,
     required this.venueId,
+    this.isFavorite = false,
+    this.onFavoriteChanged,
   });
 
   final ApiClient api;
   final String venueId;
+  final bool isFavorite;
+  final ValueChanged<bool>? onFavoriteChanged;
 
   @override
   State<VenueDetailsScreen> createState() => _VenueDetailsScreenState();
@@ -1551,6 +1730,12 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
   int galleryPage = 0;
   bool favorite = false;
   bool showFullAbout = false;
+
+  @override
+  void initState() {
+    super.initState();
+    favorite = widget.isFavorite;
+  }
 
   Future<Map<String, dynamic>> _load() async {
     final response = await widget.api.get('/venues/${widget.venueId}');
@@ -1643,8 +1828,11 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
                           icon: favorite
                               ? Icons.favorite_rounded
                               : Icons.favorite_border_rounded,
-                          color: favorite ? AppTheme.rausch : AppTheme.ink,
-                          onTap: () => setState(() => favorite = !favorite),
+                          color: favorite ? AppTheme.blue : AppTheme.ink,
+                          onTap: () {
+                            setState(() => favorite = !favorite);
+                            widget.onFavoriteChanged?.call(favorite);
+                          },
                         ),
                       ],
                     ),
