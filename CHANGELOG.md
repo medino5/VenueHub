@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.8+9 - 2026-05-17
+
+- Renamed the customer bottom tab from Trips to Bookings.
+- Cleaned up the login screen while keeping quick demo account chips for school presentations.
+- Restored sideways venue sections inside the current Explore layout so users can scroll down and sideways.
+- Expanded the demo seed data with more Region 8 event venues across Leyte, Samar, Biliran, and Southern Leyte.
+- Rebuilt the Android release APK with the deployed Render API URL.
+
 ## 1.0.7+8 - 2026-05-17
 
 - Forced the client APK to use the light theme for a clean demo presentation.

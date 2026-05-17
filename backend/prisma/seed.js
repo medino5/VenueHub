@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('@prisma/client');
+require('dotenv').config();
 
 const prisma = new PrismaClient();
 
@@ -11,7 +12,13 @@ const venueImages = [
   'https://images.unsplash.com/photo-1527529482837-4698179dc6ce?auto=format&fit=crop&w=1200&q=80',
   'https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=1200&q=80',
   'https://images.unsplash.com/photo-1507504031003-b417219a0fde?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80'
+  'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1469371670807-013ccf25f16a?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1566737236500-c8ac43014a8e?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1503428593586-e225b39bddfe?auto=format&fit=crop&w=1200&q=80'
 ];
 
 const bookingAmounts = (price) => ({
@@ -93,6 +100,78 @@ const temporaryVenues = [
     imageIndexes: [5, 0],
     amenities: ['Wi-Fi', 'Air conditioning', 'Projector', 'Coffee station'],
     facilities: ['Event loft', 'Meeting corner', 'Pantry', 'Reception desk']
+  },
+  {
+    name: 'Maasin Seaview Convention Hall',
+    description: 'A seaside function hall for school banquets, anniversaries, and civic events in Southern Leyte.',
+    pricePerDay: 34000,
+    capacity: 130,
+    location: 'Maasin City, Southern Leyte',
+    address: 'Tunga-tunga Road, Maasin City, Southern Leyte',
+    status: 'APPROVED',
+    imageIndexes: [8, 2],
+    amenities: ['Sea view', 'Air conditioning', 'Parking', 'Basic sound'],
+    facilities: ['Convention hall', 'Lobby', 'Dining area', 'Prep room']
+  },
+  {
+    name: 'Calbayog Grand Function Center',
+    description: 'A spacious Samar venue for graduation parties, seminars, and large family gatherings.',
+    pricePerDay: 40000,
+    capacity: 180,
+    location: 'Calbayog City, Samar',
+    address: 'Maharlika Highway, Calbayog City, Samar',
+    status: 'APPROVED',
+    imageIndexes: [9, 3],
+    amenities: ['Air conditioning', 'Parking', 'Projector', 'Security desk'],
+    facilities: ['Grand hall', 'Breakout room', 'Reception lobby', 'Kitchen area']
+  },
+  {
+    name: 'Naval Island View Event Deck',
+    description: 'A Biliran-inspired deck venue for intimate receptions, birthdays, and sunset dinners.',
+    pricePerDay: 31000,
+    capacity: 85,
+    location: 'Naval, Biliran',
+    address: 'Cathedral Road, Naval, Biliran',
+    status: 'APPROVED',
+    imageIndexes: [10, 4],
+    amenities: ['Outdoor lights', 'Island view', 'Parking', 'E-wallet accepted'],
+    facilities: ['Event deck', 'Covered dining', 'Preparation room', 'Storage']
+  },
+  {
+    name: 'Tanauan Family Celebration Hall',
+    description: 'A practical Leyte town venue for birthdays, reunions, christenings, and school activities.',
+    pricePerDay: 26000,
+    capacity: 90,
+    location: 'Tanauan, Leyte',
+    address: 'Real Street, Tanauan, Leyte',
+    status: 'APPROVED',
+    imageIndexes: [11, 1],
+    amenities: ['Tables and chairs', 'Basic sound', 'Parking', 'Stage lights'],
+    facilities: ['Celebration hall', 'Stage', 'Serving area', 'Changing room']
+  },
+  {
+    name: 'Dulag Coastal Pavilion',
+    description: 'An open-air pavilion for community programs, small weddings, and beach-themed events.',
+    pricePerDay: 24000,
+    capacity: 75,
+    location: 'Dulag, Leyte',
+    address: 'Coastal Road, Dulag, Leyte',
+    status: 'APPROVED',
+    imageIndexes: [12, 7],
+    amenities: ['Open-air setup', 'Coastal breeze', 'Parking', 'Basic lights'],
+    facilities: ['Pavilion', 'Outdoor dining area', 'Kitchenette', 'Storage room']
+  },
+  {
+    name: 'Sogod Academic Events Hall',
+    description: 'A Southern Leyte demo venue for school symposiums, trainings, and recognition ceremonies.',
+    pricePerDay: 29000,
+    capacity: 110,
+    location: 'Sogod, Southern Leyte',
+    address: 'Osmena Street, Sogod, Southern Leyte',
+    status: 'APPROVED',
+    imageIndexes: [13, 0],
+    amenities: ['Projector', 'Wi-Fi', 'Air conditioning', 'Podium'],
+    facilities: ['Academic hall', 'Meeting room', 'Registration desk', 'Pantry']
   },
   {
     name: 'Borongan Riverside Hall',
