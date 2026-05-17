@@ -1646,8 +1646,9 @@ class _VenueCardState extends State<VenueCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AspectRatio(
-              aspectRatio: 1,
+            SizedBox(
+              height: 220,
+              width: double.infinity,
               child: Stack(
                 children: [
                   Hero(
@@ -1807,6 +1808,8 @@ class _VenueCardState extends State<VenueCard> {
                 context,
               ).textTheme.bodyMedium?.copyWith(color: colors.secondaryText),
             ),
+            const SizedBox(height: 8),
+            _VenueAmenityPreview(venue: venue),
             const SizedBox(height: 6),
             PriceText(amount: _num(venue['pricePerDay']), suffix: 'day'),
           ],
@@ -1814,6 +1817,84 @@ class _VenueCardState extends State<VenueCard> {
       ),
     );
   }
+}
+
+class _VenueAmenityPreview extends StatelessWidget {
+  const _VenueAmenityPreview({required this.venue});
+
+  final Map<String, dynamic> venue;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
+    final items = _venueFeatureItems(venue).take(3).toList();
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 6,
+      children: items
+          .map(
+            (item) => Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(item.icon, size: 16, color: AppTheme.blue),
+                const SizedBox(width: 4),
+                Text(
+                  item.label,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colors.secondaryText,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          )
+          .toList(),
+    );
+  }
+}
+
+class _VenueFeatureItem {
+  const _VenueFeatureItem(this.icon, this.label);
+
+  final IconData icon;
+  final String label;
+}
+
+List<_VenueFeatureItem> _venueFeatureItems(Map<String, dynamic> venue) {
+  final source = [
+    ...(venue['amenities'] as List<dynamic>? ?? []),
+    ...(venue['facilities'] as List<dynamic>? ?? []),
+  ];
+  final labels = source
+      .map((item) => item is Map ? item['name']?.toString() : item.toString())
+      .whereType<String>()
+      .where((label) => label.trim().isNotEmpty)
+      .toSet()
+      .toList();
+
+  return labels.map((label) {
+    final normalized = label.toLowerCase();
+    final icon = normalized.contains('parking')
+        ? Icons.local_parking_outlined
+        : normalized.contains('wi-fi') || normalized.contains('wifi')
+        ? Icons.wifi_rounded
+        : normalized.contains('air')
+        ? Icons.ac_unit_rounded
+        : normalized.contains('sound') || normalized.contains('audio')
+        ? Icons.speaker_outlined
+        : normalized.contains('catering') || normalized.contains('kitchen')
+        ? Icons.restaurant_outlined
+        : normalized.contains('stage')
+        ? Icons.theater_comedy_outlined
+        : normalized.contains('projector') || normalized.contains('led')
+        ? Icons.connected_tv_outlined
+        : normalized.contains('view') || normalized.contains('garden')
+        ? Icons.landscape_outlined
+        : Icons.check_circle_outline_rounded;
+    return _VenueFeatureItem(icon, label);
+  }).toList();
 }
 
 String _demoDistance(Map<String, dynamic> venue) {
@@ -3532,85 +3613,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final colors = AppTheme.colorsOf(context);
     return Scaffold(
+      appBar: AppBar(title: const Text('Profile')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 22, 16, 28),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
         children: [
-          Text('Profile', style: Theme.of(context).textTheme.displaySmall),
-          const SizedBox(height: 24),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  _ProfileAvatar(
-                    imageUrl: user['profileImageUrl']?.toString(),
-                    name: user['name']?.toString() ?? 'VenueHub user',
-                    size: 92,
-                  ),
-                  Positioned(
-                    right: -4,
-                    bottom: -4,
-                    child: Material(
-                      color: Colors.white,
-                      shape: const CircleBorder(),
-                      elevation: 2,
-                      child: InkWell(
-                        customBorder: const CircleBorder(),
-                        onTap: savingPhoto ? null : _changePhoto,
-                        child: SizedBox(
-                          width: 38,
-                          height: 38,
-                          child: savingPhoto
-                              ? const Padding(
-                                  padding: EdgeInsets.all(10),
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(
-                                  Icons.photo_camera_outlined,
-                                  size: 20,
-                                ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 18),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      user['name'] ?? '',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      user['email'] ?? '',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    TextButton(
-                      onPressed: _editDetails,
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: const Size(44, 32),
-                        alignment: Alignment.centerLeft,
-                        foregroundColor: colors.ink,
-                      ),
-                      child: const Text('Show profile'),
-                    ),
-                  ],
+          Center(
+            child: Stack(
+              alignment: Alignment.bottomCenter,
+              clipBehavior: Clip.none,
+              children: [
+                _ProfileAvatar(
+                  imageUrl: user['profileImageUrl']?.toString(),
+                  name: user['name']?.toString() ?? 'VenueHub user',
+                  size: 154,
                 ),
-              ),
-            ],
+                Positioned(
+                  bottom: -18,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: AppTheme.ink,
+                      elevation: 6,
+                      shadowColor: Colors.black26,
+                      side: BorderSide(color: colors.divider),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 12,
+                      ),
+                    ),
+                    onPressed: savingPhoto ? null : _changePhoto,
+                    icon: savingPhoto
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.photo_camera_outlined),
+                    label: Text(savingPhoto ? 'Saving...' : 'Change photo'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 42),
+          Center(
+            child: Text(
+              user['name'] ?? '',
+              style: Theme.of(context).textTheme.displaySmall,
+            ),
+          ),
+          Center(
+            child: Text(
+              user['role'] ?? '',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: colors.secondaryText),
+            ),
           ),
           const SizedBox(height: 28),
           Text('My profile', style: Theme.of(context).textTheme.titleLarge),
@@ -3672,32 +3730,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
           const SizedBox(height: 14),
-          _ProfileDetailCard(
-            children: [
-              _ProfileDetailTile(
-                icon: Icons.edit_outlined,
-                title: 'Edit account details',
-                subtitle: 'Name, contact, preferences, likes, and notes',
-                onTap: _editDetails,
+          OutlinedButton.icon(
+            onPressed: _editDetails,
+            icon: const Icon(Icons.edit_outlined),
+            label: const Text('Edit account details'),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ChangePasswordScreen(api: widget.api),
               ),
-              _ProfileDetailTile(
-                icon: Icons.lock_reset,
-                title: 'Change password',
-                subtitle: 'Update your account password',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ChangePasswordScreen(api: widget.api),
-                  ),
-                ),
-              ),
-              _ProfileDetailTile(
-                icon: Icons.logout,
-                title: 'Logout',
-                subtitle: 'Sign out of this device',
-                onTap: widget.onLogout,
-              ),
-            ],
+            ),
+            icon: const Icon(Icons.lock_reset),
+            label: const Text('Change password'),
+          ),
+          const SizedBox(height: 10),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.danger,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: widget.onLogout,
+            icon: const Icon(Icons.logout_rounded),
+            label: const Text('Logout'),
           ),
           const SizedBox(height: 14),
           _PolicyCard(),
@@ -3801,28 +3858,19 @@ class _ProfileDetailTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
-    this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
-  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      onTap: onTap,
       minLeadingWidth: 30,
       leading: Icon(icon, color: AppTheme.colorsOf(context).ink),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
       subtitle: Text(subtitle),
-      trailing: onTap == null
-          ? null
-          : Icon(
-              Icons.chevron_right_rounded,
-              color: AppTheme.colorsOf(context).secondaryText,
-            ),
     );
   }
 }

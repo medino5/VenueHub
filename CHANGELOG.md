@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.9+10 - 2026-05-17
+
+- Reduced the oversized direct venue cards with shorter image banners.
+- Added amenity/facility icon highlights to direct venue cards.
+- Restored the profile page closer to the older layout with a centered avatar and obvious logout button.
+- Rebuilt the Android release APK with the deployed Render API URL.
+
 ## 1.0.8+9 - 2026-05-17
 
 - Renamed the customer bottom tab from Trips to Bookings.
