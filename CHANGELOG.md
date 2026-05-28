@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.10+11 - 2026-05-28
+
+- Replaced the in-app logo asset and Android launcher icon with the updated VenueHub logo.
+- Removed non-functional venue detail share controls and “New”/superhost wording from venue presentation.
+- Tightened venue offers, added matching offer icons, and made host listing offers selectable.
+- Improved the demo Leyte map preview, golden review stars, login quick-demo cards, and profile details layout.
+- Rebuilt the Android release APK with the deployed Render API URL.
+
 ## 1.0.9+10 - 2026-05-17
 
 - Reduced the oversized direct venue cards with shorter image banners.

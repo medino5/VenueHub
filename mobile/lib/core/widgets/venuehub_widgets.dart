@@ -12,7 +12,7 @@ final moneyFormat = NumberFormat.currency(
   decimalDigits: 0,
 );
 final dateFormat = DateFormat('MMM d, yyyy');
-const venueHubLogoAsset = 'assets/branding/venuehub_logo.jpg';
+const venueHubLogoAsset = 'assets/branding/venuehub_logo.png';
 
 class VenueHubLogo extends StatelessWidget {
   const VenueHubLogo({super.key, this.size = 64, this.showWordmark = false});

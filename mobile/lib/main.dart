@@ -212,58 +212,94 @@ class _LoginScreenState extends State<LoginScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
           children: [
-            const SizedBox(height: 14),
-            const Center(child: VenueHubLogo(size: 104)),
-            const SizedBox(height: 24),
+            const SizedBox(height: 8),
+            Center(
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(34),
+                  border: Border.all(color: colors.divider),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 18,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: const VenueHubLogo(size: 132),
+              ),
+            ),
+            const SizedBox(height: 22),
             Text(
-              'Welcome back',
+              'Find the right place for your next event',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.displaySmall,
             ),
             const SizedBox(height: 6),
             Text(
-              'Sign in to browse, book, and manage Region 8 venues.',
+              'Sign in to browse demo venues, manage listings, or review bookings.',
               textAlign: TextAlign.center,
               style: Theme.of(
                 context,
               ).textTheme.bodyMedium?.copyWith(color: colors.secondaryText),
             ),
-            const SizedBox(height: 28),
-            TextField(
-              controller: email,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.email_outlined),
-                labelText: 'Email',
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+                border: Border.all(color: colors.divider),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 14,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: email,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.email_outlined),
+                      labelText: 'Email',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: password,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.lock_outline_rounded),
+                      labelText: 'Password',
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ForgotPasswordScreen(api: widget.api),
+                        ),
+                      ),
+                      child: const Text('Forgot password?'),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  ElevatedButton(
+                    onPressed: loading ? null : _login,
+                    child: Text(loading ? 'Signing in...' : 'Sign in'),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: password,
-              obscureText: true,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.lock_outline_rounded),
-                labelText: 'Password',
-              ),
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ForgotPasswordScreen(api: widget.api),
-                  ),
-                ),
-                child: const Text('Forgot password?'),
-              ),
-            ),
-            const SizedBox(height: 18),
-            ElevatedButton(
-              onPressed: loading ? null : _login,
-              child: Text(loading ? 'Signing in...' : 'Sign in'),
-            ),
-            const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -285,7 +321,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             _DemoLoginCard(
               onPick: (demoEmail) {
                 email.text = demoEmail;
@@ -308,8 +344,29 @@ class _DemoLoginCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = AppTheme.colorsOf(context);
+    final demos = [
+      (
+        icon: Icons.person_outline_rounded,
+        title: 'Customer demo',
+        subtitle: 'Browse, book, and pay deposits',
+        email: 'customer@venuehub.test',
+      ),
+      (
+        icon: Icons.storefront_outlined,
+        title: 'Host demo',
+        subtitle: 'Manage venues and booking requests',
+        email: 'host@venuehub.test',
+      ),
+      (
+        icon: Icons.admin_panel_settings_outlined,
+        title: 'Admin demo',
+        subtitle: 'Review users, venues, and income',
+        email: 'admin@venuehub.test',
+      ),
+    ];
+
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: colors.surfaceGray,
         borderRadius: BorderRadius.circular(AppTheme.radiusCard),
@@ -324,30 +381,61 @@ class _DemoLoginCard extends StatelessWidget {
               context,
             ).textTheme.titleMedium?.copyWith(fontSize: 15),
           ),
+          const SizedBox(height: 4),
+          Text(
+            'Tap an account to fill the demo credentials.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: colors.secondaryText),
+          ),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              ActionChip(
-                avatar: const Icon(Icons.person_outline, size: 18),
-                label: const Text('Customer'),
-                onPressed: () => onPick('customer@venuehub.test'),
-              ),
-              ActionChip(
-                avatar: const Icon(Icons.storefront_outlined, size: 18),
-                label: const Text('Host'),
-                onPressed: () => onPick('host@venuehub.test'),
-              ),
-              ActionChip(
-                avatar: const Icon(
-                  Icons.admin_panel_settings_outlined,
-                  size: 18,
+          ...demos.map(
+            (demo) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => onPick(demo.email),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        Container(
+                          height: 42,
+                          width: 42,
+                          decoration: BoxDecoration(
+                            color: AppTheme.sky,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Icon(demo.icon, color: AppTheme.navy),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                demo.title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              Text(
+                                demo.subtitle,
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                      ],
+                    ),
+                  ),
                 ),
-                label: const Text('Admin'),
-                onPressed: () => onPick('admin@venuehub.test'),
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -1490,7 +1578,6 @@ class VenueMiniCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final imageUrl = _firstVenueImage(venue);
     final colors = AppTheme.colorsOf(context);
-    final rating = _num(venue['averageRating']);
 
     return SizedBox(
       width: 196,
@@ -1544,30 +1631,6 @@ class VenueMiniCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (rating >= 4.8)
-                  Positioned(
-                    top: 12,
-                    left: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(
-                          AppTheme.radiusPill,
-                        ),
-                      ),
-                      child: const Text(
-                        'Guest favorite',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
               ],
             ),
             const SizedBox(height: 10),
@@ -1673,37 +1736,6 @@ class _VenueCardState extends State<VenueCard> {
                             ),
                     ),
                   ),
-                  if (rating >= 4.8)
-                    Positioned(
-                      top: 12,
-                      left: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 7,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(
-                            AppTheme.radiusPill,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              blurRadius: 12,
-                              color: Colors.black.withValues(alpha: 0.06),
-                            ),
-                          ],
-                        ),
-                        child: const Text(
-                          'Guest favorite',
-                          style: TextStyle(
-                            color: AppTheme.ink,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
                   Positioned(
                     top: 8,
                     right: 8,
@@ -1781,13 +1813,19 @@ class _VenueCardState extends State<VenueCard> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
-                Icon(Icons.star_rounded, size: 17, color: colors.ink),
-                const SizedBox(width: 3),
-                Text(
-                  rating == 0 ? 'New' : rating.toStringAsFixed(1),
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
+                if (rating > 0) ...[
+                  const SizedBox(width: 10),
+                  const Icon(
+                    Icons.star_rounded,
+                    size: 17,
+                    color: AppTheme.gold,
+                  ),
+                  const SizedBox(width: 3),
+                  Text(
+                    rating.toStringAsFixed(1),
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 3),
@@ -1867,34 +1905,64 @@ List<_VenueFeatureItem> _venueFeatureItems(Map<String, dynamic> venue) {
     ...(venue['amenities'] as List<dynamic>? ?? []),
     ...(venue['facilities'] as List<dynamic>? ?? []),
   ];
-  final labels = source
-      .map((item) => item is Map ? item['name']?.toString() : item.toString())
-      .whereType<String>()
-      .where((label) => label.trim().isNotEmpty)
-      .toSet()
+  return _cleanOfferLabels(source)
+      .map((label) => _VenueFeatureItem(_featureIconForLabel(label), label))
       .toList();
+}
 
-  return labels.map((label) {
-    final normalized = label.toLowerCase();
-    final icon = normalized.contains('parking')
-        ? Icons.local_parking_outlined
-        : normalized.contains('wi-fi') || normalized.contains('wifi')
-        ? Icons.wifi_rounded
-        : normalized.contains('air')
-        ? Icons.ac_unit_rounded
-        : normalized.contains('sound') || normalized.contains('audio')
-        ? Icons.speaker_outlined
-        : normalized.contains('catering') || normalized.contains('kitchen')
-        ? Icons.restaurant_outlined
-        : normalized.contains('stage')
-        ? Icons.theater_comedy_outlined
-        : normalized.contains('projector') || normalized.contains('led')
-        ? Icons.connected_tv_outlined
-        : normalized.contains('view') || normalized.contains('garden')
-        ? Icons.landscape_outlined
-        : Icons.check_circle_outline_rounded;
-    return _VenueFeatureItem(icon, label);
-  }).toList();
+List<String> _cleanOfferLabels(List<dynamic> items, {int? limit}) {
+  final seen = <String>{};
+  final labels = <String>[];
+  for (final item in items) {
+    final raw = item is Map ? item['name']?.toString() : item.toString();
+    final label = raw?.trim();
+    if (label == null || label.isEmpty) continue;
+    final key = label.toLowerCase();
+    if (seen.add(key)) labels.add(label);
+    if (limit != null && labels.length >= limit) break;
+  }
+  return labels;
+}
+
+IconData _featureIconForLabel(String label) {
+  final normalized = label.toLowerCase();
+  if (normalized.contains('parking')) return Icons.directions_car_outlined;
+  if (normalized.contains('wi-fi') || normalized.contains('wifi')) {
+    return Icons.wifi_rounded;
+  }
+  if (normalized.contains('photo') || normalized.contains('camera')) {
+    return Icons.photo_camera_outlined;
+  }
+  if (normalized.contains('air')) return Icons.ac_unit_rounded;
+  if (normalized.contains('sound') || normalized.contains('audio')) {
+    return Icons.speaker_outlined;
+  }
+  if (normalized.contains('catering') ||
+      normalized.contains('kitchen') ||
+      normalized.contains('food')) {
+    return Icons.restaurant_outlined;
+  }
+  if (normalized.contains('stage')) return Icons.theater_comedy_outlined;
+  if (normalized.contains('projector') || normalized.contains('led')) {
+    return Icons.connected_tv_outlined;
+  }
+  if (normalized.contains('security')) return Icons.security_outlined;
+  if (normalized.contains('table') ||
+      normalized.contains('chair') ||
+      normalized.contains('seat')) {
+    return Icons.event_seat_outlined;
+  }
+  if (normalized.contains('light')) return Icons.light_mode_outlined;
+  if (normalized.contains('prep') || normalized.contains('room')) {
+    return Icons.meeting_room_outlined;
+  }
+  if (normalized.contains('view') ||
+      normalized.contains('garden') ||
+      normalized.contains('outdoor')) {
+    return Icons.landscape_outlined;
+  }
+  if (normalized.contains('hall')) return Icons.apartment_outlined;
+  return Icons.check_circle_outline_rounded;
 }
 
 String _demoDistance(Map<String, dynamic> venue) {
@@ -2022,11 +2090,6 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
                         ),
                         const Spacer(),
                         _FloatingCircleButton(
-                          icon: Icons.ios_share_rounded,
-                          onTap: () => _snack(context, 'Share link copied.'),
-                        ),
-                        const SizedBox(width: 10),
-                        _FloatingCircleButton(
                           icon: favorite
                               ? Icons.favorite_rounded
                               : Icons.favorite_border_rounded,
@@ -2084,34 +2147,18 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(Icons.star_rounded, size: 18, color: colors.ink),
+                        const Icon(
+                          Icons.star_rounded,
+                          size: 18,
+                          color: AppTheme.gold,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           rating == 0
-                              ? 'New'
+                              ? 'No reviews yet'
                               : '${rating.toStringAsFixed(1)} · ${reviews.length} reviews',
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: colors.surfaceGray,
-                            borderRadius: BorderRadius.circular(
-                              AppTheme.radiusPill,
-                            ),
-                          ),
-                          child: const Text(
-                            'Superhost-style venue',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
                         ),
                       ],
                     ),
@@ -2245,12 +2292,8 @@ class _OfferList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final values = items
-        .map((item) => item is Map ? item['name']?.toString() : item.toString())
-        .whereType<String>()
-        .where((value) => value.trim().isNotEmpty)
-        .take(8)
-        .toList();
+    final colors = AppTheme.colorsOf(context);
+    final values = _cleanOfferLabels(items, limit: 8);
     final display = values.isEmpty
         ? [
             'Event-ready space',
@@ -2264,30 +2307,37 @@ class _OfferList extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title, style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 14),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: display.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 4.6,
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 12,
-          ),
-          itemBuilder: (context, index) => Row(
-            children: [
-              const Icon(Icons.check_circle_outline_rounded, size: 22),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  display[index],
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 12,
+          runSpacing: 10,
+          children: display
+              .map(
+                (label) => SizedBox(
+                  width: (MediaQuery.of(context).size.width - 44) / 2,
+                  child: Row(
+                    children: [
+                      Icon(
+                        _featureIconForLabel(label),
+                        size: 22,
+                        color: AppTheme.blue,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.copyWith(color: colors.ink),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+              )
+              .toList(),
         ),
       ],
     );
@@ -2331,11 +2381,11 @@ class DemoMapPreview extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppTheme.rausch,
+                      color: AppTheme.gold,
                       borderRadius: BorderRadius.circular(999),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.rausch.withValues(alpha: 0.20),
+                          color: AppTheme.gold.withValues(alpha: 0.28),
                           blurRadius: 18,
                           offset: const Offset(0, 8),
                         ),
@@ -2343,7 +2393,7 @@ class DemoMapPreview extends StatelessWidget {
                     ),
                     child: const Icon(
                       Icons.place_rounded,
-                      color: Colors.white,
+                      color: AppTheme.navy,
                       size: 30,
                     ),
                   ),
@@ -2360,7 +2410,7 @@ class DemoMapPreview extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.map_outlined, color: AppTheme.rausch),
+                        const Icon(Icons.map_outlined, color: AppTheme.blue),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -2383,7 +2433,7 @@ class DemoMapPreview extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Map preview is a placeholder for demo venues.',
+            'OpenStreetMap-style placeholder for demo venues only.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
@@ -2395,35 +2445,151 @@ class DemoMapPreview extends StatelessWidget {
 class _DemoMapPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final road = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 12
+    final water = Paint()..color = const Color(0xFFD9EEFA);
+    final land = Paint()..color = const Color(0xFFDCF0DD);
+    final landStroke = Paint()
+      ..color = const Color(0xFFA8CFA8)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+    final majorRoad = Paint()
+      ..color = Colors.white.withValues(alpha: 0.94)
+      ..strokeWidth = 7
       ..strokeCap = StrokeCap.round;
-    final line = Paint()
-      ..color = AppTheme.blue.withValues(alpha: 0.18)
-      ..strokeWidth = 2;
+    final roadLine = Paint()
+      ..color = const Color(0xFFF0B84B)
+      ..strokeWidth = 2.3
+      ..strokeCap = StrokeCap.round;
+    final minorRoad = Paint()
+      ..color = Colors.white.withValues(alpha: 0.66)
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
 
-    for (var y = 28.0; y < size.height; y += 42) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y + 18), line);
-    }
-    for (var x = 24.0; x < size.width; x += 64) {
-      canvas.drawLine(Offset(x, 0), Offset(x - 34, size.height), line);
-    }
-    final path = Path()
-      ..moveTo(18, size.height * 0.7)
-      ..quadraticBezierTo(
-        size.width * 0.35,
-        size.height * 0.35,
+    canvas.drawRect(Offset.zero & size, water);
+
+    final leyte = Path()
+      ..moveTo(size.width * 0.28, size.height * 0.08)
+      ..cubicTo(
+        size.width * 0.45,
+        size.height * 0.04,
+        size.width * 0.58,
+        size.height * 0.15,
         size.width * 0.62,
-        size.height * 0.48,
+        size.height * 0.32,
+      )
+      ..cubicTo(
+        size.width * 0.67,
+        size.height * 0.53,
+        size.width * 0.56,
+        size.height * 0.72,
+        size.width * 0.47,
+        size.height * 0.91,
+      )
+      ..cubicTo(
+        size.width * 0.34,
+        size.height * 0.74,
+        size.width * 0.23,
+        size.height * 0.55,
+        size.width * 0.22,
+        size.height * 0.34,
+      )
+      ..cubicTo(
+        size.width * 0.22,
+        size.height * 0.22,
+        size.width * 0.24,
+        size.height * 0.14,
+        size.width * 0.28,
+        size.height * 0.08,
+      )
+      ..close();
+    final samar = Path()
+      ..moveTo(size.width * 0.63, size.height * 0.03)
+      ..cubicTo(
+        size.width * 0.84,
+        size.height * 0.08,
+        size.width * 0.96,
+        size.height * 0.24,
+        size.width * 0.89,
+        size.height * 0.44,
+      )
+      ..cubicTo(
+        size.width * 0.78,
+        size.height * 0.41,
+        size.width * 0.69,
+        size.height * 0.35,
+        size.width * 0.61,
+        size.height * 0.24,
+      )
+      ..close();
+    final biliran = Path()
+      ..addOval(
+        Rect.fromCircle(
+          center: Offset(size.width * 0.30, size.height * 0.17),
+          radius: size.shortestSide * 0.055,
+        ),
+      );
+
+    for (final path in [leyte, samar, biliran]) {
+      canvas.drawPath(path, land);
+      canvas.drawPath(path, landStroke);
+    }
+
+    final panLeyte = Path()
+      ..moveTo(size.width * 0.42, size.height * 0.13)
+      ..quadraticBezierTo(
+        size.width * 0.52,
+        size.height * 0.32,
+        size.width * 0.49,
+        size.height * 0.53,
       )
       ..quadraticBezierTo(
-        size.width * 0.82,
-        size.height * 0.58,
-        size.width - 18,
-        size.height * 0.26,
+        size.width * 0.46,
+        size.height * 0.72,
+        size.width * 0.42,
+        size.height * 0.88,
       );
-    canvas.drawPath(path, road);
+    canvas.drawPath(panLeyte, majorRoad);
+    canvas.drawPath(panLeyte, roadLine);
+
+    canvas.drawLine(
+      Offset(size.width * 0.48, size.height * 0.28),
+      Offset(size.width * 0.69, size.height * 0.22),
+      minorRoad,
+    );
+    canvas.drawLine(
+      Offset(size.width * 0.46, size.height * 0.47),
+      Offset(size.width * 0.31, size.height * 0.53),
+      minorRoad,
+    );
+    canvas.drawLine(
+      Offset(size.width * 0.44, size.height * 0.67),
+      Offset(size.width * 0.28, size.height * 0.78),
+      minorRoad,
+    );
+
+    _label(canvas, 'Tacloban', Offset(size.width * 0.56, size.height * 0.25));
+    _label(canvas, 'Palo', Offset(size.width * 0.49, size.height * 0.34));
+    _label(canvas, 'Ormoc', Offset(size.width * 0.31, size.height * 0.48));
+    _label(canvas, 'Baybay', Offset(size.width * 0.38, size.height * 0.70));
+    _label(canvas, 'Leyte Gulf', Offset(size.width * 0.67, size.height * 0.61));
+
+    final pin = Offset(size.width * 0.56, size.height * 0.26);
+    canvas.drawCircle(pin, 7, Paint()..color = AppTheme.gold);
+    canvas.drawCircle(pin, 4, Paint()..color = AppTheme.navy);
+  }
+
+  void _label(Canvas canvas, String text, Offset offset) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: const TextStyle(
+          color: AppTheme.ink,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    painter.paint(canvas, offset);
   }
 
   @override
@@ -2459,7 +2625,7 @@ class _Reviews extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(Icons.star_rounded, size: 22, color: colors.ink),
+            const Icon(Icons.star_rounded, size: 22, color: AppTheme.gold),
             const SizedBox(width: 6),
             Text(
               average == 0
@@ -2497,7 +2663,11 @@ class _Reviews extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.star_rounded, size: 16, color: colors.ink),
+                          const Icon(
+                            Icons.star_rounded,
+                            size: 16,
+                            color: AppTheme.gold,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             '${review['rating'] ?? 0}',
@@ -3161,13 +3331,6 @@ class BookingDetailsScreen extends StatelessWidget {
                       customer['likes'].toString(),
                     ),
                   if (customer != null &&
-                      (customer['dislikes']?.toString() ?? '').isNotEmpty)
-                    _InfoLine(
-                      Icons.thumb_down_alt_outlined,
-                      'Dislikes',
-                      customer['dislikes'].toString(),
-                    ),
-                  if (customer != null &&
                       (customer['specialNotes']?.toString() ?? '').isNotEmpty)
                     _InfoLine(
                       Icons.notes_outlined,
@@ -3495,9 +3658,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       text: user['preferences']?.toString() ?? '',
     );
     final likes = TextEditingController(text: user['likes']?.toString() ?? '');
-    final dislikes = TextEditingController(
-      text: user['dislikes']?.toString() ?? '',
-    );
     final specialNotes = TextEditingController(
       text: user['specialNotes']?.toString() ?? '',
     );
@@ -3569,13 +3729,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 12),
             TextField(
-              controller: dislikes,
-              minLines: 1,
-              maxLines: 3,
-              decoration: const InputDecoration(labelText: 'Dislikes'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
               controller: specialNotes,
               minLines: 1,
               maxLines: 3,
@@ -3589,7 +3742,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 'gender': gender.text.trim(),
                 'preferences': preferences.text.trim(),
                 'likes': likes.text.trim(),
-                'dislikes': dislikes.text.trim(),
                 'specialNotes': specialNotes.text.trim(),
               }),
               child: const Text('Done'),
@@ -3680,55 +3832,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ).textTheme.bodyMedium?.copyWith(color: colors.secondaryText),
           ),
           const SizedBox(height: 20),
-          _ProfileDetailCard(
-            children: [
-              _ProfileDetailTile(
-                icon: Icons.email_outlined,
-                title: user['email'] ?? '',
-                subtitle: 'Email address',
-              ),
-              _ProfileDetailTile(
-                icon: Icons.phone_outlined,
-                title: user['phone'] ?? 'Add contact number',
-                subtitle: 'Contact info',
-              ),
-              _ProfileDetailTile(
-                icon: Icons.wc_outlined,
-                title: user['gender'] ?? 'Add gender',
-                subtitle: 'Personal detail',
-              ),
-              _ProfileDetailTile(
-                icon: Icons.badge_outlined,
-                title: user['role'] ?? '',
-                subtitle: 'Account type',
-              ),
-            ],
-          ),
+          _ProfileInfoGrid(user: user),
           const SizedBox(height: 14),
-          _ProfileDetailCard(
-            children: [
-              _ProfileDetailTile(
-                icon: Icons.travel_explore_outlined,
-                title: user['preferences'] ?? 'Add venue preferences',
-                subtitle: 'Venue preferences',
-              ),
-              _ProfileDetailTile(
-                icon: Icons.thumb_up_alt_outlined,
-                title: user['likes'] ?? 'Add likes',
-                subtitle: 'Likes',
-              ),
-              _ProfileDetailTile(
-                icon: Icons.thumb_down_alt_outlined,
-                title: user['dislikes'] ?? 'Add dislikes',
-                subtitle: 'Dislikes',
-              ),
-              _ProfileDetailTile(
-                icon: Icons.notes_outlined,
-                title: user['specialNotes'] ?? 'Add special notes',
-                subtitle: 'Special notes for hosts/admins',
-              ),
-            ],
-          ),
+          _ProfilePreferencesPanel(user: user),
           const SizedBox(height: 14),
           OutlinedButton.icon(
             onPressed: _editDetails,
@@ -3823,54 +3929,189 @@ class _ProfileAvatar extends StatelessWidget {
   }
 }
 
-class _ProfileDetailCard extends StatelessWidget {
-  const _ProfileDetailCard({required this.children});
+class _ProfileInfoGrid extends StatelessWidget {
+  const _ProfileInfoGrid({required this.user});
 
-  final List<Widget> children;
+  final Map<String, dynamic> user;
 
   @override
   Widget build(BuildContext context) {
+    String field(String key, String fallback) {
+      final value = user[key]?.toString().trim();
+      return value == null || value.isEmpty ? fallback : value;
+    }
+
+    final items = [
+      (
+        icon: Icons.email_outlined,
+        label: 'Email',
+        value: field('email', 'No email'),
+      ),
+      (
+        icon: Icons.phone_outlined,
+        label: 'Contact',
+        value: field('phone', 'Add contact number'),
+      ),
+      (
+        icon: Icons.wc_outlined,
+        label: 'Gender',
+        value: field('gender', 'Add gender'),
+      ),
+      (
+        icon: Icons.badge_outlined,
+        label: 'Account',
+        value: field('role', 'customer'),
+      ),
+    ];
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: items
+          .map(
+            (item) => SizedBox(
+              width: (MediaQuery.of(context).size.width - 50) / 2,
+              child: _ProfileInfoTile(
+                icon: item.icon,
+                label: item.label,
+                value: item.value,
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+}
+
+class _ProfileInfoTile extends StatelessWidget {
+  const _ProfileInfoTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
     return Container(
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-        border: Border.all(color: AppTheme.colorsOf(context).divider),
+        border: Border.all(color: colors.divider),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (var i = 0; i < children.length; i++) ...[
-            children[i],
-            if (i != children.length - 1)
-              Divider(
-                height: 1,
-                indent: 68,
-                color: AppTheme.colorsOf(context).divider,
-              ),
-          ],
+          Container(
+            height: 34,
+            width: 34,
+            decoration: BoxDecoration(
+              color: AppTheme.sky,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: AppTheme.navy, size: 19),
+          ),
+          const SizedBox(height: 12),
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
         ],
       ),
     );
   }
 }
 
-class _ProfileDetailTile extends StatelessWidget {
-  const _ProfileDetailTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
+class _ProfilePreferencesPanel extends StatelessWidget {
+  const _ProfilePreferencesPanel({required this.user});
 
-  final IconData icon;
-  final String title;
-  final String subtitle;
+  final Map<String, dynamic> user;
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      minLeadingWidth: 30,
-      leading: Icon(icon, color: AppTheme.colorsOf(context).ink),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text(subtitle),
+    String field(String key, String fallback) {
+      final value = user[key]?.toString().trim();
+      return value == null || value.isEmpty ? fallback : value;
+    }
+
+    final insights = [
+      (
+        icon: Icons.travel_explore_outlined,
+        title: 'Venue preferences',
+        value: field(
+          'preferences',
+          'Add preferred locations, venue types, or event styles.',
+        ),
+      ),
+      (
+        icon: Icons.thumb_up_alt_outlined,
+        title: 'Likes',
+        value: field('likes', 'Add what you enjoy in an event venue.'),
+      ),
+      (
+        icon: Icons.notes_outlined,
+        title: 'Special notes',
+        value: field(
+          'specialNotes',
+          'Add notes that hosts or admins should know.',
+        ),
+      ),
+    ];
+    final colors = AppTheme.colorsOf(context);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.surfaceGray,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(color: colors.divider),
+      ),
+      child: Column(
+        children: insights
+            .map(
+              (item) => Padding(
+                padding: EdgeInsets.only(
+                  bottom: item == insights.last ? 0 : 14,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(item.icon, color: AppTheme.blue),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.title,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            item.value,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: colors.secondaryText),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+            .toList(),
+      ),
     );
   }
 }
@@ -4425,6 +4666,33 @@ class AddVenueScreen extends StatefulWidget {
   State<AddVenueScreen> createState() => _AddVenueScreenState();
 }
 
+class _HostOfferOption {
+  const _HostOfferOption(this.icon, this.label);
+
+  final IconData icon;
+  final String label;
+}
+
+const _amenityOptions = [
+  _HostOfferOption(Icons.wifi_rounded, 'Wi-Fi'),
+  _HostOfferOption(Icons.directions_car_outlined, 'Parking'),
+  _HostOfferOption(Icons.photo_camera_outlined, 'Photo area'),
+  _HostOfferOption(Icons.ac_unit_rounded, 'Air conditioning'),
+  _HostOfferOption(Icons.restaurant_outlined, 'Catering partner'),
+  _HostOfferOption(Icons.security_outlined, 'Security assistance'),
+];
+
+const _facilityOptions = [
+  _HostOfferOption(Icons.apartment_outlined, 'Main hall'),
+  _HostOfferOption(Icons.landscape_outlined, 'Garden setup'),
+  _HostOfferOption(Icons.speaker_outlined, 'Sound system'),
+  _HostOfferOption(Icons.connected_tv_outlined, 'Projector'),
+  _HostOfferOption(Icons.theater_comedy_outlined, 'Stage area'),
+  _HostOfferOption(Icons.meeting_room_outlined, 'Prep room'),
+  _HostOfferOption(Icons.event_seat_outlined, 'Tables and chairs'),
+  _HostOfferOption(Icons.light_mode_outlined, 'Basic lights'),
+];
+
 class _AddVenueScreenState extends State<AddVenueScreen> {
   final name = TextEditingController();
   final description = TextEditingController();
@@ -4432,13 +4700,19 @@ class _AddVenueScreenState extends State<AddVenueScreen> {
   final capacity = TextEditingController();
   final location = TextEditingController();
   final address = TextEditingController();
-  final amenities = TextEditingController(
-    text: 'Air conditioning, Parking, Catering partner',
-  );
-  final facilities = TextEditingController(
-    text: 'Main hall, Sound system, Prep room',
-  );
+  final amenities = TextEditingController();
+  final facilities = TextEditingController();
   final imagePicker = ImagePicker();
+  final Set<String> selectedAmenities = {
+    'Air conditioning',
+    'Parking',
+    'Catering partner',
+  };
+  final Set<String> selectedFacilities = {
+    'Main hall',
+    'Sound system',
+    'Prep room',
+  };
   final List<String> selectedImages = [];
   bool loading = false;
 
@@ -4461,12 +4735,26 @@ class _AddVenueScreenState extends State<AddVenueScreen> {
             .map((item) => item['imageUrl'].toString())
             .where((item) => item.isNotEmpty),
       );
-    amenities.text = ((venue['amenities'] as List<dynamic>? ?? []).map(
-      (item) => item['name'].toString(),
-    )).join(', ');
-    facilities.text = ((venue['facilities'] as List<dynamic>? ?? []).map(
-      (item) => item['name'].toString(),
-    )).join(', ');
+    final existingAmenities = (venue['amenities'] as List<dynamic>? ?? [])
+        .map((item) => item['name'].toString())
+        .where((item) => item.trim().isNotEmpty)
+        .toList();
+    final existingFacilities = (venue['facilities'] as List<dynamic>? ?? [])
+        .map((item) => item['name'].toString())
+        .where((item) => item.trim().isNotEmpty)
+        .toList();
+    selectedAmenities
+      ..clear()
+      ..addAll(existingAmenities.where(_isAmenityOption));
+    selectedFacilities
+      ..clear()
+      ..addAll(existingFacilities.where(_isFacilityOption));
+    amenities.text = existingAmenities
+        .where((item) => !_isAmenityOption(item))
+        .join(', ');
+    facilities.text = existingFacilities
+        .where((item) => !_isFacilityOption(item))
+        .join(', ');
   }
 
   Future<void> _chooseImages() async {
@@ -4558,8 +4846,8 @@ class _AddVenueScreenState extends State<AddVenueScreen> {
         'location': location.text.trim(),
         'address': address.text.trim(),
         'images': selectedImages,
-        'amenities': _csv(amenities.text),
-        'facilities': _csv(facilities.text),
+        'amenities': _mergeOfferValues(selectedAmenities, amenities.text),
+        'facilities': _mergeOfferValues(selectedFacilities, facilities.text),
       };
 
       if (widget.venue == null) {
@@ -4585,6 +4873,15 @@ class _AddVenueScreenState extends State<AddVenueScreen> {
       ]) {
         controller.clear();
       }
+      setState(() {
+        selectedImages.clear();
+        selectedAmenities
+          ..clear()
+          ..addAll(['Air conditioning', 'Parking', 'Catering partner']);
+        selectedFacilities
+          ..clear()
+          ..addAll(['Main hall', 'Sound system', 'Prep room']);
+      });
       if (widget.venue != null) Navigator.pop(context);
     } catch (error) {
       if (!mounted) return;
@@ -4642,18 +4939,46 @@ class _AddVenueScreenState extends State<AddVenueScreen> {
             onAdd: _chooseImages,
             onRemove: _removeImage,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
+          _OfferSelector(
+            title: 'Amenities',
+            subtitle: 'Tap the common options guests look for.',
+            options: _amenityOptions,
+            selected: selectedAmenities,
+            onToggle: (label) {
+              setState(() {
+                selectedAmenities.contains(label)
+                    ? selectedAmenities.remove(label)
+                    : selectedAmenities.add(label);
+              });
+            },
+          ),
+          const SizedBox(height: 14),
+          _OfferSelector(
+            title: 'Facilities',
+            subtitle: 'Choose venue spaces and event-ready features.',
+            options: _facilityOptions,
+            selected: selectedFacilities,
+            onToggle: (label) {
+              setState(() {
+                selectedFacilities.contains(label)
+                    ? selectedFacilities.remove(label)
+                    : selectedFacilities.add(label);
+              });
+            },
+          ),
+          const SizedBox(height: 14),
           TextField(
             controller: amenities,
             decoration: const InputDecoration(
-              labelText: 'Amenities, comma separated',
+              labelText: 'Other amenities, comma separated',
             ),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: facilities,
             decoration: const InputDecoration(
-              labelText: 'Facilities, comma separated',
+              labelText: 'Other facilities, comma separated',
             ),
           ),
           const SizedBox(height: 18),
@@ -4666,6 +4991,71 @@ class _AddVenueScreenState extends State<AddVenueScreen> {
                   ? 'Submit venue'
                   : 'Save changes',
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OfferSelector extends StatelessWidget {
+  const _OfferSelector({
+    required this.title,
+    required this.subtitle,
+    required this.options,
+    required this.selected,
+    required this.onToggle,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<_HostOfferOption> options;
+  final Set<String> selected;
+  final ValueChanged<String> onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colors.surfaceGray,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(color: colors.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 3),
+          Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: options.map((option) {
+              final active = selected.contains(option.label);
+              return FilterChip(
+                selected: active,
+                showCheckmark: false,
+                avatar: Icon(
+                  option.icon,
+                  size: 18,
+                  color: active ? Colors.white : AppTheme.blue,
+                ),
+                label: Text(option.label),
+                selectedColor: AppTheme.navy,
+                backgroundColor: Colors.white,
+                labelStyle: TextStyle(
+                  color: active ? Colors.white : colors.ink,
+                  fontWeight: FontWeight.w700,
+                ),
+                side: BorderSide(
+                  color: active ? AppTheme.navy : colors.divider,
+                ),
+                onSelected: (_) => onToggle(option.label),
+              );
+            }).toList(),
           ),
         ],
       ),
@@ -5871,6 +6261,27 @@ List<String> _csv(String text) {
       .toList();
 }
 
+bool _isAmenityOption(String label) => _hasOfferOption(_amenityOptions, label);
+
+bool _isFacilityOption(String label) =>
+    _hasOfferOption(_facilityOptions, label);
+
+bool _hasOfferOption(List<_HostOfferOption> options, String label) {
+  final normalized = label.trim().toLowerCase();
+  return options.any((option) => option.label.toLowerCase() == normalized);
+}
+
+List<String> _mergeOfferValues(Set<String> selected, String customText) {
+  final values = <String>[];
+  final seen = <String>{};
+  for (final item in [...selected, ..._csv(customText)]) {
+    final label = item.trim();
+    if (label.isEmpty) continue;
+    if (seen.add(label.toLowerCase())) values.add(label);
+  }
+  return values;
+}
+
 num _num(dynamic value) {
   if (value is num) return value;
   return num.tryParse(value?.toString() ?? '') ?? 0;
@@ -5996,7 +6407,6 @@ List<dynamic> _filterUsers(List<dynamic> source, String query, String role) {
       user['phone'],
       user['preferences'],
       user['likes'],
-      user['dislikes'],
       user['specialNotes'],
     ].join(' ').toLowerCase();
     return matchesRole &&
