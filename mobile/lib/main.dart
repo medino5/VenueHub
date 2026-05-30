@@ -184,6 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final email = TextEditingController(text: 'customer@venuehub.test');
   final password = TextEditingController(text: 'password123');
   bool loading = false;
+  bool passwordVisible = false;
 
   Future<void> _login() async {
     setState(() => loading = true);
@@ -207,130 +208,84 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = AppTheme.colorsOf(context);
-    return Scaffold(
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-          children: [
-            const SizedBox(height: 8),
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(34),
-                  border: Border.all(color: colors.divider),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06),
-                      blurRadius: 18,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
+    return _AuthWaveScaffold(
+      title: 'Sign in',
+      child: Column(
+        children: [
+          TextField(
+            controller: email,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.email_outlined),
+              labelText: 'Email',
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: password,
+            obscureText: !passwordVisible,
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.lock_outline_rounded),
+              labelText: 'Password',
+              suffixIcon: IconButton(
+                tooltip: passwordVisible ? 'Hide password' : 'Show password',
+                onPressed: () =>
+                    setState(() => passwordVisible = !passwordVisible),
+                icon: Icon(
+                  passwordVisible
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
                 ),
-                child: const VenueHubLogo(size: 132),
               ),
             ),
-            const SizedBox(height: 22),
-            Text(
-              'Find the right place for your next event',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.displaySmall,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Sign in to browse demo venues, manage listings, or review bookings.',
-              textAlign: TextAlign.center,
-              style: Theme.of(
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () => Navigator.push(
                 context,
-              ).textTheme.bodyMedium?.copyWith(color: colors.secondaryText),
-            ),
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-                border: Border.all(color: colors.divider),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 14,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  TextField(
-                    controller: email,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.email_outlined),
-                      labelText: 'Email',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: password,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.lock_outline_rounded),
-                      labelText: 'Password',
-                    ),
-                  ),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ForgotPasswordScreen(api: widget.api),
-                        ),
-                      ),
-                      child: const Text('Forgot password?'),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  ElevatedButton(
-                    onPressed: loading ? null : _login,
-                    child: Text(loading ? 'Signing in...' : 'Sign in'),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'No account yet?',
-                  style: TextStyle(color: colors.secondaryText),
+                MaterialPageRoute(
+                  builder: (_) => ForgotPasswordScreen(api: widget.api),
                 ),
-                TextButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => RegisterScreen(
-                        api: widget.api,
-                        onAuthenticated: widget.onAuthenticated,
-                      ),
+              ),
+              child: const Text('Forgot password?'),
+            ),
+          ),
+          const SizedBox(height: 6),
+          ElevatedButton(
+            onPressed: loading ? null : _login,
+            child: Text(loading ? 'Signing in...' : 'Sign in'),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'No account yet?',
+                style: TextStyle(color: colors.secondaryText),
+              ),
+              TextButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => RegisterScreen(
+                      api: widget.api,
+                      onAuthenticated: widget.onAuthenticated,
                     ),
                   ),
-                  child: const Text('Create account'),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _DemoLoginCard(
-              onPick: (demoEmail) {
-                email.text = demoEmail;
-                password.text = 'password123';
-              },
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
+                child: const Text('Create account'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _DemoLoginCard(
+            onPick: (demoEmail) {
+              email.text = demoEmail;
+              password.text = 'password123';
+            },
+          ),
+        ],
       ),
     );
   }
@@ -443,6 +398,188 @@ class _DemoLoginCard extends StatelessWidget {
   }
 }
 
+class _AuthWaveScaffold extends StatelessWidget {
+  const _AuthWaveScaffold({
+    required this.title,
+    required this.child,
+    this.showBack = false,
+  });
+
+  final String title;
+  final Widget child;
+  final bool showBack;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
+    return Scaffold(
+      body: Stack(
+        children: [
+          const Positioned.fill(child: ColoredBox(color: Colors.white)),
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 330,
+            child: CustomPaint(painter: _AuthWavePainter()),
+          ),
+          SafeArea(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
+              children: [
+                SizedBox(
+                  height: 48,
+                  child: Row(
+                    children: [
+                      if (showBack)
+                        IconButton.filledTonal(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.arrow_back_rounded),
+                        ),
+                    ],
+                  ),
+                ),
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(34),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.navy.withValues(alpha: 0.12),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: const VenueHubLogo(size: 112),
+                  ),
+                ),
+                const SizedBox(height: 112),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: colors.ink,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Container(
+                  height: 3,
+                  width: 56,
+                  alignment: Alignment.centerLeft,
+                  decoration: BoxDecoration(
+                    color: AppTheme.gold,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(color: colors.divider),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.navy.withValues(alpha: 0.06),
+                        blurRadius: 20,
+                        offset: const Offset(0, 12),
+                      ),
+                    ],
+                  ),
+                  child: child,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AuthWavePainter extends CustomPainter {
+  const _AuthWavePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final background = Paint()
+      ..shader = const LinearGradient(
+        colors: [Color(0xFFEAF6FF), Color(0xFFBFE8FF), Color(0xFF80CFFF)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ).createShader(rect);
+    canvas.drawRect(rect, background);
+
+    final contourPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..color = Colors.white.withValues(alpha: 0.34);
+    for (var i = 0; i < 7; i++) {
+      final y = 24.0 + (i * 34);
+      final path = Path()
+        ..moveTo(-28, y)
+        ..cubicTo(
+          size.width * 0.24,
+          y - 46,
+          size.width * 0.36,
+          y + 58,
+          size.width * 0.58,
+          y + 14,
+        )
+        ..cubicTo(
+          size.width * 0.77,
+          y - 24,
+          size.width * 0.88,
+          y + 48,
+          size.width + 30,
+          y + 8,
+        );
+      canvas.drawPath(path, contourPaint);
+    }
+    for (var i = 0; i < 4; i++) {
+      final center = Offset(size.width * (0.22 + i * 0.21), 58 + i * 38);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: center,
+          width: 82 + i * 18,
+          height: 48 + i * 14,
+        ),
+        contourPaint,
+      );
+    }
+
+    final wave = Path()
+      ..moveTo(0, size.height * 0.66)
+      ..cubicTo(
+        size.width * 0.20,
+        size.height * 0.56,
+        size.width * 0.34,
+        size.height * 0.69,
+        size.width * 0.50,
+        size.height * 0.78,
+      )
+      ..cubicTo(
+        size.width * 0.67,
+        size.height * 0.89,
+        size.width * 0.83,
+        size.height * 0.70,
+        size.width,
+        size.height * 0.67,
+      )
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(wave, Paint()..color = Colors.white);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({
     super.key,
@@ -462,11 +599,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final name = TextEditingController();
   final email = TextEditingController();
   final password = TextEditingController();
+  final confirmPassword = TextEditingController();
   final phone = TextEditingController();
   String role = 'CUSTOMER';
   bool loading = false;
+  bool passwordVisible = false;
+  bool confirmPasswordVisible = false;
 
   Future<void> _register() async {
+    if (password.text.length < 6) {
+      _snack(context, 'Password must be at least 6 characters.');
+      return;
+    }
+    if (password.text != confirmPassword.text) {
+      _snack(context, 'Passwords do not match.');
+      return;
+    }
+
     setState(() => loading = true);
     try {
       final response = await widget.api.post('/auth/register', {
@@ -491,35 +640,89 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Create account')),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
+    final colors = AppTheme.colorsOf(context);
+    return _AuthWaveScaffold(
+      title: 'Create account',
+      showBack: true,
+      child: Column(
         children: [
           TextField(
             controller: name,
-            decoration: const InputDecoration(labelText: 'Full name'),
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.person_outline_rounded),
+              labelText: 'Full name',
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           TextField(
             controller: email,
-            decoration: const InputDecoration(labelText: 'Email'),
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.email_outlined),
+              labelText: 'Email',
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           TextField(
             controller: phone,
-            decoration: const InputDecoration(labelText: 'Contact number'),
+            keyboardType: TextInputType.phone,
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.phone_outlined),
+              labelText: 'Contact number',
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           TextField(
             controller: password,
-            obscureText: true,
-            decoration: const InputDecoration(labelText: 'Password'),
+            obscureText: !passwordVisible,
+            textInputAction: TextInputAction.next,
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.lock_outline_rounded),
+              labelText: 'Password',
+              suffixIcon: IconButton(
+                tooltip: passwordVisible ? 'Hide password' : 'Show password',
+                onPressed: () =>
+                    setState(() => passwordVisible = !passwordVisible),
+                icon: Icon(
+                  passwordVisible
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                ),
+              ),
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
+          TextField(
+            controller: confirmPassword,
+            obscureText: !confirmPasswordVisible,
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.verified_user_outlined),
+              labelText: 'Type password again',
+              suffixIcon: IconButton(
+                tooltip: confirmPasswordVisible
+                    ? 'Hide password'
+                    : 'Show password',
+                onPressed: () => setState(
+                  () => confirmPasswordVisible = !confirmPasswordVisible,
+                ),
+                icon: Icon(
+                  confirmPasswordVisible
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
           DropdownButtonFormField<String>(
             initialValue: role,
-            decoration: const InputDecoration(labelText: 'Account type'),
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.badge_outlined),
+              labelText: 'Account type',
+            ),
             items: const [
               DropdownMenuItem(value: 'CUSTOMER', child: Text('Customer')),
               DropdownMenuItem(
@@ -533,10 +736,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ],
             onChanged: (value) => setState(() => role = value ?? 'CUSTOMER'),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
           ElevatedButton(
             onPressed: loading ? null : _register,
-            child: Text(loading ? 'Creating...' : 'Register'),
+            child: Text(loading ? 'Creating...' : 'Create account'),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Already have an account?',
+                style: TextStyle(color: colors.secondaryText),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Sign in'),
+              ),
+            ],
           ),
         ],
       ),
@@ -818,17 +1035,6 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
   final location = TextEditingController();
   String selectedLocation = 'All';
   late Future<List<dynamic>> venues = _loadVenues();
-  static const locationCategories = [
-    CategoryItem(Icons.apps_rounded, 'All'),
-    CategoryItem(Icons.location_city_outlined, 'Tacloban'),
-    CategoryItem(Icons.account_balance_outlined, 'Palo'),
-    CategoryItem(Icons.apartment_outlined, 'Ormoc'),
-    CategoryItem(Icons.location_on_outlined, 'Baybay'),
-    CategoryItem(Icons.beach_access_outlined, 'Guiuan'),
-    CategoryItem(Icons.location_city_outlined, 'Catbalogan'),
-    CategoryItem(Icons.apartment_outlined, 'Borongan'),
-    CategoryItem(Icons.directions_boat_outlined, 'Naval'),
-  ];
 
   Future<List<dynamic>> _loadVenues() async {
     final response = await widget.api.get('/venues');
@@ -906,7 +1112,7 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
               onSubmitted: (_) => Navigator.pop(context, true),
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.place_outlined),
-                hintText: 'Tacloban, Palo, Ormoc...',
+                hintText: 'Tacloban, Palo, Tanauan, Dulag...',
               ),
             ),
             const SizedBox(height: 18),
@@ -943,13 +1149,21 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
               }
               final data = snapshot.data ?? [];
               final cards = data.cast<Map<String, dynamic>>();
-              final displayed = selectedLocation == 'All'
+              final locationCategories = _locationCategoryItems(cards);
+              final activeLocation =
+                  selectedLocation == 'All' ||
+                      locationCategories.any(
+                        (item) => item.label == selectedLocation,
+                      )
+                  ? selectedLocation
+                  : 'All';
+              final displayed = activeLocation == 'All'
                   ? cards
                   : cards
                         .where(
                           (venue) =>
                               _locationLabel(venue['location']) ==
-                              selectedLocation,
+                              activeLocation,
                         )
                         .toList();
               final grouped = _groupVenuesByLocation(displayed);
@@ -975,7 +1189,7 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
                   ),
                   CategoryRail(
                     items: locationCategories,
-                    selected: selectedLocation,
+                    selected: activeLocation,
                     onSelected: (value) {
                       setState(() {
                         selectedLocation = value;
@@ -994,27 +1208,27 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
                     )
                   else if (displayed.isEmpty)
                     EmptyState(
-                      title: 'No venues in $selectedLocation',
+                      title: 'No venues in $activeLocation',
                       message:
                           'Try another location or use search to widen the results.',
                     )
                   else ...[
                     _InlineExploreBanner(
-                      location: selectedLocation == 'All'
+                      location: activeLocation == 'All'
                           ? _locationLabel(displayed.first['location'])
-                          : selectedLocation,
+                          : activeLocation,
                       onTap: _openSearchSheet,
                     ),
                     VenueHorizontalSection(
-                      title: selectedLocation == 'All'
+                      title: activeLocation == 'All'
                           ? 'Featured Region 8 venues'
-                          : 'Popular in $selectedLocation',
+                          : 'Popular in $activeLocation',
                       venues: featured,
                       api: widget.api,
                       favoriteVenueIds: widget.favoriteVenueIds,
                       onFavoriteChanged: widget.onFavoriteChanged,
                     ),
-                    if (selectedLocation == 'All')
+                    if (activeLocation == 'All')
                       ...sectionEntries.map(
                         (entry) => VenueHorizontalSection(
                           title: '${entry.key} event places',
@@ -1027,9 +1241,9 @@ class _VenueBrowseScreenState extends State<VenueBrowseScreen> {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 22, 16, 8),
                       child: Text(
-                        selectedLocation == 'All'
+                        activeLocation == 'All'
                             ? 'Browse all event places'
-                            : 'All $selectedLocation event places',
+                            : 'All $activeLocation event places',
                         style: Theme.of(context).textTheme.displaySmall,
                       ),
                     ),
@@ -1922,6 +2136,61 @@ List<String> _cleanOfferLabels(List<dynamic> items, {int? limit}) {
     if (limit != null && labels.length >= limit) break;
   }
   return labels;
+}
+
+List<CategoryItem> _locationCategoryItems(List<Map<String, dynamic>> venues) {
+  final labels = venues
+      .map((venue) => _locationLabel(venue['location']))
+      .where((label) => label.isNotEmpty && label != 'Nearby')
+      .toSet()
+      .toList();
+  labels.sort((a, b) {
+    final orderA = _locationSortOrder(a);
+    final orderB = _locationSortOrder(b);
+    if (orderA != orderB) return orderA.compareTo(orderB);
+    return a.compareTo(b);
+  });
+
+  return [
+    const CategoryItem(Icons.apps_rounded, 'All'),
+    ...labels.map((label) => CategoryItem(_locationIcon(label), label)),
+  ];
+}
+
+int _locationSortOrder(String label) {
+  const order = [
+    'Tacloban',
+    'Palo',
+    'Tanauan',
+    'Dulag',
+    'Jaro',
+    'Ormoc',
+    'Burauen',
+    'Calbayog',
+    'Catbalogan',
+    'Catarman',
+  ];
+  final index = order.indexOf(label);
+  return index == -1 ? 999 : index;
+}
+
+IconData _locationIcon(String label) {
+  final lower = label.toLowerCase();
+  if (lower.contains('tanauan') || lower.contains('dulag')) {
+    return Icons.beach_access_outlined;
+  }
+  if (lower.contains('palo') || lower.contains('catarman')) {
+    return Icons.account_balance_outlined;
+  }
+  if (lower.contains('burauen') || lower.contains('jaro')) {
+    return Icons.landscape_outlined;
+  }
+  if (lower.contains('ormoc') ||
+      lower.contains('calbayog') ||
+      lower.contains('catbalogan')) {
+    return Icons.apartment_outlined;
+  }
+  return Icons.location_city_outlined;
 }
 
 IconData _featureIconForLabel(String label) {
@@ -4693,6 +4962,27 @@ const _facilityOptions = [
   _HostOfferOption(Icons.light_mode_outlined, 'Basic lights'),
 ];
 
+class _LocationPreset {
+  const _LocationPreset(this.label, this.address);
+
+  final String label;
+  final String address;
+}
+
+const _locationPresets = [
+  _LocationPreset('Tacloban City, Leyte', 'Tacloban City, Leyte, Philippines'),
+  _LocationPreset('Palo, Leyte', 'Palo, Leyte, Philippines'),
+  _LocationPreset('Tanauan, Leyte', 'Tanauan, Leyte, Philippines'),
+  _LocationPreset('Dulag, Leyte', 'Dulag, Leyte, Philippines'),
+  _LocationPreset('Ormoc City, Leyte', 'Ormoc City, Leyte, Philippines'),
+  _LocationPreset('Burauen, Leyte', 'Burauen, Leyte, Philippines'),
+  _LocationPreset(
+    'Catbalogan City, Samar',
+    'Catbalogan City, Samar, Philippines',
+  ),
+  _LocationPreset('Calbayog City, Samar', 'Calbayog City, Samar, Philippines'),
+];
+
 class _AddVenueScreenState extends State<AddVenueScreen> {
   final name = TextEditingController();
   final description = TextEditingController();
@@ -4732,7 +5022,11 @@ class _AddVenueScreenState extends State<AddVenueScreen> {
       ..clear()
       ..addAll(
         (venue['images'] as List<dynamic>? ?? [])
-            .map((item) => item['imageUrl'].toString())
+            .map(
+              (item) => item is String
+                  ? item
+                  : (item['imageUrl'] ?? item['url'])?.toString() ?? '',
+            )
             .where((item) => item.isNotEmpty),
       );
     final existingAmenities = (venue['amenities'] as List<dynamic>? ?? [])
@@ -4835,7 +5129,42 @@ class _AddVenueScreenState extends State<AddVenueScreen> {
     setState(() => selectedImages.removeAt(index));
   }
 
+  void _applyLocationPreset(_LocationPreset preset) {
+    setState(() {
+      location.text = preset.label;
+      if (address.text.trim().isEmpty ||
+          _locationPresets.any((item) => item.address == address.text.trim())) {
+        address.text = preset.address;
+      }
+    });
+  }
+
+  String? _validateVenueForm() {
+    if (name.text.trim().isEmpty) return 'Venue name is required.';
+    if (description.text.trim().length < 20) {
+      return 'Add a longer description so customers understand the venue.';
+    }
+    if ((num.tryParse(price.text) ?? 0) <= 0) {
+      return 'Enter a realistic price per day.';
+    }
+    if ((int.tryParse(capacity.text) ?? 0) <= 0) {
+      return 'Enter the venue guest capacity.';
+    }
+    if (location.text.trim().isEmpty) return 'Location is required.';
+    if (address.text.trim().isEmpty) return 'Address is required.';
+    if (selectedImages.isEmpty) {
+      return 'Add at least one venue photo so the listing looks complete.';
+    }
+    return null;
+  }
+
   Future<void> _save() async {
+    final validationError = _validateVenueForm();
+    if (validationError != null) {
+      _snack(context, validationError);
+      return;
+    }
+
     setState(() => loading = true);
     try {
       final payload = {
@@ -4893,6 +5222,7 @@ class _AddVenueScreenState extends State<AddVenueScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.venue == null ? 'Add venue' : 'Edit venue'),
@@ -4900,98 +5230,323 @@ class _AddVenueScreenState extends State<AddVenueScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          TextField(
-            controller: name,
-            decoration: const InputDecoration(labelText: 'Venue name'),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.sky,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: colors.divider),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  height: 48,
+                  width: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Icon(
+                    Icons.storefront_outlined,
+                    color: AppTheme.navy,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.venue == null
+                            ? 'Create a client-ready listing'
+                            : 'Update venue details',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'Photos, clear pricing, capacity, and offers help customers decide faster.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: description,
-            minLines: 3,
-            maxLines: 4,
-            decoration: const InputDecoration(labelText: 'Description'),
+          const SizedBox(height: 16),
+          _VenueFormSection(
+            title: 'Basic details',
+            icon: Icons.edit_location_alt_outlined,
+            child: Column(
+              children: [
+                TextField(
+                  controller: name,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.apartment_outlined),
+                    labelText: 'Venue name',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: description,
+                  minLines: 3,
+                  maxLines: 5,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.description_outlined),
+                    labelText: 'Description',
+                    alignLabelWithHint: true,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: price,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Price per day'),
+          const SizedBox(height: 14),
+          _VenueFormSection(
+            title: 'Pricing and capacity',
+            icon: Icons.payments_outlined,
+            child: Column(
+              children: [
+                TextField(
+                  controller: price,
+                  keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.payments_outlined),
+                    labelText: 'Price per day',
+                    helperText: 'Example: 35000',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: capacity,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.groups_outlined),
+                    labelText: 'Guest capacity',
+                    helperText: 'Maximum number of guests',
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: capacity,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Capacity'),
+          const SizedBox(height: 14),
+          _VenueFormSection(
+            title: 'Location',
+            icon: Icons.place_outlined,
+            child: Column(
+              children: [
+                _LocationPresetRail(
+                  selected: location.text,
+                  onSelected: _applyLocationPreset,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: location,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.location_city_outlined),
+                    labelText: 'City / Municipality',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: address,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.map_outlined),
+                    labelText: 'Full address',
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: location,
-            decoration: const InputDecoration(labelText: 'Location'),
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: address,
-            decoration: const InputDecoration(labelText: 'Address'),
-          ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
           _VenuePhotoPicker(
             images: selectedImages,
             onAdd: _chooseImages,
             onRemove: _removeImage,
           ),
+          const SizedBox(height: 14),
+          _VenueFormSection(
+            title: 'Offers and facilities',
+            icon: Icons.checklist_rounded,
+            child: Column(
+              children: [
+                _OfferSelector(
+                  title: 'Amenities',
+                  subtitle: 'Tap the common options guests look for.',
+                  options: _amenityOptions,
+                  selected: selectedAmenities,
+                  onToggle: (label) {
+                    setState(() {
+                      selectedAmenities.contains(label)
+                          ? selectedAmenities.remove(label)
+                          : selectedAmenities.add(label);
+                    });
+                  },
+                ),
+                const SizedBox(height: 14),
+                _OfferSelector(
+                  title: 'Facilities',
+                  subtitle: 'Choose venue spaces and event-ready features.',
+                  options: _facilityOptions,
+                  selected: selectedFacilities,
+                  onToggle: (label) {
+                    setState(() {
+                      selectedFacilities.contains(label)
+                          ? selectedFacilities.remove(label)
+                          : selectedFacilities.add(label);
+                    });
+                  },
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: amenities,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.add_circle_outline_rounded),
+                    labelText: 'Other amenities, comma separated',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: facilities,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.add_business_outlined),
+                    labelText: 'Other facilities, comma separated',
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 16),
-          _OfferSelector(
-            title: 'Amenities',
-            subtitle: 'Tap the common options guests look for.',
-            options: _amenityOptions,
-            selected: selectedAmenities,
-            onToggle: (label) {
-              setState(() {
-                selectedAmenities.contains(label)
-                    ? selectedAmenities.remove(label)
-                    : selectedAmenities.add(label);
-              });
-            },
-          ),
-          const SizedBox(height: 14),
-          _OfferSelector(
-            title: 'Facilities',
-            subtitle: 'Choose venue spaces and event-ready features.',
-            options: _facilityOptions,
-            selected: selectedFacilities,
-            onToggle: (label) {
-              setState(() {
-                selectedFacilities.contains(label)
-                    ? selectedFacilities.remove(label)
-                    : selectedFacilities.add(label);
-              });
-            },
-          ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: amenities,
-            decoration: const InputDecoration(
-              labelText: 'Other amenities, comma separated',
-            ),
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: facilities,
-            decoration: const InputDecoration(
-              labelText: 'Other facilities, comma separated',
-            ),
+          _VenueFormTip(
+            message:
+                'Listings from hosts still go to the admin for approval before customers can book them.',
           ),
           const SizedBox(height: 18),
-          ElevatedButton(
-            onPressed: loading ? null : _save,
-            child: Text(
-              loading
-                  ? 'Saving...'
-                  : widget.venue == null
-                  ? 'Submit venue'
-                  : 'Save changes',
+          SizedBox(
+            height: 54,
+            child: ElevatedButton.icon(
+              onPressed: loading ? null : _save,
+              icon: loading
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.save_outlined),
+              label: Text(
+                loading
+                    ? 'Saving...'
+                    : widget.venue == null
+                    ? 'Submit venue'
+                    : 'Save changes',
+              ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VenueFormSection extends StatelessWidget {
+  const _VenueFormSection({
+    required this.title,
+    required this.icon,
+    required this.child,
+  });
+
+  final String title;
+  final IconData icon;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: colors.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: AppTheme.blue),
+              const SizedBox(width: 8),
+              Text(title, style: Theme.of(context).textTheme.titleMedium),
+            ],
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _LocationPresetRail extends StatelessWidget {
+  const _LocationPresetRail({required this.selected, required this.onSelected});
+
+  final String selected;
+  final ValueChanged<_LocationPreset> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 42,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _locationPresets.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final preset = _locationPresets[index];
+          final active = selected.trim() == preset.label;
+          return ChoiceChip(
+            selected: active,
+            avatar: Icon(
+              Icons.place_outlined,
+              size: 17,
+              color: active ? Colors.white : AppTheme.blue,
+            ),
+            label: Text(preset.label.split(',').first),
+            labelStyle: TextStyle(
+              color: active ? Colors.white : AppTheme.ink,
+              fontWeight: FontWeight.w700,
+            ),
+            selectedColor: AppTheme.navy,
+            onSelected: (_) => onSelected(preset),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _VenueFormTip extends StatelessWidget {
+  const _VenueFormTip({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.gold.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTheme.gold.withValues(alpha: 0.28)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info_outline_rounded, color: AppTheme.warning),
+          const SizedBox(width: 10),
+          Expanded(child: Text(message)),
         ],
       ),
     );
@@ -6322,6 +6877,9 @@ String _locationLabel(dynamic value) {
     'Calbayog',
     'Tanauan',
     'Dulag',
+    'Jaro',
+    'Burauen',
+    'Catarman',
     'Tolosa',
   ];
   final lower = text.toLowerCase();
@@ -6348,14 +6906,8 @@ Map<String, List<Map<String, dynamic>>> _groupVenuesByLocation(
 }
 
 String _firstVenueImage(Map<String, dynamic> venue) {
-  final images = venue['images'];
-  if (images is List && images.isNotEmpty) {
-    final first = images.first;
-    if (first is Map<String, dynamic>) {
-      return (first['imageUrl'] ?? first['url'])?.toString() ?? '';
-    }
-  }
-  return '';
+  final urls = _venueImageUrls(venue);
+  return urls.isEmpty ? '' : urls.first;
 }
 
 List<String> _venueImageUrls(Map<String, dynamic> venue) {

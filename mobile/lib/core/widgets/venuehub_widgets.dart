@@ -77,11 +77,14 @@ class VenueImageView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (imageUrl.trim().isEmpty) {
+    final safeImageUrl = imageUrl.trim();
+    if (safeImageUrl.isEmpty || !_isSupportedImageUrl(safeImageUrl)) {
       return _ImageFallback(height: height, width: width);
     }
 
-    final bytes = _isDataImage(imageUrl) ? _dataImageBytes(imageUrl) : null;
+    final bytes = _isDataImage(safeImageUrl)
+        ? _dataImageBytes(safeImageUrl)
+        : null;
     final child = bytes != null
         ? Image.memory(
             bytes,
@@ -93,7 +96,7 @@ class VenueImageView extends StatelessWidget {
                 _ImageFallback(height: height, width: width),
           )
         : Image.network(
-            imageUrl,
+            safeImageUrl,
             height: height,
             width: width,
             fit: BoxFit.cover,
@@ -213,6 +216,14 @@ class _ImageFallback extends StatelessWidget {
 }
 
 bool _isDataImage(String value) => value.startsWith('data:image');
+
+bool _isSupportedImageUrl(String value) {
+  if (_isDataImage(value)) return true;
+  final uri = Uri.tryParse(value);
+  return uri != null &&
+      uri.hasScheme &&
+      (uri.scheme == 'https' || uri.scheme == 'http');
+}
 
 Uint8List? _dataImageBytes(String value) {
   try {

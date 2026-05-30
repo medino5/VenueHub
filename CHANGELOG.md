@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.0.13+14 - 2026-05-30
+
+- Added verified public venue photo URLs for key Region 8 demo venues while keeping fallback images for reliability.
+- Updated the seed flow so venue-specific images can be mixed with generic fallback images.
+
+## 1.0.12+13 - 2026-05-30
+
+- Added researched Region 8 real venue seed data with realistic demo capacities and price estimates.
+- Replaced broken seed image URLs and hardened venue image URL handling.
+- Improved the host create/edit venue form with clearer sections, icons, validation, photo requirements, and location presets.
+- Updated the customer location topbar to show only places that currently have venues.
+
+## 1.0.11+12 - 2026-05-30
+
+- Redesigned the login and account creation screens with a light-blue wave header and cleaner form presentation.
+- Removed the extra login subtitle text.
+- Added register input icons, password visibility toggles, confirm password input, and password-match validation.
+
 ## 1.0.10+11 - 2026-05-28
 
 - Replaced the in-app logo asset and Android launcher icon with the updated VenueHub logo.

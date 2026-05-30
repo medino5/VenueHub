@@ -5,7 +5,7 @@ require('dotenv').config();
 const prisma = new PrismaClient();
 
 const venueImages = [
-  'https://images.unsplash.com/photo-1519167758481-83f29c8f8c17?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
   'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&w=1200&q=80',
   'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=1200&q=80',
   'https://images.unsplash.com/photo-1505236858219-8359eb29e329?auto=format&fit=crop&w=1200&q=80',
@@ -17,9 +17,35 @@ const venueImages = [
   'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=80',
   'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=80',
   'https://images.unsplash.com/photo-1469371670807-013ccf25f16a?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1566737236500-c8ac43014a8e?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1503428593586-e225b39bddfe?auto=format&fit=crop&w=1200&q=80'
+  'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1503428593586-e225b39bddfe?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1527529482837-4698179dc6ce?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=80'
 ];
+
+const realVenueImages = {
+  taclobanConventionCenter: [
+    'https://upload.wikimedia.org/wikipedia/en/thumb/b/b4/Tacloban_City_Convention_Center_front_%28Real_Street%2C_Tacloban%2C_Leyte%3B_09-08-2022%29.jpg/1280px-Tacloban_City_Convention_Center_front_%28Real_Street%2C_Tacloban%2C_Leyte%3B_09-08-2022%29.jpg'
+  ],
+  theTropics: [
+    'https://ak-d.tripcdn.com/images/1z61q12000nusfuy2BBD9.jpg',
+    'https://ak-d.tripcdn.com/images/1re3i12000ec1uteo4BA1.webp'
+  ],
+  playaAlegre: [
+    'https://playa-alegre-beach-resort-restaurant.visayas-hotels.com/data/Pics/700x500w/13462/1346254/1346254370/playa-alegre-beach-resort-restaurant-tanauan-leyte-pic-1.JPEG',
+    'https://playa-alegre-beach-resort-restaurant.visayas-hotels.com/data/Pics/700x500w/17320/1732049/1732049142/playa-alegre-beach-resort-restaurant-tanauan-leyte-pic-2.JPEG'
+  ],
+  summitTacloban: [
+    'https://ak-d.tripcdn.com/images/0220j12000o1lro7p01DB.jpg',
+    'https://ak-d.tripcdn.com/images/1mc5y12000o0x3vbhD168_R_500_400_R5.webp'
+  ],
+  pacificPoint: [
+    'https://img.restaurantguru.com/w550/h367/rb40-Pacific-Point-Events-Place-and-Resort-Inc-facade-2022-09-2.jpg',
+    'https://img02.restaurantguru.com/c5b2-Restaurant-Pacific-Point-Events-Place-and-Resort-Inc-exterior.jpg'
+  ]
+};
 
 const bookingAmounts = (price) => ({
   totalAmount: price,
@@ -28,167 +54,446 @@ const bookingAmounts = (price) => ({
   serviceFee: price * 0.1
 });
 
+const unique = (items) => [...new Set(items.filter(Boolean))];
+
+const eventVenue = ({
+  name,
+  city,
+  province,
+  address,
+  capacity,
+  pricePerDay,
+  description,
+  status = 'APPROVED',
+  imageIndexes,
+  imageUrls = [],
+  amenities = [],
+  facilities = []
+}) => ({
+  name,
+  description,
+  pricePerDay,
+  capacity,
+  location: `${city}, ${province}`,
+  address,
+  status,
+  imageIndexes,
+  imageUrls,
+  amenities: unique(['Parking', 'Basic lights', ...amenities]),
+  facilities: unique(['Tables and chairs', ...facilities])
+});
+
 const temporaryVenues = [
-  {
-    name: 'Tacloban Bayfront Events Hall',
-    description: 'A clean seaside-inspired hall for birthdays, seminars, receptions, and community celebrations near downtown Tacloban.',
-    pricePerDay: 42000,
-    capacity: 160,
-    location: 'Tacloban City, Leyte',
-    address: 'Magsaysay Boulevard, Tacloban City, Leyte',
-    status: 'APPROVED',
-    imageIndexes: [0, 2],
-    amenities: ['Air conditioning', 'Parking', 'Catering partner', 'Wi-Fi'],
-    facilities: ['Main event hall', 'Stage area', 'Sound system', 'Prep room']
-  },
-  {
-    name: 'Palo Heritage Garden Venue',
-    description: 'An outdoor garden-style venue for weddings, debuts, and family milestones in Palo.',
-    pricePerDay: 38000,
-    capacity: 120,
-    location: 'Palo, Leyte',
-    address: 'Palo Town Center, Palo, Leyte',
-    status: 'APPROVED',
-    imageIndexes: [1, 5],
-    amenities: ['Garden setup', 'Parking', 'Basic lights', 'Photo area'],
-    facilities: ['Garden lawn', 'Covered dining area', 'Bridal room', 'Pantry']
-  },
-  {
-    name: 'Ormoc Grand Social Hall',
-    description: 'A polished indoor venue for corporate gatherings, reunions, and formal family events.',
-    pricePerDay: 46000,
-    capacity: 190,
-    location: 'Ormoc City, Leyte',
-    address: 'Aviles Street, Ormoc City, Leyte',
-    status: 'APPROVED',
-    imageIndexes: [3, 6],
-    amenities: ['Air conditioning', 'LED wall', 'Catering partner', 'Security'],
-    facilities: ['Grand ballroom', 'Lobby', 'VIP room', 'Audio booth']
-  },
-  {
-    name: 'Baybay Hilltop Pavilion',
-    description: 'A breezy pavilion suited for intimate weddings, retreats, and private dinners in Baybay.',
-    pricePerDay: 35000,
-    capacity: 95,
-    location: 'Baybay City, Leyte',
-    address: 'Diversion Road, Baybay City, Leyte',
-    status: 'APPROVED',
-    imageIndexes: [4, 7],
-    amenities: ['Scenic view', 'Parking', 'Outdoor lights', 'Backup generator'],
-    facilities: ['Open pavilion', 'Dining deck', 'Kitchen area', 'Changing room']
-  },
-  {
-    name: 'Guiuan Coastal Function House',
-    description: 'A relaxed coastal venue for beach-themed birthdays, small receptions, and weekend celebrations.',
-    pricePerDay: 30000,
-    capacity: 80,
-    location: 'Guiuan, Eastern Samar',
-    address: 'Poblacion, Guiuan, Eastern Samar',
-    status: 'APPROVED',
-    imageIndexes: [2, 4],
-    amenities: ['Coastal view', 'Basic sound', 'Parking', 'E-wallet accepted'],
-    facilities: ['Function room', 'Outdoor dining space', 'Prep area', 'Storage room']
-  },
-  {
-    name: 'Catbalogan City Events Loft',
-    description: 'A compact modern loft for meetings, birthdays, showers, and small social events.',
-    pricePerDay: 28000,
-    capacity: 70,
-    location: 'Catbalogan City, Samar',
-    address: 'Downtown Catbalogan City, Samar',
-    status: 'APPROVED',
-    imageIndexes: [5, 0],
-    amenities: ['Wi-Fi', 'Air conditioning', 'Projector', 'Coffee station'],
-    facilities: ['Event loft', 'Meeting corner', 'Pantry', 'Reception desk']
-  },
-  {
-    name: 'Maasin Seaview Convention Hall',
-    description: 'A seaside function hall for school banquets, anniversaries, and civic events in Southern Leyte.',
-    pricePerDay: 34000,
-    capacity: 130,
-    location: 'Maasin City, Southern Leyte',
-    address: 'Tunga-tunga Road, Maasin City, Southern Leyte',
-    status: 'APPROVED',
-    imageIndexes: [8, 2],
-    amenities: ['Sea view', 'Air conditioning', 'Parking', 'Basic sound'],
-    facilities: ['Convention hall', 'Lobby', 'Dining area', 'Prep room']
-  },
-  {
-    name: 'Calbayog Grand Function Center',
-    description: 'A spacious Samar venue for graduation parties, seminars, and large family gatherings.',
-    pricePerDay: 40000,
-    capacity: 180,
-    location: 'Calbayog City, Samar',
-    address: 'Maharlika Highway, Calbayog City, Samar',
-    status: 'APPROVED',
-    imageIndexes: [9, 3],
-    amenities: ['Air conditioning', 'Parking', 'Projector', 'Security desk'],
-    facilities: ['Grand hall', 'Breakout room', 'Reception lobby', 'Kitchen area']
-  },
-  {
-    name: 'Naval Island View Event Deck',
-    description: 'A Biliran-inspired deck venue for intimate receptions, birthdays, and sunset dinners.',
-    pricePerDay: 31000,
-    capacity: 85,
-    location: 'Naval, Biliran',
-    address: 'Cathedral Road, Naval, Biliran',
-    status: 'APPROVED',
-    imageIndexes: [10, 4],
-    amenities: ['Outdoor lights', 'Island view', 'Parking', 'E-wallet accepted'],
-    facilities: ['Event deck', 'Covered dining', 'Preparation room', 'Storage']
-  },
-  {
-    name: 'Tanauan Family Celebration Hall',
-    description: 'A practical Leyte town venue for birthdays, reunions, christenings, and school activities.',
+  eventVenue({
+    name: 'Leyte Convention Complex',
+    city: 'Palo',
+    province: 'Leyte',
+    address: 'Palo, Leyte, Philippines',
+    capacity: 3100,
+    pricePerDay: 150000,
+    description: 'Large convention venue suitable for conferences, graduations, concerts, expos, and formal events.',
+    imageIndexes: [14, 0],
+    amenities: ['Air conditioning', 'Wi-Fi', 'Security assistance'],
+    facilities: ['Convention hall', 'Stage area', 'Registration lobby', 'Breakout rooms']
+  }),
+  eventVenue({
+    name: 'The Tropics at MacArthur Park Resort and Convention Center',
+    city: 'Palo',
+    province: 'Leyte',
+    address: 'Barangay Baras, Palo, Leyte, Philippines',
+    capacity: 500,
+    pricePerDay: 120000,
+    description: 'Resort and convention venue suitable for weddings, meetings, corporate events, and private gatherings.',
+    imageUrls: realVenueImages.theTropics,
+    imageIndexes: [9, 2],
+    amenities: ['Air conditioning', 'Catering partner', 'Garden setup', 'Photo area'],
+    facilities: ['Ballroom', 'Garden lawn', 'Poolside area', 'Meeting suites']
+  }),
+  eventVenue({
+    name: 'Arcivu Hall',
+    city: 'Palo',
+    province: 'Leyte',
+    address: 'Palo, Leyte, Philippines',
+    capacity: 150,
     pricePerDay: 26000,
-    capacity: 90,
-    location: 'Tanauan, Leyte',
-    address: 'Real Street, Tanauan, Leyte',
-    status: 'APPROVED',
-    imageIndexes: [11, 1],
-    amenities: ['Tables and chairs', 'Basic sound', 'Parking', 'Stage lights'],
-    facilities: ['Celebration hall', 'Stage', 'Serving area', 'Changing room']
-  },
-  {
-    name: 'Dulag Coastal Pavilion',
-    description: 'An open-air pavilion for community programs, small weddings, and beach-themed events.',
-    pricePerDay: 24000,
-    capacity: 75,
-    location: 'Dulag, Leyte',
-    address: 'Coastal Road, Dulag, Leyte',
-    status: 'APPROVED',
-    imageIndexes: [12, 7],
-    amenities: ['Open-air setup', 'Coastal breeze', 'Parking', 'Basic lights'],
-    facilities: ['Pavilion', 'Outdoor dining area', 'Kitchenette', 'Storage room']
-  },
-  {
-    name: 'Sogod Academic Events Hall',
-    description: 'A Southern Leyte demo venue for school symposiums, trainings, and recognition ceremonies.',
-    pricePerDay: 29000,
-    capacity: 110,
-    location: 'Sogod, Southern Leyte',
-    address: 'Osmena Street, Sogod, Southern Leyte',
-    status: 'APPROVED',
-    imageIndexes: [13, 0],
-    amenities: ['Projector', 'Wi-Fi', 'Air conditioning', 'Podium'],
-    facilities: ['Academic hall', 'Meeting room', 'Registration desk', 'Pantry']
-  },
-  {
-    name: 'Borongan Riverside Hall',
-    description: 'A pending listing for admin review demos in Eastern Samar.',
+    description: 'Function hall venue for private gatherings, receptions, meetings, and community events.',
+    imageIndexes: [2, 15],
+    amenities: ['Air conditioning', 'Catering partner'],
+    facilities: ['Function hall', 'Serving area', 'Prep room']
+  }),
+  eventVenue({
+    name: 'Playa Alegre',
+    city: 'Tanauan',
+    province: 'Leyte',
+    address: 'Tanauan, Leyte, Philippines',
+    capacity: 120,
+    pricePerDay: 25000,
+    description: 'Beach-style venue suitable for outings, celebrations, receptions, and private events.',
+    imageUrls: realVenueImages.playaAlegre,
+    imageIndexes: [4, 7],
+    amenities: ['Photo area', 'Outdoor setup', 'Coastal view'],
+    facilities: ['Beachfront area', 'Covered dining area', 'Changing room']
+  }),
+  eventVenue({
+    name: 'Banez Catering Services',
+    city: 'Tanauan',
+    province: 'Leyte',
+    address: 'Tanauan, Leyte, Philippines',
+    capacity: 150,
+    pricePerDay: 35000,
+    description: 'Catering and event service provider for birthdays, weddings, receptions, and local celebrations.',
+    imageIndexes: [2, 11],
+    amenities: ['Catering partner', 'Event styling', 'Food service'],
+    facilities: ['Mobile buffet setup', 'Event coordination desk', 'Serving area']
+  }),
+  eventVenue({
+    name: 'Haiyan Hotel and Resort',
+    city: 'Tanauan',
+    province: 'Leyte',
+    address: 'Tanauan, Leyte, Philippines',
+    capacity: 160,
+    pricePerDay: 42000,
+    description: 'Hotel and resort venue suitable for accommodations, private events, meetings, and celebrations.',
+    imageIndexes: [9, 16],
+    amenities: ['Air conditioning', 'Catering partner', 'Pool access'],
+    facilities: ['Function room', 'Resort dining area', 'Guest rooms']
+  }),
+  eventVenue({
+    name: "ShyDan's Beach Center",
+    city: 'Dulag',
+    province: 'Leyte',
+    address: 'Dulag, Leyte, Philippines',
+    capacity: 120,
+    pricePerDay: 18000,
+    description: 'Beach center venue suitable for outings, reunions, casual events, and private celebrations.',
+    imageIndexes: [4, 12],
+    amenities: ['Outdoor setup', 'Coastal view', 'Basic sound'],
+    facilities: ['Beach center', 'Open dining area', 'Changing room']
+  }),
+  eventVenue({
+    name: 'Camp Bryztoff',
+    city: 'Dulag',
+    province: 'Leyte',
+    address: 'Dulag, Leyte, Philippines',
+    capacity: 150,
+    pricePerDay: 22000,
+    description: 'Outdoor venue suitable for camping activities, retreats, team buildings, and private gatherings.',
+    imageIndexes: [6, 13],
+    amenities: ['Outdoor setup', 'Security assistance', 'Photo area'],
+    facilities: ['Camp grounds', 'Activity field', 'Covered pavilion']
+  }),
+  eventVenue({
+    name: 'Dulag Cultural Center',
+    city: 'Dulag',
+    province: 'Leyte',
+    address: 'Dulag, Leyte, Philippines',
+    capacity: 600,
+    pricePerDay: 30000,
+    description: 'Cultural and community venue suitable for programs, seminars, ceremonies, and local government events.',
+    imageIndexes: [14, 10],
+    amenities: ['Air conditioning', 'Projector', 'Sound system'],
+    facilities: ['Cultural hall', 'Stage area', 'Backstage room']
+  }),
+  eventVenue({
+    name: 'Tacloban City Convention Center',
+    city: 'Tacloban City',
+    province: 'Leyte',
+    address: 'Esperas Avenue, Tacloban City, Leyte, Philippines',
+    capacity: 5000,
+    pricePerDay: 180000,
+    description: 'One of the biggest venues in Eastern Visayas, suitable for conventions, concerts, graduations, expos, and corporate events.',
+    imageUrls: realVenueImages.taclobanConventionCenter,
+    imageIndexes: [14, 0],
+    amenities: ['Air conditioning', 'Security assistance', 'Sound system'],
+    facilities: ['Convention arena', 'Stage area', 'Exhibit floor', 'Registration lobby']
+  }),
+  eventVenue({
+    name: 'The Pavilion',
+    city: 'Tacloban City',
+    province: 'Leyte',
+    address: 'Tacloban City, Leyte, Philippines',
+    capacity: 300,
+    pricePerDay: 65000,
+    description: 'Elegant indoor venue commonly used for weddings, debuts, seminars, and receptions.',
+    imageIndexes: [2, 5],
+    amenities: ['Air conditioning', 'Catering partner', 'Photo area'],
+    facilities: ['Function hall', 'Bridal room', 'Reception lobby']
+  }),
+  eventVenue({
+    name: "Sophia's Way Event Center",
+    city: 'Tacloban City',
+    province: 'Leyte',
+    address: 'Sagkahan, Tacloban City, Leyte, Philippines',
+    capacity: 150,
+    pricePerDay: 30000,
+    description: 'Event venue suitable for birthdays, intimate receptions, family gatherings, and private celebrations.',
+    imageIndexes: [1, 2],
+    amenities: ['Air conditioning', 'Catering partner', 'Photo area'],
+    facilities: ['Event center', 'Prep room', 'Serving area']
+  }),
+  eventVenue({
+    name: 'Antonios Event Center',
+    city: 'Tacloban City',
+    province: 'Leyte',
+    address: 'San Jose, Tacloban City, Leyte, Philippines',
+    capacity: 250,
+    pricePerDay: 45000,
+    description: 'Private event venue for weddings, birthdays, corporate events, and customizable reception layouts.',
+    imageIndexes: [2, 10],
+    amenities: ['Air conditioning', 'Sound system', 'Catering partner'],
+    facilities: ['Event hall', 'Stage area', 'Changing room']
+  }),
+  eventVenue({
+    name: 'Cancabato Bay Sunset',
+    city: 'Tacloban City',
+    province: 'Leyte',
+    address: 'Tacloban City, Leyte, Philippines',
+    capacity: 200,
+    pricePerDay: 36000,
+    description: 'Bay-view venue popular for sunset receptions, prenup shoots, private parties, and scenic events.',
+    imageIndexes: [4, 8],
+    amenities: ['Photo area', 'Outdoor setup', 'Bay view'],
+    facilities: ['Bay-view deck', 'Covered dining area', 'Prep area']
+  }),
+  eventVenue({
+    name: 'Ritz Tower de Leyte',
+    city: 'Tacloban City',
+    province: 'Leyte',
+    address: 'Downtown Tacloban City, Leyte, Philippines',
+    capacity: 400,
+    pricePerDay: 70000,
+    description: 'Downtown venue used for formal gatherings, weddings, receptions, and social events.',
+    imageIndexes: [9, 2],
+    amenities: ['Air conditioning', 'Catering partner', 'Security assistance'],
+    facilities: ['Reception hall', 'Lobby', 'Meeting suites']
+  }),
+  eventVenue({
+    name: "Myco's Place Tacloban",
+    city: 'Tacloban City',
+    province: 'Leyte',
+    address: 'Marasbaras, Tacloban City, Leyte, Philippines',
+    capacity: 120,
+    pricePerDay: 20000,
+    description: 'Small-to-medium private venue suitable for birthdays, meetings, and family events.',
+    imageIndexes: [5, 15],
+    amenities: ['Air conditioning', 'Catering partner'],
+    facilities: ['Private hall', 'Dining area', 'Kitchenette']
+  }),
+  eventVenue({
+    name: 'Summit Hotel Tacloban Ballroom and Meeting Suites',
+    city: 'Tacloban City',
+    province: 'Leyte',
+    address: 'Beside Robinsons Tacloban, Tacloban City, Leyte, Philippines',
+    capacity: 600,
+    pricePerDay: 110000,
+    description: 'Hotel ballroom and meeting suites suitable for conferences, trainings, seminars, weddings, and receptions.',
+    imageUrls: realVenueImages.summitTacloban,
+    imageIndexes: [9, 0],
+    amenities: ['Air conditioning', 'Wi-Fi', 'Catering partner', 'Projector'],
+    facilities: ['Grand ballroom', 'Meeting suites', 'Pre-function lobby']
+  }),
+  eventVenue({
+    name: 'Le Jardin de Tacloban',
+    city: 'Tacloban City',
+    province: 'Leyte',
+    address: 'Tacloban City, Leyte, Philippines',
+    capacity: 200,
+    pricePerDay: 45000,
+    description: 'Garden-style venue for outdoor events, receptions, parties, and social gatherings.',
+    imageIndexes: [1, 6],
+    amenities: ['Garden setup', 'Photo area', 'Outdoor setup'],
+    facilities: ['Garden lawn', 'Covered dining area', 'Bridal room']
+  }),
+  eventVenue({
+    name: 'Pacific Point Events Place and Resort Inc.',
+    city: 'Tacloban City',
+    province: 'Leyte',
+    address: 'Tacloban City, Leyte, Philippines',
+    capacity: 300,
+    pricePerDay: 38000,
+    description: 'Oceanfront resort and events venue with pools, dining areas, and event facilities.',
+    imageUrls: realVenueImages.pacificPoint,
+    imageIndexes: [4, 9],
+    amenities: ['Pool access', 'Catering partner', 'Photo area', 'Outdoor setup'],
+    facilities: ['Poolside venue', 'Dining pavilion', 'Resort grounds']
+  }),
+  eventVenue({
+    name: "Palm's Jewel Resort",
+    city: 'Jaro',
+    province: 'Leyte',
+    address: 'Jaro, Leyte, Philippines',
+    capacity: 200,
     pricePerDay: 32000,
-    capacity: 100,
-    location: 'Borongan City, Eastern Samar',
-    address: 'Riverside Road, Borongan City, Eastern Samar',
-    status: 'PENDING',
-    imageIndexes: [6],
-    amenities: ['Parking', 'Basic lights', 'Tables and chairs'],
-    facilities: ['Main hall', 'Kitchenette']
-  }
+    description: 'Resort venue suitable for outings, reunions, overnight stays, and family gatherings.',
+    imageIndexes: [9, 4],
+    amenities: ['Pool access', 'Outdoor setup', 'Photo area'],
+    facilities: ['Resort pavilion', 'Poolside area', 'Guest rooms']
+  }),
+  eventVenue({
+    name: "Sheila's Villa",
+    city: 'Jaro',
+    province: 'Leyte',
+    address: 'Jaro, Leyte, Philippines',
+    capacity: 50,
+    pricePerDay: 15000,
+    description: 'Private villa venue for intimate celebrations, barkada outings, and small gatherings.',
+    imageIndexes: [16, 6],
+    amenities: ['Photo area', 'Outdoor setup'],
+    facilities: ['Private villa', 'Dining patio', 'Kitchen area']
+  }),
+  eventVenue({
+    name: 'Villaconzoilo Compact Organic Farm',
+    city: 'Jaro',
+    province: 'Leyte',
+    address: 'Villaconzoilo, Jaro, Leyte, Philippines',
+    capacity: 150,
+    pricePerDay: 25000,
+    description: 'Farm venue suitable for retreats, outdoor activities, eco-events, and nature-themed gatherings.',
+    imageIndexes: [6, 13],
+    amenities: ['Garden setup', 'Outdoor setup', 'Photo area'],
+    facilities: ['Farm grounds', 'Covered pavilion', 'Activity field']
+  }),
+  eventVenue({
+    name: 'Origami Convention Center',
+    city: 'Ormoc City',
+    province: 'Leyte',
+    address: 'Ormoc City, Leyte, Philippines',
+    capacity: 350,
+    pricePerDay: 55000,
+    description: 'Air-conditioned convention hall used for weddings, seminars, conferences, and receptions.',
+    imageIndexes: [0, 14],
+    amenities: ['Air conditioning', 'Wi-Fi', 'Projector', 'Sound system'],
+    facilities: ['Convention hall', 'Stage area', 'Registration lobby']
+  }),
+  eventVenue({
+    name: 'ZT Leisure Park',
+    city: 'Ormoc City',
+    province: 'Leyte',
+    address: 'Palompon Highway, Ormoc City, Leyte, Philippines',
+    capacity: 250,
+    pricePerDay: 30000,
+    description: 'Leisure park suitable for private functions, outdoor events, and recreational activities.',
+    imageIndexes: [6, 4],
+    amenities: ['Outdoor setup', 'Photo area', 'Garden setup'],
+    facilities: ['Leisure park grounds', 'Covered area', 'Activity lawn']
+  }),
+  eventVenue({
+    name: 'ROSETTA Guest House',
+    city: 'Ormoc City',
+    province: 'Leyte',
+    address: 'Near Rizal Street, Ormoc City, Leyte, Philippines',
+    capacity: 120,
+    pricePerDay: 28000,
+    description: 'Guest house and function venue suitable for meetings, small receptions, and overnight stays.',
+    imageIndexes: [9, 5],
+    amenities: ['Air conditioning', 'Wi-Fi', 'Catering partner'],
+    facilities: ['Function room', 'Guest rooms', 'Dining area']
+  }),
+  eventVenue({
+    name: 'Camp Kawayan Resort',
+    city: 'Burauen',
+    province: 'Leyte',
+    address: 'Burauen, Leyte, Philippines',
+    capacity: 250,
+    pricePerDay: 30000,
+    description: 'Nature-inspired resort venue popular for retreats, team buildings, and outdoor events.',
+    imageIndexes: [6, 13],
+    amenities: ['Outdoor setup', 'Photo area', 'Security assistance'],
+    facilities: ['Resort grounds', 'Activity area', 'Covered pavilion']
+  }),
+  eventVenue({
+    name: "Teresita's Garden",
+    city: 'Burauen',
+    province: 'Leyte',
+    address: 'Maghubas, Burauen, Leyte, Philippines',
+    capacity: 150,
+    pricePerDay: 28000,
+    description: 'Open-air garden venue suitable for receptions, prenup shoots, and intimate celebrations.',
+    imageIndexes: [1, 6],
+    amenities: ['Garden setup', 'Photo area', 'Outdoor setup'],
+    facilities: ['Garden venue', 'Covered dining area', 'Prep room']
+  }),
+  eventVenue({
+    name: 'Garden Paradise By The Lake Farm Resort',
+    city: 'Burauen',
+    province: 'Leyte',
+    address: 'Burauen, Leyte, Philippines',
+    capacity: 200,
+    pricePerDay: 35000,
+    description: 'Farm resort venue with scenic lake surroundings for retreats, family gatherings, and private events.',
+    imageIndexes: [6, 4],
+    amenities: ['Garden setup', 'Photo area', 'Lake view'],
+    facilities: ['Farm resort grounds', 'Lakefront area', 'Dining pavilion']
+  }),
+  eventVenue({
+    name: 'Burauen Community Center',
+    city: 'Burauen',
+    province: 'Leyte',
+    address: 'Burauen, Leyte, Philippines',
+    capacity: 1500,
+    pricePerDay: 40000,
+    description: 'Community venue used for municipal programs, public functions, and large local events.',
+    imageIndexes: [14, 10],
+    amenities: ['Sound system', 'Security assistance'],
+    facilities: ['Community hall', 'Stage area', 'Backstage room']
+  }),
+  eventVenue({
+    name: 'Calbayog Cultural Convention Center',
+    city: 'Calbayog City',
+    province: 'Samar',
+    address: 'Calbayog City, Samar, 6710 Philippines',
+    capacity: 500,
+    pricePerDay: 60000,
+    description: 'Cultural and convention venue suitable for large events, programs, seminars, and public gatherings.',
+    imageIndexes: [14, 0],
+    amenities: ['Air conditioning', 'Sound system', 'Projector'],
+    facilities: ['Cultural hall', 'Convention floor', 'Stage area']
+  }),
+  eventVenue({
+    name: 'M Grand Royale Resort, Hotel and Convention Center',
+    city: 'Catbalogan City',
+    province: 'Samar',
+    address: 'Brgy. Guinsorongan, Catbalogan City, Samar, Philippines',
+    capacity: 350,
+    pricePerDay: 75000,
+    description: 'Resort, hotel, and convention venue with conference facilities, accommodations, and event spaces.',
+    imageIndexes: [9, 0],
+    amenities: ['Air conditioning', 'Wi-Fi', 'Catering partner', 'Pool access'],
+    facilities: ['Convention center', 'Hotel rooms', 'Resort dining area']
+  }),
+  eventVenue({
+    name: 'SSU Convention Center',
+    city: 'Catbalogan City',
+    province: 'Samar',
+    address: 'QVCP+F4H, Arteche Blvd, Catbalogan City Proper, Catbalogan City, Samar, Philippines',
+    capacity: 500,
+    pricePerDay: 45000,
+    description: 'Convention center venue suitable for academic events, seminars, conferences, and institutional programs.',
+    imageIndexes: [14, 15],
+    amenities: ['Air conditioning', 'Projector', 'Sound system'],
+    facilities: ['Academic convention hall', 'Stage area', 'Registration desk']
+  }),
+  eventVenue({
+    name: 'Ibabao Hall, Capitol Building',
+    city: 'Catarman',
+    province: 'Northern Samar',
+    address: 'Capitol Building, Catarman, Northern Samar, Philippines',
+    capacity: 250,
+    pricePerDay: 25000,
+    description: 'Government function hall suitable for official programs, meetings, ceremonies, and public events.',
+    imageIndexes: [15, 10],
+    amenities: ['Air conditioning', 'Projector', 'Sound system'],
+    facilities: ['Government function hall', 'Meeting area', 'Program stage']
+  })
 ];
 
-const createVenue = (hostId, venue) =>
-  prisma.venue.create({
+const createVenue = (hostId, venue) => {
+  const imageUrls = unique([
+    ...(venue.imageUrls || []),
+    ...(venue.imageIndexes || []).map((imageIndex) => venueImages[imageIndex])
+  ]);
+
+  return prisma.venue.create({
     data: {
       hostId,
       name: venue.name,
@@ -199,8 +504,8 @@ const createVenue = (hostId, venue) =>
       address: venue.address,
       status: venue.status,
       images: {
-        create: venue.imageIndexes.map((imageIndex, sortOrder) => ({
-          imageUrl: venueImages[imageIndex],
+        create: imageUrls.map((imageUrl, sortOrder) => ({
+          imageUrl,
           sortOrder
         }))
       },
@@ -208,6 +513,7 @@ const createVenue = (hostId, venue) =>
       facilities: { create: venue.facilities.map((name) => ({ name })) }
     }
   });
+};
 
 async function main() {
   await prisma.review.deleteMany();
