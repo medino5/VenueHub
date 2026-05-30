@@ -6994,7 +6994,7 @@ ll.LatLng _venueLatLng(Map<String, dynamic> venue) {
     return ll.LatLng(latitude!, longitude!);
   }
 
-  return _fallbackLatLngForLocation(venue['location'], venue['address']);
+  return _fallbackLatLngForVenue(venue);
 }
 
 double? _optionalDouble(dynamic value) {
@@ -7009,6 +7009,50 @@ bool _isValidLatLng(double? latitude, double? longitude) {
       latitude <= 90 &&
       longitude >= -180 &&
       longitude <= 180;
+}
+
+ll.LatLng _fallbackLatLngForVenue(Map<String, dynamic> venue) {
+  final name = (venue['name']?.toString() ?? '').toLowerCase();
+  if (name.contains('leyte convention complex')) {
+    return const ll.LatLng(11.159448, 124.990814);
+  }
+  if (name.contains('tropics')) return const ll.LatLng(11.163523, 125.004271);
+  if (name.contains('arcivu')) return const ll.LatLng(11.159655, 124.992231);
+  if (name.contains('playa alegre')) return const ll.LatLng(11.112276, 125.021208);
+  if (name.contains('banez')) return const ll.LatLng(11.111211, 125.016919);
+  if (name.contains('haiyan')) return const ll.LatLng(11.1104, 125.0181);
+  if (name.contains('shydan')) return const ll.LatLng(10.953244, 125.033452);
+  if (name.contains('camp bryztoff')) return const ll.LatLng(10.9519, 125.0337);
+  if (name.contains('dulag cultural')) return const ll.LatLng(10.953529, 125.034146);
+  if (name.contains('tacloban city convention')) {
+    return const ll.LatLng(11.2444, 125.0005);
+  }
+  if (name.contains('the pavilion')) return const ll.LatLng(11.2419, 125.0038);
+  if (name.contains("sophia")) return const ll.LatLng(11.222857, 125.001154);
+  if (name.contains('antonios')) return const ll.LatLng(11.20383, 125.020509);
+  if (name.contains('cancabato')) return const ll.LatLng(11.214509, 125.023794);
+  if (name.contains('ritz tower')) return const ll.LatLng(11.244093, 125.001422);
+  if (name.contains("myco")) return const ll.LatLng(11.201936, 125.006776);
+  if (name.contains('summit hotel tacloban')) {
+    return const ll.LatLng(11.208056, 125.007281);
+  }
+  if (name.contains('le jardin')) return const ll.LatLng(11.2289, 125.0058);
+  if (name.contains('pacific point')) return const ll.LatLng(11.1967, 125.0209);
+  if (name.contains("palm")) return const ll.LatLng(11.189519, 124.783188);
+  if (name.contains("sheila")) return const ll.LatLng(11.1876, 124.7842);
+  if (name.contains('villaconzoilo')) return const ll.LatLng(11.2036, 124.8359);
+  if (name.contains('origami')) return const ll.LatLng(11.009035, 124.609394);
+  if (name.contains('zt leisure')) return const ll.LatLng(11.0316, 124.6087);
+  if (name.contains('rosetta')) return const ll.LatLng(11.0068, 124.6071);
+  if (name.contains('camp kawayan')) return const ll.LatLng(10.978997, 124.910294);
+  if (name.contains('teresita')) return const ll.LatLng(10.986909, 124.891691);
+  if (name.contains('garden paradise')) return const ll.LatLng(10.974871, 124.893223);
+  if (name.contains('burauen community')) return const ll.LatLng(10.974377, 124.891765);
+  if (name.contains('calbayog cultural')) return const ll.LatLng(12.066963, 124.594666);
+  if (name.contains('m grand royale')) return const ll.LatLng(11.775053, 124.883907);
+  if (name.contains('ssu convention')) return const ll.LatLng(11.771232, 124.885358);
+  if (name.contains('ibabao hall')) return const ll.LatLng(12.504133, 124.632916);
+  return _fallbackLatLngForLocation(venue['location'], venue['address']);
 }
 
 ll.LatLng _fallbackLatLngForLocation(dynamic location, dynamic address) {

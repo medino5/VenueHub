@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.15+16 - 2026-05-30
+
+- Added embedded venue-name coordinate fallbacks so the APK shows accurate demo map markers even before a backend redeploy finishes.
+
 ## 1.0.14+15 - 2026-05-30
 
 - Added OpenStreetMap-powered venue maps with markers on venue detail pages.
