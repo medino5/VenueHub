@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart' as fm;
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart' as ll;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/theme/app_theme.dart';
@@ -2461,11 +2463,7 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
                       "Where you'll be",
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
-                    DemoMapPreview(
-                      location:
-                          venue['location']?.toString() ?? 'Eastern Visayas',
-                      address: venue['address']?.toString() ?? 'Demo address',
-                    ),
+                    DemoMapPreview(venue: venue),
                     const SectionDivider(),
                     _Reviews(reviews: reviews),
                   ],
@@ -2614,18 +2612,16 @@ class _OfferList extends StatelessWidget {
 }
 
 class DemoMapPreview extends StatelessWidget {
-  const DemoMapPreview({
-    super.key,
-    required this.location,
-    required this.address,
-  });
+  const DemoMapPreview({super.key, required this.venue});
 
-  final String location;
-  final String address;
+  final Map<String, dynamic> venue;
 
   @override
   Widget build(BuildContext context) {
     final colors = AppTheme.colorsOf(context);
+    final location = venue['location']?.toString() ?? 'Eastern Visayas';
+    final address = venue['address']?.toString() ?? 'Demo address';
+    final point = _venueLatLng(venue);
     return Padding(
       padding: const EdgeInsets.only(top: 14),
       child: Column(
@@ -2633,7 +2629,7 @@ class DemoMapPreview extends StatelessWidget {
         children: [
           const SizedBox(height: 6),
           Container(
-            height: 200,
+            height: 230,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppTheme.radiusCard),
               gradient: LinearGradient(
@@ -2643,27 +2639,61 @@ class DemoMapPreview extends StatelessWidget {
               ),
               border: Border.all(color: colors.divider),
             ),
+            clipBehavior: Clip.antiAlias,
             child: Stack(
               children: [
-                Positioned.fill(child: CustomPaint(painter: _DemoMapPainter())),
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppTheme.gold,
-                      borderRadius: BorderRadius.circular(999),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.gold.withValues(alpha: 0.28),
-                          blurRadius: 18,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
+                Positioned.fill(
+                  child: fm.FlutterMap(
+                    options: fm.MapOptions(
+                      initialCenter: point,
+                      initialZoom: 14,
+                      minZoom: 8,
+                      maxZoom: 18,
+                      interactionOptions: const fm.InteractionOptions(
+                        flags:
+                            fm.InteractiveFlag.drag |
+                            fm.InteractiveFlag.pinchZoom |
+                            fm.InteractiveFlag.doubleTapZoom,
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.place_rounded,
-                      color: AppTheme.navy,
-                      size: 30,
+                    children: [
+                      fm.TileLayer(
+                        urlTemplate:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'com.venuehub.mobile',
+                      ),
+                      fm.MarkerLayer(
+                        markers: [
+                          fm.Marker(
+                            point: point,
+                            width: 54,
+                            height: 54,
+                            child: const _VenueMapMarker(),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  right: 10,
+                  top: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Text(
+                      'OpenStreetMap',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppTheme.ink,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
@@ -2674,12 +2704,16 @@ class DemoMapPreview extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Colors.white.withValues(alpha: 0.94),
                       borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: colors.divider),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.map_outlined, color: AppTheme.blue),
+                        const Icon(
+                          Icons.place_rounded,
+                          color: AppTheme.blue,
+                        ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -2702,7 +2736,7 @@ class DemoMapPreview extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'OpenStreetMap-style placeholder for demo venues only.',
+            'Map data © OpenStreetMap contributors. Demo markers use exact or nearby public map locations.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
@@ -2711,6 +2745,35 @@ class DemoMapPreview extends StatelessWidget {
   }
 }
 
+class _VenueMapMarker extends StatelessWidget {
+  const _VenueMapMarker();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: AppTheme.gold,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 3),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.22),
+              blurRadius: 14,
+              offset: const Offset(0, 7),
+            ),
+          ],
+        ),
+        child: const Icon(Icons.location_on_rounded, color: AppTheme.navy),
+      ),
+    );
+  }
+}
+
+// Kept as a lightweight fallback reference for older screenshots and demos.
+// ignore: unused_element
 class _DemoMapPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -6922,6 +6985,45 @@ List<String> _venueImageUrls(Map<String, dynamic> venue) {
       .whereType<String>()
       .where((imageUrl) => imageUrl.trim().isNotEmpty)
       .toList();
+}
+
+ll.LatLng _venueLatLng(Map<String, dynamic> venue) {
+  final latitude = _optionalDouble(venue['latitude']);
+  final longitude = _optionalDouble(venue['longitude']);
+  if (_isValidLatLng(latitude, longitude)) {
+    return ll.LatLng(latitude!, longitude!);
+  }
+
+  return _fallbackLatLngForLocation(venue['location'], venue['address']);
+}
+
+double? _optionalDouble(dynamic value) {
+  if (value is num) return value.toDouble();
+  return double.tryParse(value?.toString() ?? '');
+}
+
+bool _isValidLatLng(double? latitude, double? longitude) {
+  return latitude != null &&
+      longitude != null &&
+      latitude >= -90 &&
+      latitude <= 90 &&
+      longitude >= -180 &&
+      longitude <= 180;
+}
+
+ll.LatLng _fallbackLatLngForLocation(dynamic location, dynamic address) {
+  final text = '${location ?? ''} ${address ?? ''}'.toLowerCase();
+  if (text.contains('catarman')) return const ll.LatLng(12.504133, 124.632916);
+  if (text.contains('calbayog')) return const ll.LatLng(12.066963, 124.594666);
+  if (text.contains('catbalogan')) return const ll.LatLng(11.771232, 124.885358);
+  if (text.contains('ormoc')) return const ll.LatLng(11.009035, 124.609394);
+  if (text.contains('jaro')) return const ll.LatLng(11.189519, 124.783188);
+  if (text.contains('burauen')) return const ll.LatLng(10.974871, 124.893223);
+  if (text.contains('dulag')) return const ll.LatLng(10.953244, 125.033452);
+  if (text.contains('tanauan')) return const ll.LatLng(11.111211, 125.016919);
+  if (text.contains('palo')) return const ll.LatLng(11.159448, 124.990814);
+  if (text.contains('tacloban')) return const ll.LatLng(11.244093, 125.001422);
+  return const ll.LatLng(11.244093, 125.001422);
 }
 
 List<dynamic> _filterVenues(List<dynamic> source, String query, String status) {

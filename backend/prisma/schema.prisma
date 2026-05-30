@@ -86,6 +86,8 @@ model Venue {
   capacity    Int
   location    String
   address     String
+  latitude    Float?
+  longitude   Float?
   status      VenueStatus @default(PENDING)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt

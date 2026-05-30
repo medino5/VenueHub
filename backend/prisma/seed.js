@@ -47,6 +47,42 @@ const realVenueImages = {
   ]
 };
 
+const venueCoordinates = {
+  'Leyte Convention Complex': [11.159448, 124.990814],
+  'The Tropics at MacArthur Park Resort and Convention Center': [11.163523, 125.004271],
+  'Arcivu Hall': [11.159655, 124.992231],
+  'Playa Alegre': [11.112276, 125.021208],
+  'Banez Catering Services': [11.111211, 125.016919],
+  'Haiyan Hotel and Resort': [11.1104, 125.0181],
+  "ShyDan's Beach Center": [10.953244, 125.033452],
+  'Camp Bryztoff': [10.9519, 125.0337],
+  'Dulag Cultural Center': [10.953529, 125.034146],
+  'Tacloban City Convention Center': [11.2444, 125.0005],
+  'The Pavilion': [11.2419, 125.0038],
+  "Sophia's Way Event Center": [11.222857, 125.001154],
+  'Antonios Event Center': [11.20383, 125.020509],
+  'Cancabato Bay Sunset': [11.214509, 125.023794],
+  'Ritz Tower de Leyte': [11.244093, 125.001422],
+  "Myco's Place Tacloban": [11.201936, 125.006776],
+  'Summit Hotel Tacloban Ballroom and Meeting Suites': [11.208056, 125.007281],
+  'Le Jardin de Tacloban': [11.2289, 125.0058],
+  'Pacific Point Events Place and Resort Inc.': [11.1967, 125.0209],
+  "Palm's Jewel Resort": [11.189519, 124.783188],
+  "Sheila's Villa": [11.1876, 124.7842],
+  'Villaconzoilo Compact Organic Farm': [11.2036, 124.8359],
+  'Origami Convention Center': [11.009035, 124.609394],
+  'ZT Leisure Park': [11.0316, 124.6087],
+  'ROSETTA Guest House': [11.0068, 124.6071],
+  'Camp Kawayan Resort': [10.978997, 124.910294],
+  "Teresita's Garden": [10.986909, 124.891691],
+  'Garden Paradise By The Lake Farm Resort': [10.974871, 124.893223],
+  'Burauen Community Center': [10.974377, 124.891765],
+  'Calbayog Cultural Convention Center': [12.066963, 124.594666],
+  'M Grand Royale Resort, Hotel and Convention Center': [11.775053, 124.883907],
+  'SSU Convention Center': [11.771232, 124.885358],
+  'Ibabao Hall, Capitol Building': [12.504133, 124.632916]
+};
+
 const bookingAmounts = (price) => ({
   totalAmount: price,
   depositAmount: price * 0.5,
@@ -492,6 +528,7 @@ const createVenue = (hostId, venue) => {
     ...(venue.imageUrls || []),
     ...(venue.imageIndexes || []).map((imageIndex) => venueImages[imageIndex])
   ]);
+  const [latitude, longitude] = venueCoordinates[venue.name] || [];
 
   return prisma.venue.create({
     data: {
@@ -502,6 +539,8 @@ const createVenue = (hostId, venue) => {
       capacity: venue.capacity,
       location: venue.location,
       address: venue.address,
+      latitude,
+      longitude,
       status: venue.status,
       images: {
         create: imageUrls.map((imageUrl, sortOrder) => ({

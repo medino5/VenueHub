@@ -28,6 +28,12 @@ const formatVenue = (venue) => {
   };
 };
 
+const optionalNumber = (value) => {
+  if (value === undefined || value === null || value === '') return undefined;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : undefined;
+};
+
 const listVenues = asyncHandler(async (_req, res) => {
   const venues = await prisma.venue.findMany({
     where: { status: 'APPROVED' },
@@ -81,8 +87,21 @@ const getVenue = asyncHandler(async (req, res) => {
 });
 
 const createVenue = asyncHandler(async (req, res) => {
-  const { name, description, pricePerDay, capacity, location, address, images = [], amenities = [], facilities = [] } =
-    req.body;
+  const {
+    name,
+    description,
+    pricePerDay,
+    capacity,
+    location,
+    address,
+    latitude,
+    longitude,
+    images = [],
+    amenities = [],
+    facilities = []
+  } = req.body;
+  const parsedLatitude = optionalNumber(latitude);
+  const parsedLongitude = optionalNumber(longitude);
 
   if (!name || !description || !pricePerDay || !capacity || !location || !address) {
     throw new ApiError(400, 'Name, description, price, capacity, location, and address are required.');
@@ -97,6 +116,8 @@ const createVenue = asyncHandler(async (req, res) => {
       capacity: Number(capacity),
       location,
       address,
+      ...(parsedLatitude !== undefined && { latitude: parsedLatitude }),
+      ...(parsedLongitude !== undefined && { longitude: parsedLongitude }),
       status: req.user.role === 'VENUEHUB_ADMIN' ? 'APPROVED' : 'PENDING',
       images: {
         create: images.map((imageUrl, index) =>
@@ -125,6 +146,8 @@ const updateVenue = asyncHandler(async (req, res) => {
   }
 
   const { images, amenities, facilities, ...venueData } = req.body;
+  const parsedLatitude = optionalNumber(venueData.latitude);
+  const parsedLongitude = optionalNumber(venueData.longitude);
   const data = {
     ...(venueData.name && { name: venueData.name }),
     ...(venueData.description && { description: venueData.description }),
@@ -132,6 +155,8 @@ const updateVenue = asyncHandler(async (req, res) => {
     ...(venueData.capacity && { capacity: Number(venueData.capacity) }),
     ...(venueData.location && { location: venueData.location }),
     ...(venueData.address && { address: venueData.address }),
+    ...(parsedLatitude !== undefined && { latitude: parsedLatitude }),
+    ...(parsedLongitude !== undefined && { longitude: parsedLongitude }),
     ...(req.user.role === 'VENUEHUB_ADMIN' && venueData.status && { status: String(venueData.status).toUpperCase() })
   };
 

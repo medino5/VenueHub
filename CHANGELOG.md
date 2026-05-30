@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.14+15 - 2026-05-30
+
+- Added OpenStreetMap-powered venue maps with markers on venue detail pages.
+- Added venue latitude/longitude support in the backend and seeded Region 8 demo coordinates.
+- Updated the Android release build to include the live map experience.
+
 ## 1.0.13+14 - 2026-05-30
 
 - Added verified public venue photo URLs for key Region 8 demo venues while keeping fallback images for reliability.
