@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.19+20 - 2026-06-01
+
+- Removed the host-approval requirement from the normal customer booking flow so available dates can go straight to 50% deposit payment.
+- Added venue unavailable-date checks so already-booked dates are disabled in the booking calendar and double-booking is blocked server-side by date range.
+- Updated host/admin wording from approval-focused booking requests to deposit and unpaid-balance states.
+
 ## 1.0.18+19 - 2026-05-31
 
 - Clarified admin income wording by renaming receivables to unpaid balances and explaining what that amount means.

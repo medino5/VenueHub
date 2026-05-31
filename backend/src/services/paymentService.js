@@ -62,16 +62,12 @@ const simulatePayment = async ({ bookingId, customerId, method, paymentType = 'D
     throw new ApiError(400, 'Rejected or cancelled bookings cannot be paid.');
   }
 
-  if (booking.status === 'PENDING') {
-    throw new ApiError(400, 'The host must approve this booking before payment.');
-  }
-
   if (booking.status === 'COMPLETED') {
     throw new ApiError(400, 'Completed bookings are already closed.');
   }
 
-  if (booking.status !== 'APPROVED') {
-    throw new ApiError(400, 'Only approved bookings can be paid.');
+  if (!['PENDING', 'APPROVED'].includes(booking.status)) {
+    throw new ApiError(400, 'Only active bookings can be paid.');
   }
 
   const normalizedType = String(paymentType || 'DEPOSIT').toUpperCase();
@@ -132,7 +128,7 @@ const simulatePayment = async ({ bookingId, customerId, method, paymentType = 'D
 
     const updatedBooking = await tx.booking.update({
       where: { id: bookingId },
-      data: { paymentStatus },
+      data: { paymentStatus, status: 'APPROVED' },
       include: {
         customer: { select: { id: true, name: true, email: true, phone: true } },
         venue: { include: { host: { select: { id: true, name: true, email: true } } } },

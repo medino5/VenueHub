@@ -50,6 +50,18 @@ const formatBooking = (booking) => ({
     : null
 });
 
+const bookingDayRange = (value) => {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  const start = new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate()));
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 1);
+  return { start, end };
+};
+
+const activeBookingStatuses = ['PENDING', 'APPROVED', 'COMPLETED'];
+
 const validateStatusTransition = (booking, nextStatus) => {
   const currentStatus = booking.status;
   const paymentStatus = booking.paymentStatus;
@@ -121,6 +133,37 @@ const statusNotification = (booking, nextStatus) => {
   };
 };
 
+const venueUnavailableDates = asyncHandler(async (req, res) => {
+  const { venueId } = req.params;
+  const venue = await prisma.venue.findUnique({ where: { id: venueId } });
+  if (!venue) {
+    throw new ApiError(404, 'Venue not found.');
+  }
+
+  const bookings = await prisma.booking.findMany({
+    where: {
+      venueId,
+      status: { in: activeBookingStatuses }
+    },
+    select: {
+      id: true,
+      eventDate: true,
+      status: true,
+      paymentStatus: true
+    },
+    orderBy: { eventDate: 'asc' }
+  });
+
+  const unavailableDates = bookings.map((booking) => ({
+    bookingId: booking.id,
+    date: booking.eventDate.toISOString().slice(0, 10),
+    status: booking.status,
+    paymentStatus: booking.paymentStatus
+  }));
+
+  res.json({ unavailableDates });
+});
+
 const createBooking = asyncHandler(async (req, res) => {
   const { venueId, eventDate, notes } = req.body;
 
@@ -133,16 +176,16 @@ const createBooking = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Approved venue not found.');
   }
 
-  const parsedDate = new Date(eventDate);
-  if (Number.isNaN(parsedDate.getTime())) {
+  const dayRange = bookingDayRange(eventDate);
+  if (!dayRange) {
     throw new ApiError(400, 'Event date is invalid.');
   }
 
   const takenBooking = await prisma.booking.findFirst({
     where: {
       venueId,
-      eventDate: parsedDate,
-      status: { in: ['PENDING', 'APPROVED', 'COMPLETED'] }
+      eventDate: { gte: dayRange.start, lt: dayRange.end },
+      status: { in: activeBookingStatuses }
     }
   });
 
@@ -156,8 +199,9 @@ const createBooking = asyncHandler(async (req, res) => {
     data: {
       customerId: req.user.id,
       venueId,
-      eventDate: parsedDate,
+      eventDate: dayRange.start,
       notes,
+      status: 'APPROVED',
       totalAmount: amounts.totalAmount,
       depositAmount: amounts.depositAmount,
       remainingBalance: amounts.remainingBalance,
@@ -168,8 +212,8 @@ const createBooking = asyncHandler(async (req, res) => {
 
   await createNotification({
     userId: venue.hostId,
-    title: 'New booking request',
-    message: `${req.user.name} requested ${venue.name} for ${parsedDate.toLocaleDateString()}.`,
+    title: 'New venue booking',
+    message: `${req.user.name} booked ${venue.name} for ${dayRange.start.toLocaleDateString()} and can now pay the 50% deposit.`,
     type: 'BOOKING_REQUEST',
     metadata: { bookingId: booking.id, venueId }
   });
@@ -180,7 +224,7 @@ const createBooking = asyncHandler(async (req, res) => {
       depositRequiredPercent: 50,
       serviceFeePercent,
       depositRefundable: false,
-      note: '50% security deposit is required and non-refundable.'
+      note: 'This date is reserved. 50% security deposit is required and non-refundable.'
     }
   });
 });
@@ -321,6 +365,9 @@ const hostIncomeSummary = asyncHandler(async (req, res) => {
       paidBookings: paidBookings.length,
       totalBookings: allHostBookings.length,
       pendingBookings: allHostBookings.filter((booking) => booking.status === 'PENDING').length,
+      awaitingDeposit: allHostBookings.filter(
+        (booking) => booking.status === 'APPROVED' && booking.paymentStatus === 'UNPAID'
+      ).length,
       approvedBookings,
       completedBookings,
       rejectedBookings,
@@ -353,5 +400,6 @@ module.exports = {
   hostBookings,
   hostIncomeSummary,
   myBookings,
-  updateBookingStatus
+  updateBookingStatus,
+  venueUnavailableDates
 };

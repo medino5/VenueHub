@@ -3151,13 +3151,86 @@ class _BookingScreenState extends State<BookingScreen> {
   final notes = TextEditingController();
   DateTime? eventDate;
   bool loading = false;
+  bool loadingUnavailableDates = true;
+  List<Map<String, dynamic>> unavailableDates = [];
+  Set<String> unavailableDateKeys = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUnavailableDates();
+  }
+
+  @override
+  void dispose() {
+    notes.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadUnavailableDates() async {
+    setState(() => loadingUnavailableDates = true);
+    try {
+      final response = await widget.api.get(
+        '/bookings/venue/${widget.venue['id']}/unavailable-dates',
+      );
+      final dates = (response['unavailableDates'] as List<dynamic>? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        unavailableDates = dates;
+        unavailableDateKeys = dates
+            .map((item) => item['date']?.toString() ?? '')
+            .where((date) => date.isNotEmpty)
+            .toSet();
+        if (eventDate != null && _isUnavailable(eventDate!)) {
+          eventDate = null;
+        }
+      });
+    } catch (error) {
+      if (mounted) _snack(context, error.toString());
+    } finally {
+      if (mounted) setState(() => loadingUnavailableDates = false);
+    }
+  }
+
+  String _dateKey(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+  bool _isUnavailable(DateTime date) =>
+      unavailableDateKeys.contains(_dateKey(date));
+
+  DateTime? _firstAvailableDate() {
+    final tomorrow = DateTime.now().add(const Duration(days: 1));
+    final start = DateTime(tomorrow.year, tomorrow.month, tomorrow.day);
+    for (var offset = 0; offset <= 730; offset++) {
+      final candidate = start.add(Duration(days: offset));
+      if (!_isUnavailable(candidate)) return candidate;
+    }
+    return null;
+  }
 
   Future<void> _pickDate() async {
+    if (loadingUnavailableDates) {
+      _snack(context, 'Checking booked dates. Please wait a moment.');
+      return;
+    }
+
+    final initialDate = eventDate != null && !_isUnavailable(eventDate!)
+        ? eventDate!
+        : _firstAvailableDate();
+    if (initialDate == null) {
+      _snack(context, 'No available dates found for this venue.');
+      return;
+    }
+
     final picked = await showDatePicker(
       context: context,
       firstDate: DateTime.now().add(const Duration(days: 1)),
       lastDate: DateTime.now().add(const Duration(days: 730)),
-      initialDate: DateTime.now().add(const Duration(days: 14)),
+      initialDate: initialDate,
+      helpText: 'Select an available event date',
+      selectableDayPredicate: (date) => !_isUnavailable(date),
     );
     if (picked != null) setState(() => eventDate = picked);
   }
@@ -3165,6 +3238,12 @@ class _BookingScreenState extends State<BookingScreen> {
   Future<void> _book() async {
     if (eventDate == null) {
       _snack(context, 'Please choose an event date.');
+      return;
+    }
+    if (_isUnavailable(eventDate!)) {
+      await _loadUnavailableDates();
+      if (!mounted) return;
+      _snack(context, 'That date was just booked. Please choose another date.');
       return;
     }
 
@@ -3186,6 +3265,8 @@ class _BookingScreenState extends State<BookingScreen> {
         ),
       );
     } catch (error) {
+      await _loadUnavailableDates();
+      if (!mounted) return;
       _snack(context, error.toString());
     } finally {
       if (mounted) setState(() => loading = false);
@@ -3199,7 +3280,7 @@ class _BookingScreenState extends State<BookingScreen> {
     final fee = price * 0.1;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Booking request')),
+      appBar: AppBar(title: const Text('Reserve venue')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -3221,11 +3302,16 @@ class _BookingScreenState extends State<BookingScreen> {
                   _MoneyRow('10% app service fee', fee),
                   const Divider(),
                   const Text(
-                    'Deposit is non-refundable. Remaining balance is due before or on event day.',
+                    'If the date is available, it is reserved immediately. Pay the non-refundable 50% deposit to secure it.',
                   ),
                 ],
               ),
             ),
+          ),
+          const SizedBox(height: 14),
+          _BookedDateNotice(
+            loading: loadingUnavailableDates,
+            unavailableDates: unavailableDates,
           ),
           const SizedBox(height: 14),
           OutlinedButton.icon(
@@ -3233,7 +3319,7 @@ class _BookingScreenState extends State<BookingScreen> {
             icon: const Icon(Icons.calendar_month),
             label: Text(
               eventDate == null
-                  ? 'Choose event date'
+                  ? 'Choose available event date'
                   : dateFormat.format(eventDate!),
             ),
           ),
@@ -3247,7 +3333,83 @@ class _BookingScreenState extends State<BookingScreen> {
           const SizedBox(height: 18),
           ElevatedButton(
             onPressed: loading ? null : _book,
-            child: Text(loading ? 'Submitting...' : 'Submit booking request'),
+            child: Text(loading ? 'Reserving...' : 'Continue to 50% deposit'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BookedDateNotice extends StatelessWidget {
+  const _BookedDateNotice({
+    required this.loading,
+    required this.unavailableDates,
+  });
+
+  final bool loading;
+  final List<Map<String, dynamic>> unavailableDates;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
+    final upcoming = unavailableDates.take(6).toList();
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.sky,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(color: colors.divider),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            loading ? Icons.sync_rounded : Icons.event_busy_outlined,
+            color: AppTheme.navy,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  loading
+                      ? 'Checking booked dates'
+                      : 'Booked dates are disabled',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'You and other customers cannot reserve the same venue on an already-booked date.',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: colors.ink),
+                ),
+                if (!loading && upcoming.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: upcoming.map((item) {
+                      final parsed = DateTime.tryParse(
+                        item['date']?.toString() ?? '',
+                      );
+                      return Chip(
+                        avatar: const Icon(Icons.lock_clock_outlined, size: 16),
+                        label: Text(
+                          parsed == null
+                              ? item['date'].toString()
+                              : dateFormat.format(parsed),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
       ),
@@ -4346,8 +4508,8 @@ class _BookingCustomerPaymentActions extends StatelessWidget {
 
     return OutlinedButton.icon(
       onPressed: null,
-      icon: const Icon(Icons.hourglass_empty_rounded),
-      label: const Text('Payment locked until host approval'),
+      icon: const Icon(Icons.lock_outline_rounded),
+      label: const Text('Payment unavailable for this booking'),
     );
   }
 }
@@ -5494,7 +5656,7 @@ class _HostDashboardState extends State<HostDashboard> {
               _DashboardHeroCard(
                 title: 'Host snapshot',
                 subtitle:
-                    '${data['pendingBookings'] ?? 0} pending requests - ${data['conversionRate'] ?? 0}% approval rate',
+                    '${data['awaitingDeposit'] ?? data['pendingBookings'] ?? 0} awaiting deposit - ${data['conversionRate'] ?? 0}% secured rate',
                 amount: moneyFormat.format(_num(data['estimatedHostIncome'])),
                 caption: 'Estimated host income',
                 icon: Icons.storefront_outlined,
@@ -5509,9 +5671,10 @@ class _HostDashboardState extends State<HostDashboard> {
                 mainAxisSpacing: 12,
                 children: [
                   VHStatCard(
-                    label: 'Pending requests',
-                    value: '${data['pendingBookings'] ?? 0}',
-                    icon: Icons.pending_actions,
+                    label: 'Awaiting deposit',
+                    value:
+                        '${data['awaitingDeposit'] ?? data['pendingBookings'] ?? 0}',
+                    icon: Icons.lock_clock_outlined,
                   ),
                   VHStatCard(
                     label: 'Active venues',
@@ -6852,7 +7015,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               _DashboardHeroCard(
                 title: 'VenueHub overview',
                 subtitle:
-                    '${data['totalHosts'] ?? 0} hosts - ${data['totalVenues'] ?? 0} venues - ${data['approvalRate'] ?? 0}% approval rate',
+                    '${data['totalHosts'] ?? 0} hosts - ${data['totalVenues'] ?? 0} venues - ${data['approvalRate'] ?? 0}% secured rate',
                 amount: moneyFormat.format(_num(data['platformIncome'])),
                 caption: 'Realized platform income',
                 icon: Icons.query_stats_rounded,
@@ -6882,9 +7045,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     icon: Icons.pending_actions,
                   ),
                   VHStatCard(
-                    label: 'Pending bookings',
-                    value: '${data['pendingBookings'] ?? 0}',
-                    icon: Icons.hourglass_top_rounded,
+                    label: 'Unpaid bookings',
+                    value:
+                        '${data['unpaidBookings'] ?? data['pendingBookings'] ?? 0}',
+                    icon: Icons.lock_clock_outlined,
                   ),
                   VHStatCard(
                     label: 'Gross paid',
@@ -8510,11 +8674,11 @@ String _bookingPaymentStatus(Map<String, dynamic> booking) =>
     booking['paymentStatus']?.toString().toUpperCase() ?? 'UNPAID';
 
 bool _canPayDeposit(Map<String, dynamic> booking) =>
-    _bookingStatus(booking) == 'APPROVED' &&
+    ['PENDING', 'APPROVED'].contains(_bookingStatus(booking)) &&
     _bookingPaymentStatus(booking) == 'UNPAID';
 
 bool _canPayBalance(Map<String, dynamic> booking) =>
-    _bookingStatus(booking) == 'APPROVED' &&
+    ['PENDING', 'APPROVED'].contains(_bookingStatus(booking)) &&
     _bookingPaymentStatus(booking) == 'PARTIALLY_PAID' &&
     _balanceDue(booking) > 0;
 
@@ -8550,8 +8714,8 @@ String _bookingNextStepMessage(
   final payment = _bookingPaymentStatus(booking);
   if (status == 'PENDING') {
     return hostView
-        ? 'Review this request. Approve it to unlock customer payment, or reject it before any deposit is paid.'
-        : 'Waiting for the host to approve this request. Payment opens after approval.';
+        ? 'Legacy pending request. The customer can now pay the deposit without waiting for host approval.'
+        : 'This date is reserved. Pay the 50% security deposit to secure the booking.';
   }
   if (status == 'REJECTED') {
     return 'This booking was rejected. No payment can be made for this request.';
@@ -8564,8 +8728,8 @@ String _bookingNextStepMessage(
   }
   if (payment == 'UNPAID') {
     return hostView
-        ? 'Approved and waiting for the customer to pay the 50% security deposit.'
-        : 'Approved. Pay the 50% security deposit to secure the booking.';
+        ? 'Date reserved and waiting for the customer to pay the 50% security deposit.'
+        : 'Date reserved. Pay the 50% security deposit to secure the booking.';
   }
   if (payment == 'PARTIALLY_PAID') {
     return hostView
