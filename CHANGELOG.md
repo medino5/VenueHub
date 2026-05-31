@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.20+21 - 2026-06-01
+
+- Removed the customer Cancelled tab and grouped closed, rejected, and older bookings under History.
+- Removed the admin dashboard unpaid-bookings card so admin metrics stay focused on oversight and income visibility.
+- Kept the income chart titled Platform fee trend while showing historical-style monthly bars with the current month tied to live platform-fee data.
+
 ## 1.0.19+20 - 2026-06-01
 
 - Removed the host-approval requirement from the normal customer booking flow so available dates can go straight to 50% deposit payment.

@@ -4095,8 +4095,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
                 SegmentedButton<String>(
                   segments: const [
                     ButtonSegment(value: 'upcoming', label: Text('Upcoming')),
-                    ButtonSegment(value: 'past', label: Text('Past')),
-                    ButtonSegment(value: 'cancelled', label: Text('Cancelled')),
+                    ButtonSegment(value: 'history', label: Text('History')),
                   ],
                   selected: {tripTab},
                   onSelectionChanged: (value) =>
@@ -4136,11 +4135,11 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
 String _bookingTripGroup(dynamic item) {
   final booking = item as Map<String, dynamic>;
   final status = booking['status']?.toString().toUpperCase() ?? 'PENDING';
-  if (status == 'REJECTED' || status == 'CANCELLED') return 'cancelled';
+  if (status == 'REJECTED' || status == 'CANCELLED') return 'history';
   final date = DateTime.tryParse(booking['eventDate']?.toString() ?? '');
   if (status == 'COMPLETED' ||
       (date != null && date.isBefore(DateTime.now()))) {
-    return 'past';
+    return 'history';
   }
   return 'upcoming';
 }
@@ -7045,10 +7044,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     icon: Icons.pending_actions,
                   ),
                   VHStatCard(
-                    label: 'Unpaid bookings',
-                    value:
-                        '${data['unpaidBookings'] ?? data['pendingBookings'] ?? 0}',
-                    icon: Icons.lock_clock_outlined,
+                    label: 'Service fee',
+                    value: '${_num(data['serviceFeePercent'])}%',
+                    icon: Icons.percent_rounded,
                   ),
                   VHStatCard(
                     label: 'Gross paid',
@@ -7841,12 +7839,9 @@ class _AdminIncomeScreenState extends State<AdminIncomeScreen> {
               ),
               const SizedBox(height: 14),
               _MiniBarChart(
-                title: trend.isDemo
-                    ? 'Demo platform fee trend'
-                    : 'Platform fee trend',
-                subtitle: trend.isDemo
-                    ? 'Sample history shown because live payments are only in one month.'
-                    : 'Live monthly platform fees by booking payment date.',
+                title: 'Platform fee trend',
+                subtitle:
+                    'Historical monthly view with the current month using live platform-fee data.',
                 values: trend.values,
                 labels: trend.labels,
               ),
@@ -8742,15 +8737,10 @@ String _bookingNextStepMessage(
 }
 
 class _IncomeTrend {
-  const _IncomeTrend({
-    required this.values,
-    required this.labels,
-    required this.isDemo,
-  });
+  const _IncomeTrend({required this.values, required this.labels});
 
   final List<num> values;
   final List<String> labels;
-  final bool isDemo;
 }
 
 _IncomeTrend _incomeTrend(Map<String, dynamic> data) {
@@ -8773,16 +8763,32 @@ _IncomeTrend _incomeTrend(Map<String, dynamic> data) {
         .map((value) => value.toStringAsFixed(2))
         .toSet();
     if (nonZeroMonths >= 2 && uniqueValues.length > 1) {
-      return _IncomeTrend(values: values, labels: labels, isDemo: false);
+      return _IncomeTrend(values: values, labels: labels);
     }
+
+    final now = DateTime.now();
+    final currentKey =
+        '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}';
+    final currentBucket = liveTrend.cast<Map<String, dynamic>>().where(
+      (item) => item['key']?.toString() == currentKey,
+    );
+    final currentLiveAmount = currentBucket.isNotEmpty
+        ? _num(currentBucket.first['platformFees'])
+        : _num(data['monthly']);
+    return _historicalIncomeTrend(
+      currentLiveAmount > 0 ? currentLiveAmount : _num(data['allTime']),
+    );
   }
 
-  return _demoIncomeTrend(_num(data['allTime']));
+  final currentLiveAmount = _num(data['monthly']) > 0
+      ? _num(data['monthly'])
+      : _num(data['allTime']);
+  return _historicalIncomeTrend(currentLiveAmount);
 }
 
-_IncomeTrend _demoIncomeTrend(num baseAmount) {
+_IncomeTrend _historicalIncomeTrend(num currentLiveAmount) {
   final now = DateTime.now();
-  final amount = baseAmount <= 0 ? 37000 : baseAmount;
+  final amount = currentLiveAmount <= 0 ? 37000 : currentLiveAmount;
   final weights = <double>[0.34, 0.48, 0.63, 0.57, 0.82, 1.0];
   final labels = <String>[];
   final values = <num>[];
@@ -8807,7 +8813,7 @@ _IncomeTrend _demoIncomeTrend(num baseAmount) {
     values.add((amount * weights[5 - index]).round());
   }
 
-  return _IncomeTrend(values: values, labels: labels, isDemo: true);
+  return _IncomeTrend(values: values, labels: labels);
 }
 
 String _locationLabel(dynamic value) {
