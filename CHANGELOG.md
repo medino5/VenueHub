@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.0.18+19 - 2026-05-31
+
+- Clarified admin income wording by renaming receivables to unpaid balances and explaining what that amount means.
+- Replaced repeated fallback income bars with a month/year trend and a labeled demo trend when live history only exists in one month.
+- Improved admin venue listing actions so pending venues show approve/reject, approved venues show unlist, and rejected venues show restore.
+
+## 1.0.17+18 - 2026-05-31
+
+- Tightened booking status rules so payments open only after host approval, deposits/balances cannot be duplicated, and hosts only see valid approve/reject/complete actions.
+- Improved simulated payment, receipt, and notification UI with clearer colors, payment-method cards, and next-step messaging.
+- Simplified the explore search pill, organized venue cards with quick facts, and upgraded host/admin dashboards with actionable income and booking insights.
+
+## 1.0.16+17 - 2026-05-31
+
+- Kept customer, host, and admin tabs alive during bottom-navigation switches to avoid unnecessary reloads.
+- Improved the profile page with a cleaner account summary and settings-style actions.
+- Cleaned up admin user cards/details and changed admin booking management into view-only booking records.
+
 ## 1.0.15+16 - 2026-05-30
 
 - Added embedded venue-name coordinate fallbacks so the APK shows accurate demo map markers even before a backend redeploy finishes.

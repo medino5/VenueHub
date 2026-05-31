@@ -35,6 +35,11 @@ const receiptNumber = () => `VH-${Date.now()}-${crypto.randomBytes(3).toString('
 
 const transactionRef = () => `SIM-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
+const paidAmount = (payments = []) =>
+  payments
+    .filter((payment) => payment.status === 'SUCCESS')
+    .reduce((sum, payment) => sum + toNumber(payment.amount), 0);
+
 const simulatePayment = async ({ bookingId, customerId, method, paymentType = 'DEPOSIT' }) => {
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
@@ -57,21 +62,51 @@ const simulatePayment = async ({ bookingId, customerId, method, paymentType = 'D
     throw new ApiError(400, 'Rejected or cancelled bookings cannot be paid.');
   }
 
-  const normalizedType = String(paymentType || 'DEPOSIT').toUpperCase();
-  const existingPaid = booking.payments
-    .filter((payment) => payment.status === 'SUCCESS')
-    .reduce((sum, payment) => sum + toNumber(payment.amount), 0);
+  if (booking.status === 'PENDING') {
+    throw new ApiError(400, 'The host must approve this booking before payment.');
+  }
 
-  let amount = toNumber(booking.depositAmount);
+  if (booking.status === 'COMPLETED') {
+    throw new ApiError(400, 'Completed bookings are already closed.');
+  }
+
+  if (booking.status !== 'APPROVED') {
+    throw new ApiError(400, 'Only approved bookings can be paid.');
+  }
+
+  const normalizedType = String(paymentType || 'DEPOSIT').toUpperCase();
+  if (!['DEPOSIT', 'BALANCE', 'FULL'].includes(normalizedType)) {
+    throw new ApiError(400, 'Invalid payment type.');
+  }
+
+  const totalAmount = toNumber(booking.totalAmount);
+  const depositAmount = toNumber(booking.depositAmount);
+  const existingPaid = paidAmount(booking.payments);
+
+  if (existingPaid >= totalAmount) {
+    throw new ApiError(400, 'This booking is already fully paid.');
+  }
+
+  let amount = depositAmount;
   let nextStatus = 'PARTIALLY_PAID';
 
+  if (normalizedType === 'DEPOSIT') {
+    if (existingPaid >= depositAmount) {
+      throw new ApiError(400, 'The security deposit is already paid. Pay the remaining balance instead.');
+    }
+    amount = Math.max(depositAmount - existingPaid, 0);
+  }
+
   if (normalizedType === 'BALANCE') {
-    amount = Math.max(toNumber(booking.totalAmount) - existingPaid, 0);
+    if (existingPaid < depositAmount) {
+      throw new ApiError(400, 'Please pay the 50% security deposit before the remaining balance.');
+    }
+    amount = Math.max(totalAmount - existingPaid, 0);
     nextStatus = 'PAID';
   }
 
   if (normalizedType === 'FULL') {
-    amount = Math.max(toNumber(booking.totalAmount) - existingPaid, 0);
+    amount = Math.max(totalAmount - existingPaid, 0);
     nextStatus = 'PAID';
   }
 
@@ -93,7 +128,7 @@ const simulatePayment = async ({ bookingId, customerId, method, paymentType = 'D
     });
 
     const totalPaid = existingPaid + amount;
-    const paymentStatus = totalPaid >= toNumber(booking.totalAmount) ? 'PAID' : nextStatus;
+    const paymentStatus = totalPaid >= totalAmount ? 'PAID' : nextStatus;
 
     const updatedBooking = await tx.booking.update({
       where: { id: bookingId },
@@ -108,22 +143,44 @@ const simulatePayment = async ({ bookingId, customerId, method, paymentType = 'D
     const receipt = await tx.receipt.upsert({
       where: { bookingId },
       update: {
-        depositPaid: Math.min(totalPaid, toNumber(booking.depositAmount)),
-        remainingBalance: Math.max(toNumber(booking.totalAmount) - totalPaid, 0),
+        depositPaid: Math.min(totalPaid, depositAmount),
+        remainingBalance: Math.max(totalAmount - totalPaid, 0),
         totalPaid,
         paymentMethod: normalizedMethod
       },
       create: {
         bookingId,
         receiptNumber: receiptNumber(),
-        subtotal: toNumber(booking.totalAmount),
-        depositPaid: Math.min(totalPaid, toNumber(booking.depositAmount)),
-        remainingBalance: Math.max(toNumber(booking.totalAmount) - totalPaid, 0),
+        subtotal: totalAmount,
+        depositPaid: Math.min(totalPaid, depositAmount),
+        remainingBalance: Math.max(totalAmount - totalPaid, 0),
         serviceFee: toNumber(booking.serviceFee),
         totalPaid,
         paymentMethod: normalizedMethod,
         securityNote: '50% security deposit is non-refundable. Remaining balance is due before or on event day.'
       }
+    });
+
+    const paymentLabel =
+      paymentStatus === 'PAID' ? 'Full payment completed' : 'Security deposit paid';
+
+    await tx.notification.createMany({
+      data: [
+        {
+          userId: updatedBooking.customerId,
+          title: paymentLabel,
+          message: `${updatedBooking.venue.name} payment was recorded via ${normalizedMethod}.`,
+          type: 'PAYMENT_UPDATE',
+          metadata: { bookingId, venueId: updatedBooking.venueId, paymentId: payment.id, paymentStatus }
+        },
+        {
+          userId: updatedBooking.venue.hostId,
+          title: 'Booking payment update',
+          message: `${updatedBooking.customer.name} paid ${payment.type.toLowerCase()} for ${updatedBooking.venue.name}.`,
+          type: 'PAYMENT_UPDATE',
+          metadata: { bookingId, venueId: updatedBooking.venueId, paymentId: payment.id, paymentStatus }
+        }
+      ]
     });
 
     return { booking: updatedBooking, payment, receipt };

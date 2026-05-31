@@ -977,7 +977,7 @@ class _CustomerHomeState extends State<CustomerHome> {
     ];
 
     return Scaffold(
-      body: pages[index],
+      body: IndexedStack(index: index, children: pages),
       bottomNavigationBar: DecoratedBox(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
@@ -1494,27 +1494,83 @@ class _NotificationBellState extends State<NotificationBell> {
                   shrinkWrap: true,
                   itemCount: notifications.length,
                   separatorBuilder: (context, index) =>
-                      const Divider(height: 1),
+                      const SizedBox(height: 10),
                   itemBuilder: (context, index) {
                     final item = notifications[index] as Map<String, dynamic>;
                     final unread = item['readAt'] == null;
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(
-                        unread
-                            ? Icons.notifications_active_outlined
-                            : Icons.notifications_none_rounded,
-                        color: unread ? AppTheme.blue : Colors.black45,
-                      ),
-                      title: Text(
-                        item['title']?.toString() ?? 'Update',
-                        style: TextStyle(
-                          fontWeight: unread
-                              ? FontWeight.w800
-                              : FontWeight.w600,
+                    final type = item['type']?.toString() ?? '';
+                    final accent = _notificationAccent(type);
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: unread
+                            ? accent.withValues(alpha: 0.08)
+                            : AppTheme.surfaceGray,
+                        borderRadius: BorderRadius.circular(
+                          AppTheme.radiusCard,
+                        ),
+                        border: Border.all(
+                          color: unread
+                              ? accent.withValues(alpha: 0.28)
+                              : AppTheme.divider,
                         ),
                       ),
-                      subtitle: Text(item['message']?.toString() ?? ''),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            height: 40,
+                            width: 40,
+                            decoration: BoxDecoration(
+                              color: accent.withValues(alpha: 0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              _notificationIcon(type),
+                              color: accent,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item['title']?.toString() ?? 'Update',
+                                  style: TextStyle(
+                                    fontWeight: unread
+                                        ? FontWeight.w900
+                                        : FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  item['message']?.toString() ?? '',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  _dateLabel(item['createdAt']),
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodySmall?.copyWith(fontSize: 11),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (unread)
+                            Container(
+                              height: 8,
+                              width: 8,
+                              margin: const EdgeInsets.only(top: 5),
+                              decoration: const BoxDecoration(
+                                color: Colors.redAccent,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                        ],
+                      ),
                     );
                   },
                 ),
@@ -1857,11 +1913,34 @@ class VenueMiniCard extends StatelessWidget {
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 4),
-            Text(
-              '${_locationLabel(venue['location'])} - ${venue['capacity']} guests',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: colors.secondaryText),
+            Row(
+              children: [
+                Icon(
+                  Icons.place_outlined,
+                  size: 14,
+                  color: colors.secondaryText,
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    _locationLabel(venue['location']),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: colors.secondaryText),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.groups_2_outlined,
+                  size: 14,
+                  color: colors.secondaryText,
+                ),
+                const SizedBox(width: 3),
+                Text(
+                  '${venue['capacity']}',
+                  style: TextStyle(color: colors.secondaryText),
+                ),
+              ],
             ),
             const SizedBox(height: 4),
             PriceText(
@@ -1926,7 +2005,7 @@ class _VenueCardState extends State<VenueCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              height: 220,
+              height: 190,
               width: double.infinity,
               child: Stack(
                 children: [
@@ -2015,7 +2094,7 @@ class _VenueCardState extends State<VenueCard> {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -2044,30 +2123,65 @@ class _VenueCardState extends State<VenueCard> {
                 ],
               ],
             ),
-            const SizedBox(height: 3),
-            Text(
-              _locationLabel(venue['location']),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: colors.secondaryText),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              '${_demoDistance(venue)} away - up to ${venue['capacity'] ?? 'many'} guests',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: colors.secondaryText),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _VenueFact(
+                  icon: Icons.place_outlined,
+                  label: _locationLabel(venue['location']),
+                ),
+                _VenueFact(
+                  icon: Icons.groups_2_outlined,
+                  label: 'Up to ${venue['capacity'] ?? 'many'}',
+                ),
+                _VenueFact(
+                  icon: Icons.near_me_outlined,
+                  label: _demoDistance(venue),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             _VenueAmenityPreview(venue: venue),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             PriceText(amount: _num(venue['pricePerDay']), suffix: 'day'),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _VenueFact extends StatelessWidget {
+  const _VenueFact({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppTheme.sky.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+        border: Border.all(color: colors.divider),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: AppTheme.navy),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colors.ink,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -2710,10 +2824,7 @@ class DemoMapPreview extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        const Icon(
-                          Icons.place_rounded,
-                          color: AppTheme.blue,
-                        ),
+                        const Icon(Icons.place_rounded, color: AppTheme.blue),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -3167,6 +3278,67 @@ class _MoneyRow extends StatelessWidget {
   }
 }
 
+class _PaymentOption {
+  const _PaymentOption({
+    required this.value,
+    required this.label,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+  });
+
+  final String value;
+  final String label;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+}
+
+const _paymentOptions = [
+  _PaymentOption(
+    value: 'GCASH',
+    label: 'GCash',
+    subtitle: 'Mobile wallet',
+    icon: Icons.phone_iphone_rounded,
+    color: Color(0xFF1476F2),
+  ),
+  _PaymentOption(
+    value: 'MAYA',
+    label: 'Maya',
+    subtitle: 'E-wallet',
+    icon: Icons.account_balance_wallet_outlined,
+    color: Color(0xFF00A86B),
+  ),
+  _PaymentOption(
+    value: 'VISA',
+    label: 'Visa',
+    subtitle: 'Credit or debit card',
+    icon: Icons.credit_card_rounded,
+    color: Color(0xFF1A4FA3),
+  ),
+  _PaymentOption(
+    value: 'MASTERCARD',
+    label: 'Mastercard',
+    subtitle: 'Credit or debit card',
+    icon: Icons.credit_score_rounded,
+    color: Color(0xFFE45D25),
+  ),
+  _PaymentOption(
+    value: 'PAYPAL',
+    label: 'PayPal',
+    subtitle: 'Online wallet',
+    icon: Icons.account_balance_wallet_rounded,
+    color: Color(0xFF0070BA),
+  ),
+  _PaymentOption(
+    value: 'EWALLET',
+    label: 'Other wallet',
+    subtitle: 'Demo e-wallet',
+    icon: Icons.wallet_rounded,
+    color: Color(0xFF7B61FF),
+  ),
+];
+
 class PaymentScreen extends StatefulWidget {
   const PaymentScreen({
     super.key,
@@ -3216,14 +3388,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final methods = [
-      'VISA',
-      'MASTERCARD',
-      'PAYPAL',
-      'GCASH',
-      'MAYA',
-      'EWALLET',
-    ];
     final isBalancePayment = widget.paymentType == 'BALANCE';
     final amountDue = isBalancePayment
         ? _balanceDue(widget.booking)
@@ -3240,41 +3404,32 @@ class _PaymentScreenState extends State<PaymentScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(color: Colors.black54)),
-                  Text(
-                    moneyFormat.format(amountDue),
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(note),
-                ],
+          _PaymentSummaryCard(
+            title: title,
+            amountDue: amountDue,
+            note: note,
+            isBalancePayment: isBalancePayment,
+          ),
+          const SizedBox(height: 22),
+          Text(
+            'Choose payment method',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 12),
+          ..._paymentOptions.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _PaymentMethodCard(
+                option: item,
+                selected: method == item.value,
+                onTap: () => setState(() => method = item.value),
               ),
             ),
           ),
-          const VHSectionTitle('Payment method'),
-          ...methods.map(
-            (item) => Card(
-              child: ListTile(
-                onTap: () => setState(() => method = item),
-                leading: Icon(_paymentIcon(item)),
-                title: Text(item.replaceAll('_', ' ')),
-                trailing: Icon(
-                  method == item
-                      ? Icons.check_circle
-                      : Icons.radio_button_unchecked,
-                  color: method == item ? AppTheme.blue : Colors.black38,
-                ),
-              ),
-            ),
-          ),
+          const SizedBox(height: 8),
+          _PaymentSafetyNote(isBalancePayment: isBalancePayment),
           const SizedBox(height: 18),
           ElevatedButton(
             onPressed: loading ? null : _pay,
@@ -3284,6 +3439,226 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   : isBalancePayment
                   ? 'Complete payment'
                   : 'Pay simulated deposit',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaymentSummaryCard extends StatelessWidget {
+  const _PaymentSummaryCard({
+    required this.title,
+    required this.amountDue,
+    required this.note,
+    required this.isBalancePayment,
+  });
+
+  final String title;
+  final num amountDue;
+  final String note;
+  final bool isBalancePayment;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.navy,
+            AppTheme.blue,
+            AppTheme.gold.withValues(alpha: 0.88),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.blue.withValues(alpha: 0.18),
+            blurRadius: 24,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                height: 42,
+                width: 42,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isBalancePayment
+                      ? Icons.task_alt_rounded
+                      : Icons.lock_outline_rounded,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Text(
+            moneyFormat.format(amountDue),
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            note,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.white.withValues(alpha: 0.9),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+            ),
+            child: Text(
+              isBalancePayment
+                  ? 'Final payment before completion'
+                  : '50% non-refundable deposit',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaymentMethodCard extends StatelessWidget {
+  const _PaymentMethodCard({
+    required this.option,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final _PaymentOption option;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: selected ? option.color.withValues(alpha: 0.08) : Colors.white,
+          borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+          border: Border.all(
+            color: selected ? option.color : colors.divider,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              height: 46,
+              width: 46,
+              decoration: BoxDecoration(
+                color: option.color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(option.icon, color: option.color),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    option.label,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(
+                    option.subtitle,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            AnimatedScale(
+              scale: selected ? 1 : 0.86,
+              duration: const Duration(milliseconds: 180),
+              child: Icon(
+                selected
+                    ? Icons.check_circle_rounded
+                    : Icons.radio_button_unchecked_rounded,
+                color: selected ? option.color : colors.secondaryText,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PaymentSafetyNote extends StatelessWidget {
+  const _PaymentSafetyNote({required this.isBalancePayment});
+
+  final bool isBalancePayment;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.sky,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(color: colors.divider),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isBalancePayment
+                ? Icons.verified_user_outlined
+                : Icons.info_outline_rounded,
+            color: AppTheme.navy,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              isBalancePayment
+                  ? 'This demo payment marks the booking fully paid.'
+                  : 'Deposit payments are marked non-refundable on the receipt.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: colors.ink,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -3313,48 +3688,38 @@ class ReceiptScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.verified, color: Colors.green, size: 52),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Payment approved',
-                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
-                  ),
-                  Text(receipt['receiptNumber']?.toString() ?? ''),
-                  const Divider(height: 32),
-                  _MoneyRow('Subtotal', _num(receipt['subtotal'])),
-                  _MoneyRow('Deposit paid', _num(receipt['depositPaid'])),
-                  _MoneyRow(
-                    'Remaining balance',
-                    _num(receipt['remainingBalance']),
-                  ),
-                  _MoneyRow('App service fee', _num(receipt['serviceFee'])),
-                  const SizedBox(height: 12),
-                  Text(receipt['securityNote']?.toString() ?? ''),
-                  if (emailMessage != null) ...[
-                    const Divider(height: 32),
-                    Row(
-                      children: [
-                        Icon(
-                          emailStatus == 'sent'
-                              ? Icons.mark_email_read_outlined
-                              : Icons.email_outlined,
-                          color: emailStatus == 'sent'
-                              ? Colors.green
-                              : Colors.orange,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(child: Text(emailMessage!)),
-                      ],
+          _ReceiptSuccessCard(receipt: receipt),
+          if (emailMessage != null) ...[
+            const SizedBox(height: 12),
+            _ReceiptEmailCard(
+              emailStatus: emailStatus,
+              emailMessage: emailMessage!,
+            ),
+          ],
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppTheme.sky,
+              borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+              border: Border.all(color: AppTheme.divider),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.policy_outlined, color: AppTheme.navy),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    receipt['securityNote']?.toString() ??
+                        'Security deposit is non-refundable.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.ink,
+                      fontWeight: FontWeight.w600,
                     ),
-                  ],
-                ],
-              ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 18),
@@ -3362,6 +3727,144 @@ class ReceiptScreen extends StatelessWidget {
             onPressed: () =>
                 Navigator.popUntil(context, (route) => route.isFirst),
             child: const Text('Back to home'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReceiptSuccessCard extends StatelessWidget {
+  const _ReceiptSuccessCard({required this.receipt});
+
+  final Map<String, dynamic> receipt;
+
+  @override
+  Widget build(BuildContext context) {
+    final paymentMethod = receipt['paymentMethod']?.toString() ?? 'Demo';
+    final option = _paymentOptions.firstWhere(
+      (item) => item.value == paymentMethod,
+      orElse: () => _paymentOptions.last,
+    );
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        color: Colors.white,
+        border: Border.all(color: AppTheme.divider),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                height: 54,
+                width: 54,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEAF8EF),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle_rounded,
+                  color: AppTheme.success,
+                  size: 34,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Payment approved',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w900),
+                    ),
+                    Text(
+                      receipt['receiptNumber']?.toString() ?? '',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: option.color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+            ),
+            child: Row(
+              children: [
+                Icon(option.icon, color: option.color),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '${option.label} demo transaction',
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 32),
+          _MoneyRow('Subtotal', _num(receipt['subtotal'])),
+          _MoneyRow('Deposit paid', _num(receipt['depositPaid'])),
+          _MoneyRow('Remaining balance', _num(receipt['remainingBalance'])),
+          _MoneyRow('App service fee', _num(receipt['serviceFee'])),
+          const Divider(height: 32),
+          _MoneyRow('Total paid', _num(receipt['totalPaid'])),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReceiptEmailCard extends StatelessWidget {
+  const _ReceiptEmailCard({
+    required this.emailStatus,
+    required this.emailMessage,
+  });
+
+  final String? emailStatus;
+  final String emailMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    final sent = emailStatus == 'sent';
+    final color = sent ? AppTheme.success : AppTheme.warning;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            sent ? Icons.mark_email_read_outlined : Icons.email_outlined,
+            color: color,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              emailMessage,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppTheme.ink,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
@@ -3422,7 +3925,10 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
               children: [
-                Text('Trips', style: Theme.of(context).textTheme.displaySmall),
+                Text(
+                  'Bookings',
+                  style: Theme.of(context).textTheme.displaySmall,
+                ),
                 const SizedBox(height: 16),
                 SegmentedButton<String>(
                   segments: const [
@@ -3496,6 +4002,7 @@ class BookingTile extends StatelessWidget {
     final venue = booking['venue'] as Map<String, dynamic>;
     final paymentStatus = booking['paymentStatus']?.toString() ?? 'UNPAID';
     final colors = AppTheme.colorsOf(context);
+    final totalAmount = _num(booking['totalAmount']);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -3543,6 +4050,14 @@ class BookingTile extends StatelessWidget {
                     Text(
                       dateFormat.format(DateTime.parse(booking['eventDate'])),
                       style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      moneyFormat.format(totalAmount),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.blue,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Wrap(
@@ -3594,6 +4109,8 @@ class BookingDetailsScreen extends StatelessWidget {
     );
     final balanceDue = _balanceDue(booking);
     final paymentStatus = booking['paymentStatus']?.toString() ?? 'UNPAID';
+    final canPayDeposit = _canPayDeposit(booking);
+    final canPayBalance = _canPayBalance(booking);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Booking details')),
@@ -3720,59 +4237,156 @@ class BookingDetailsScreen extends StatelessWidget {
             }),
           ],
           const SizedBox(height: 12),
-          if (!hostControls && paymentStatus == 'UNPAID')
-            OutlinedButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => PaymentScreen(api: api, booking: booking),
-                ),
-              ),
-              icon: const Icon(Icons.lock_outline),
-              label: const Text('Pay 50% deposit'),
-            ),
-          if (!hostControls && paymentStatus == 'PARTIALLY_PAID')
-            ElevatedButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => PaymentScreen(
-                    api: api,
-                    booking: booking,
-                    paymentType: 'BALANCE',
-                  ),
-                ),
-              ),
-              icon: const Icon(Icons.check_circle_outline),
-              label: const Text('Pay remaining balance'),
-            ),
-          if (!hostControls && paymentStatus == 'PAID')
-            const Text(
-              'Fully paid. The host can mark this booking completed after the event.',
-              style: TextStyle(color: Colors.black54),
+          _BookingNextStepCard(booking: booking, hostView: hostControls),
+          const SizedBox(height: 12),
+          if (!hostControls)
+            _BookingCustomerPaymentActions(
+              api: api,
+              booking: booking,
+              canPayDeposit: canPayDeposit,
+              canPayBalance: canPayBalance,
+              paymentStatus: paymentStatus,
             ),
           if (hostControls)
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                OutlinedButton(
-                  onPressed: () => onStatus?.call('APPROVED'),
-                  child: const Text('Approve'),
-                ),
-                OutlinedButton(
-                  onPressed: () => onStatus?.call('REJECTED'),
-                  child: const Text('Reject'),
-                ),
-                ElevatedButton(
-                  onPressed: () => onStatus?.call('COMPLETED'),
-                  child: const Text('Complete'),
-                ),
-              ],
-            ),
+            _BookingHostActionPanel(booking: booking, onStatus: onStatus),
         ],
       ),
     );
+  }
+}
+
+class _BookingNextStepCard extends StatelessWidget {
+  const _BookingNextStepCard({required this.booking, required this.hostView});
+
+  final Map<String, dynamic> booking;
+  final bool hostView;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
+    final message = _bookingNextStepMessage(booking, hostView: hostView);
+    final icon = _bookingNextStepIcon(booking);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.sky,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(color: colors.divider),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: AppTheme.navy),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: colors.ink,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BookingCustomerPaymentActions extends StatelessWidget {
+  const _BookingCustomerPaymentActions({
+    required this.api,
+    required this.booking,
+    required this.canPayDeposit,
+    required this.canPayBalance,
+    required this.paymentStatus,
+  });
+
+  final ApiClient api;
+  final Map<String, dynamic> booking;
+  final bool canPayDeposit;
+  final bool canPayBalance;
+  final String paymentStatus;
+
+  @override
+  Widget build(BuildContext context) {
+    if (canPayDeposit) {
+      return ElevatedButton.icon(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PaymentScreen(api: api, booking: booking),
+          ),
+        ),
+        icon: const Icon(Icons.lock_outline_rounded),
+        label: const Text('Pay 50% deposit'),
+      );
+    }
+
+    if (canPayBalance) {
+      return ElevatedButton.icon(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PaymentScreen(
+              api: api,
+              booking: booking,
+              paymentType: 'BALANCE',
+            ),
+          ),
+        ),
+        icon: const Icon(Icons.task_alt_rounded),
+        label: const Text('Pay remaining balance'),
+      );
+    }
+
+    if (paymentStatus == 'PAID') {
+      return const SizedBox.shrink();
+    }
+
+    return OutlinedButton.icon(
+      onPressed: null,
+      icon: const Icon(Icons.hourglass_empty_rounded),
+      label: const Text('Payment locked until host approval'),
+    );
+  }
+}
+
+class _BookingHostActionPanel extends StatelessWidget {
+  const _BookingHostActionPanel({
+    required this.booking,
+    required this.onStatus,
+  });
+
+  final Map<String, dynamic> booking;
+  final Future<void> Function(String status)? onStatus;
+
+  @override
+  Widget build(BuildContext context) {
+    final actions = <Widget>[
+      if (_canHostApprove(booking))
+        OutlinedButton.icon(
+          onPressed: () => onStatus?.call('APPROVED'),
+          icon: const Icon(Icons.check_circle_outline_rounded),
+          label: const Text('Approve'),
+        ),
+      if (_canHostReject(booking))
+        OutlinedButton.icon(
+          onPressed: () => onStatus?.call('REJECTED'),
+          icon: const Icon(Icons.cancel_outlined),
+          label: const Text('Reject'),
+        ),
+      if (_canHostComplete(booking))
+        ElevatedButton.icon(
+          onPressed: () => onStatus?.call('COMPLETED'),
+          icon: const Icon(Icons.verified_outlined),
+          label: const Text('Complete event'),
+        ),
+    ];
+
+    if (actions.isEmpty) return const SizedBox.shrink();
+
+    return Wrap(spacing: 8, runSpacing: 8, children: actions);
   }
 }
 
@@ -4164,35 +4778,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ).textTheme.bodyMedium?.copyWith(color: colors.secondaryText),
           ),
           const SizedBox(height: 20),
-          _ProfileInfoGrid(user: user),
+          _ProfileSummaryCard(user: user, onEdit: _editDetails),
           const SizedBox(height: 14),
           _ProfilePreferencesPanel(user: user),
           const SizedBox(height: 14),
-          OutlinedButton.icon(
-            onPressed: _editDetails,
-            icon: const Icon(Icons.edit_outlined),
-            label: const Text('Edit account details'),
-          ),
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed: () => Navigator.push(
+          _ProfileActionsCard(
+            onEdit: _editDetails,
+            onChangePassword: () => Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (_) => ChangePasswordScreen(api: widget.api),
               ),
             ),
-            icon: const Icon(Icons.lock_reset),
-            label: const Text('Change password'),
-          ),
-          const SizedBox(height: 10),
-          FilledButton.icon(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.danger,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: widget.onLogout,
-            icon: const Icon(Icons.logout_rounded),
-            label: const Text('Logout'),
+            onLogout: widget.onLogout,
           ),
           const SizedBox(height: 14),
           _PolicyCard(),
@@ -4261,62 +4859,65 @@ class _ProfileAvatar extends StatelessWidget {
   }
 }
 
-class _ProfileInfoGrid extends StatelessWidget {
-  const _ProfileInfoGrid({required this.user});
+class _ProfileSummaryCard extends StatelessWidget {
+  const _ProfileSummaryCard({required this.user, required this.onEdit});
 
   final Map<String, dynamic> user;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
-    String field(String key, String fallback) {
-      final value = user[key]?.toString().trim();
-      return value == null || value.isEmpty ? fallback : value;
-    }
-
-    final items = [
-      (
-        icon: Icons.email_outlined,
-        label: 'Email',
-        value: field('email', 'No email'),
+    final colors = AppTheme.colorsOf(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: colors.divider),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      (
-        icon: Icons.phone_outlined,
-        label: 'Contact',
-        value: field('phone', 'Add contact number'),
-      ),
-      (
-        icon: Icons.wc_outlined,
-        label: 'Gender',
-        value: field('gender', 'Add gender'),
-      ),
-      (
-        icon: Icons.badge_outlined,
-        label: 'Account',
-        value: field('role', 'customer'),
-      ),
-    ];
-
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: items
-          .map(
-            (item) => SizedBox(
-              width: (MediaQuery.of(context).size.width - 50) / 2,
-              child: _ProfileInfoTile(
-                icon: item.icon,
-                label: item.label,
-                value: item.value,
-              ),
+      child: Column(
+        children: [
+          _ProfileSummaryRow(
+            icon: Icons.email_outlined,
+            label: 'Email',
+            value: _displayValue(user['email'], fallback: 'No email'),
+          ),
+          const Divider(height: 22),
+          _ProfileSummaryRow(
+            icon: Icons.phone_outlined,
+            label: 'Contact',
+            value: _displayValue(user['phone'], fallback: 'Add contact number'),
+          ),
+          const Divider(height: 22),
+          _ProfileSummaryRow(
+            icon: Icons.badge_outlined,
+            label: 'Account type',
+            value: _roleText(user['role']?.toString() ?? 'CUSTOMER'),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: onEdit,
+              icon: const Icon(Icons.edit_outlined),
+              label: const Text('Edit profile details'),
             ),
-          )
-          .toList(),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _ProfileInfoTile extends StatelessWidget {
-  const _ProfileInfoTile({
+class _ProfileSummaryRow extends StatelessWidget {
+  const _ProfileSummaryRow({
     required this.icon,
     required this.label,
     required this.value,
@@ -4329,38 +4930,114 @@ class _ProfileInfoTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = AppTheme.colorsOf(context);
+    return Row(
+      children: [
+        Container(
+          height: 38,
+          width: 38,
+          decoration: BoxDecoration(
+            color: AppTheme.sky,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Icon(icon, color: AppTheme.navy, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: colors.ink,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProfileActionsCard extends StatelessWidget {
+  const _ProfileActionsCard({
+    required this.onEdit,
+    required this.onChangePassword,
+    required this.onLogout,
+  });
+
+  final VoidCallback onEdit;
+  final VoidCallback onChangePassword;
+  final VoidCallback onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
     return Container(
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: colors.divider),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            height: 34,
-            width: 34,
-            decoration: BoxDecoration(
-              color: AppTheme.sky,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: AppTheme.navy, size: 19),
+          _ProfileActionTile(
+            icon: Icons.edit_outlined,
+            title: 'Edit account details',
+            onTap: onEdit,
           ),
-          const SizedBox(height: 12),
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 3),
-          Text(
-            value,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+          const Divider(height: 1, indent: 58),
+          _ProfileActionTile(
+            icon: Icons.lock_reset_rounded,
+            title: 'Change password',
+            onTap: onChangePassword,
+          ),
+          const Divider(height: 1, indent: 58),
+          _ProfileActionTile(
+            icon: Icons.logout_rounded,
+            title: 'Logout',
+            danger: true,
+            onTap: onLogout,
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ProfileActionTile extends StatelessWidget {
+  const _ProfileActionTile({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.danger = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = danger ? AppTheme.danger : AppTheme.navy;
+    return ListTile(
+      onTap: onTap,
+      minLeadingWidth: 28,
+      leading: Icon(icon, color: color),
+      title: Text(
+        title,
+        style: TextStyle(color: color, fontWeight: FontWeight.w800),
+      ),
+      trailing: danger
+          ? null
+          : const Icon(Icons.chevron_right_rounded, color: Colors.black45),
     );
   }
 }
@@ -4584,7 +5261,7 @@ class _HostHomeState extends State<HostHome> {
     ];
 
     return Scaffold(
-      body: pages[index],
+      body: IndexedStack(index: index, children: pages),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: index,
         onTap: (value) => setState(() => index = value),
@@ -4625,6 +5302,166 @@ class HostDashboard extends StatefulWidget {
   State<HostDashboard> createState() => _HostDashboardState();
 }
 
+class _DashboardHeroCard extends StatelessWidget {
+  const _DashboardHeroCard({
+    required this.title,
+    required this.subtitle,
+    required this.amount,
+    required this.caption,
+    required this.icon,
+  });
+
+  final String title;
+  final String subtitle;
+  final String amount;
+  final String caption;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          colors: [AppTheme.navy, AppTheme.blue],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                height: 46,
+                width: 46,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.16),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.82),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Text(
+            amount,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          Text(
+            caption,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Colors.white.withValues(alpha: 0.82),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashboardInfoRow {
+  const _DashboardInfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+}
+
+class _DashboardInfoCard extends StatelessWidget {
+  const _DashboardInfoCard({required this.title, required this.rows});
+
+  final String title;
+  final List<_DashboardInfoRow> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 12),
+            ...rows.map(
+              (row) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    Container(
+                      height: 38,
+                      width: 38,
+                      decoration: BoxDecoration(
+                        color: AppTheme.sky,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(row.icon, color: AppTheme.navy, size: 20),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        row.label,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colors.secondaryText,
+                        ),
+                      ),
+                    ),
+                    Flexible(
+                      child: Text(
+                        row.value,
+                        textAlign: TextAlign.end,
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _HostDashboardState extends State<HostDashboard> {
   late Future<Map<String, dynamic>> summary = _load();
 
@@ -4650,9 +5487,19 @@ class _HostDashboardState extends State<HostDashboard> {
           }
           final data = snapshot.data!;
           final recent = data['recentActivity'] as List<dynamic>? ?? [];
+          final topVenues = data['topVenues'] as List<dynamic>? ?? [];
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              _DashboardHeroCard(
+                title: 'Host snapshot',
+                subtitle:
+                    '${data['pendingBookings'] ?? 0} pending requests - ${data['conversionRate'] ?? 0}% approval rate',
+                amount: moneyFormat.format(_num(data['estimatedHostIncome'])),
+                caption: 'Estimated host income',
+                icon: Icons.storefront_outlined,
+              ),
+              const SizedBox(height: 14),
               GridView.count(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -4672,19 +5519,67 @@ class _HostDashboardState extends State<HostDashboard> {
                     icon: Icons.home_work_outlined,
                   ),
                   VHStatCard(
+                    label: 'Approved',
+                    value: '${data['approvedBookings'] ?? 0}',
+                    icon: Icons.event_available_outlined,
+                  ),
+                  VHStatCard(
+                    label: 'Completed',
+                    value: '${data['completedBookings'] ?? 0}',
+                    icon: Icons.verified_outlined,
+                  ),
+                  VHStatCard(
                     label: 'Gross paid',
                     value: moneyFormat.format(_num(data['grossPaid'])),
                     icon: Icons.payments,
                   ),
                   VHStatCard(
-                    label: 'Host income',
-                    value: moneyFormat.format(
-                      _num(data['estimatedHostIncome']),
-                    ),
-                    icon: Icons.trending_up,
+                    label: 'Unpaid balances',
+                    value: moneyFormat.format(_num(data['outstandingBalance'])),
+                    icon: Icons.account_balance_wallet_outlined,
                   ),
                 ],
               ),
+              const SizedBox(height: 14),
+              _DashboardInfoCard(
+                title: 'Income insight',
+                rows: [
+                  _DashboardInfoRow(
+                    icon: Icons.savings_outlined,
+                    label: 'Platform fees estimate',
+                    value: moneyFormat.format(
+                      _num(data['estimatedPlatformFees']),
+                    ),
+                  ),
+                  _DashboardInfoRow(
+                    icon: Icons.analytics_outlined,
+                    label: 'Average booking value',
+                    value: moneyFormat.format(
+                      _num(data['averageBookingValue']),
+                    ),
+                  ),
+                  _DashboardInfoRow(
+                    icon: Icons.percent_rounded,
+                    label: 'Approval rate',
+                    value: '${data['conversionRate'] ?? 0}%',
+                  ),
+                ],
+              ),
+              if (topVenues.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                _DashboardInfoCard(
+                  title: 'Top venues by paid income',
+                  rows: topVenues.map((item) {
+                    final venue = item as Map<String, dynamic>;
+                    return _DashboardInfoRow(
+                      icon: Icons.home_work_outlined,
+                      label: venue['venueName']?.toString() ?? 'Venue',
+                      value:
+                          '${venue['bookings'] ?? 0} bookings - ${moneyFormat.format(_num(venue['grossPaid']))}',
+                    );
+                  }).toList(),
+                ),
+              ],
               const VHSectionTitle('Recent activity'),
               if (recent.isEmpty)
                 const EmptyState(
@@ -4748,10 +5643,16 @@ class _HostBookingsScreenState extends State<HostBookingsScreen> {
     if (!confirmed) return;
 
     try {
-      await widget.api.put('/bookings/$id/status', {'status': status});
+      final response = await widget.api.put('/bookings/$id/status', {
+        'status': status,
+      });
       if (!mounted) return;
       setState(() => bookings = _load());
-      _snack(context, 'Booking updated to ${_prettyStatus(status)}.');
+      _snack(
+        context,
+        response['message']?.toString() ??
+            'Booking updated to ${_prettyStatus(status)}.',
+      );
     } catch (error) {
       if (!mounted) return;
       _snack(context, error.toString());
@@ -5871,7 +6772,7 @@ class _AdminHomeState extends State<AdminHome> {
     ];
 
     return Scaffold(
-      body: pages[index],
+      body: IndexedStack(index: index, children: pages),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: index,
         onTap: (value) => setState(() => index = value),
@@ -5894,7 +6795,7 @@ class _AdminHomeState extends State<AdminHome> {
           BottomNavigationBarItem(
             icon: Icon(Icons.receipt_long_outlined),
             activeIcon: Icon(Icons.receipt_long_rounded),
-            label: 'Bookings',
+            label: 'Records',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.query_stats_rounded),
@@ -5944,53 +6845,111 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 : const LoadingView();
           }
           final data = snapshot.data!;
-          return GridView.count(
+          final recent = data['recentActivity'] as List<dynamic>? ?? [];
+          return ListView(
             padding: const EdgeInsets.all(16),
-            crossAxisCount: 2,
-            childAspectRatio: 1.05,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
             children: [
-              VHStatCard(
-                label: 'Users',
-                value: '${data['totalUsers']}',
-                icon: Icons.group,
+              _DashboardHeroCard(
+                title: 'VenueHub overview',
+                subtitle:
+                    '${data['totalHosts'] ?? 0} hosts - ${data['totalVenues'] ?? 0} venues - ${data['approvalRate'] ?? 0}% approval rate',
+                amount: moneyFormat.format(_num(data['platformIncome'])),
+                caption: 'Realized platform income',
+                icon: Icons.query_stats_rounded,
               ),
-              VHStatCard(
-                label: 'Hosts',
-                value: '${data['totalHosts']}',
-                icon: Icons.store,
+              const SizedBox(height: 14),
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                childAspectRatio: 1.05,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                children: [
+                  VHStatCard(
+                    label: 'Customers',
+                    value: '${data['totalCustomers'] ?? data['totalUsers']}',
+                    icon: Icons.group_outlined,
+                  ),
+                  VHStatCard(
+                    label: 'Hosts',
+                    value: '${data['totalHosts']}',
+                    icon: Icons.store_outlined,
+                  ),
+                  VHStatCard(
+                    label: 'Pending venues',
+                    value: '${data['pendingVenues'] ?? 0}',
+                    icon: Icons.pending_actions,
+                  ),
+                  VHStatCard(
+                    label: 'Pending bookings',
+                    value: '${data['pendingBookings'] ?? 0}',
+                    icon: Icons.hourglass_top_rounded,
+                  ),
+                  VHStatCard(
+                    label: 'Gross paid',
+                    value: moneyFormat.format(_num(data['grossPaid'])),
+                    icon: Icons.payments_outlined,
+                  ),
+                  VHStatCard(
+                    label: 'Unpaid balances',
+                    value: moneyFormat.format(_num(data['outstandingBalance'])),
+                    icon: Icons.account_balance_wallet_outlined,
+                  ),
+                ],
               ),
-              VHStatCard(
-                label: 'Venues',
-                value: '${data['totalVenues']}',
-                icon: Icons.location_city,
+              const SizedBox(height: 14),
+              _DashboardInfoCard(
+                title: 'Operational signals',
+                rows: [
+                  _DashboardInfoRow(
+                    icon: Icons.event_available_outlined,
+                    label: 'Approved bookings',
+                    value: '${data['approvedBookings'] ?? 0}',
+                  ),
+                  _DashboardInfoRow(
+                    icon: Icons.verified_outlined,
+                    label: 'Completed bookings',
+                    value: '${data['completedBookings'] ?? 0}',
+                  ),
+                  _DashboardInfoRow(
+                    icon: Icons.cancel_outlined,
+                    label: 'Rejected bookings',
+                    value: '${data['rejectedBookings'] ?? 0}',
+                  ),
+                  _DashboardInfoRow(
+                    icon: Icons.percent_rounded,
+                    label: 'Service fee',
+                    value: '${_num(data['serviceFeePercent'])}%',
+                  ),
+                ],
               ),
-              VHStatCard(
-                label: 'Bookings',
-                value: '${data['totalBookings']}',
-                icon: Icons.event,
-              ),
-              VHStatCard(
-                label: 'Pending approvals',
-                value: '${data['pendingVenues'] ?? 0}',
-                icon: Icons.pending_actions,
-              ),
-              VHStatCard(
-                label: 'Pending bookings',
-                value: '${data['pendingBookings'] ?? 0}',
-                icon: Icons.hourglass_top_rounded,
-              ),
-              VHStatCard(
-                label: 'Platform income',
-                value: moneyFormat.format(_num(data['platformIncome'])),
-                icon: Icons.savings,
-              ),
-              VHStatCard(
-                label: 'Service fee',
-                value: '${_num(data['serviceFeePercent'])}%',
-                icon: Icons.percent,
-              ),
+              const VHSectionTitle('Recent platform activity'),
+              if (recent.isEmpty)
+                const EmptyState(
+                  title: 'No booking activity',
+                  message: 'New reservations will show here.',
+                )
+              else
+                ...recent.map((item) {
+                  final row = item as Map<String, dynamic>;
+                  return Card(
+                    child: ListTile(
+                      leading: const Icon(
+                        Icons.receipt_long_outlined,
+                        color: AppTheme.blue,
+                      ),
+                      title: Text(row['venueName']?.toString() ?? 'Venue'),
+                      subtitle: Text(
+                        '${row['customerName'] ?? 'Customer'} - ${_prettyStatus(row['status'])}',
+                      ),
+                      trailing: Text(
+                        moneyFormat.format(_num(row['paid'])),
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                  );
+                }),
             ],
           );
         },
@@ -6064,7 +7023,9 @@ class _AdminListScreenState extends State<AdminListScreen> {
                 )
               else
                 ...data.map(
-                  (item) => _AdminJsonCard(item: item as Map<String, dynamic>),
+                  (item) => widget.listKey == 'users'
+                      ? _AdminUserCard(user: item as Map<String, dynamic>)
+                      : _AdminJsonCard(item: item as Map<String, dynamic>),
                 ),
             ],
           );
@@ -6147,31 +7108,10 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
     return response['bookings'] as List<dynamic>;
   }
 
-  Future<void> _status(String id, String status) async {
-    final confirmed = await _confirmAction(
-      context,
-      title: '${_prettyStatusAction(status)} booking?',
-      message:
-          'This will update the booking status to ${_prettyStatus(status)} for everyone.',
-      confirmLabel: _prettyStatusAction(status),
-    );
-    if (!confirmed) return;
-
-    try {
-      await widget.api.put('/bookings/$id/status', {'status': status});
-      if (!mounted) return;
-      setState(() => bookings = _load());
-      _snack(context, 'Booking updated to ${_prettyStatus(status)}.');
-    } catch (error) {
-      if (!mounted) return;
-      _snack(context, error.toString());
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Admin bookings')),
+      appBar: AppBar(title: const Text('Booking records')),
       body: FutureBuilder<List<dynamic>>(
         future: bookings,
         builder: (context, snapshot) {
@@ -6196,6 +7136,8 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              _AdminRecordsNotice(count: raw.length),
+              const SizedBox(height: 12),
               BookingSearchSortBar(
                 controller: search,
                 sort: sort,
@@ -6211,16 +7153,45 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
               else
                 ...data.map((booking) {
                   final map = booking as Map<String, dynamic>;
-                  return BookingTile(
-                    api: widget.api,
-                    booking: map,
-                    hostControls: true,
-                    onStatus: (status) => _status(map['id'] as String, status),
-                  );
+                  return BookingTile(api: widget.api, booking: map);
                 }),
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _AdminRecordsNotice extends StatelessWidget {
+  const _AdminRecordsNotice({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.sky,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(color: colors.divider),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.receipt_long_outlined, color: AppTheme.navy),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Admins review $count booking records for audit and payment visibility. Hosts still approve or reject bookings.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: colors.ink,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -6245,20 +7216,27 @@ class _AdminVenuesScreenState extends State<AdminVenuesScreen> {
     return response['venues'] as List<dynamic>;
   }
 
-  Future<bool> _setStatus(String id, String status) async {
+  Future<bool> _setStatus(Map<String, dynamic> venue, String status) async {
+    final currentStatus =
+        venue['status']?.toString().toUpperCase() ?? 'PENDING';
+    if (currentStatus == status) {
+      _snack(context, 'This venue is already ${_prettyStatus(status)}.');
+      return false;
+    }
+    final actionLabel = _adminVenueActionLabel(status, currentStatus);
     final confirmed = await _confirmAction(
       context,
-      title: '${_prettyStatusAction(status)} venue?',
-      message: 'This venue listing will be marked ${_prettyStatus(status)}.',
-      confirmLabel: _prettyStatusAction(status),
+      title: '$actionLabel venue?',
+      message: _adminVenueActionMessage(status, currentStatus),
+      confirmLabel: actionLabel,
     );
     if (!confirmed) return false;
 
     try {
-      await widget.api.put('/venues/$id', {'status': status});
+      await widget.api.put('/venues/${venue['id']}', {'status': status});
       if (!mounted) return false;
       setState(() => venues = _load());
-      _snack(context, 'Venue updated to ${_prettyStatus(status)}.');
+      _snack(context, _adminVenueActionSuccess(status, currentStatus));
       return true;
     } catch (error) {
       if (!mounted) return false;
@@ -6340,7 +7318,7 @@ class _AdminVenuesScreenState extends State<AdminVenuesScreen> {
                                   spacing: 8,
                                   runSpacing: 8,
                                   children: [
-                                    ElevatedButton.icon(
+                                    OutlinedButton.icon(
                                       onPressed: () => Navigator.push(
                                         context,
                                         MaterialPageRoute(
@@ -6348,10 +7326,7 @@ class _AdminVenuesScreenState extends State<AdminVenuesScreen> {
                                               AdminVenueDetailsScreen(
                                                 venue: venue,
                                                 onStatus: (status) =>
-                                                    _setStatus(
-                                                      venue['id'],
-                                                      status,
-                                                    ),
+                                                    _setStatus(venue, status),
                                               ),
                                         ),
                                       ),
@@ -6360,15 +7335,10 @@ class _AdminVenuesScreenState extends State<AdminVenuesScreen> {
                                       ),
                                       label: const Text('Review details'),
                                     ),
-                                    OutlinedButton(
-                                      onPressed: () =>
-                                          _setStatus(venue['id'], 'APPROVED'),
-                                      child: const Text('Approve'),
-                                    ),
-                                    OutlinedButton(
-                                      onPressed: () =>
-                                          _setStatus(venue['id'], 'REJECTED'),
-                                      child: const Text('Reject'),
+                                    _AdminVenueActionButtons(
+                                      venue: venue,
+                                      onStatus: (status) =>
+                                          _setStatus(venue, status),
                                     ),
                                   ],
                                 ),
@@ -6384,6 +7354,62 @@ class _AdminVenuesScreenState extends State<AdminVenuesScreen> {
           );
         },
       ),
+    );
+  }
+}
+
+class _AdminVenueActionButtons extends StatelessWidget {
+  const _AdminVenueActionButtons({
+    required this.venue,
+    required this.onStatus,
+    this.expanded = false,
+  });
+
+  final Map<String, dynamic> venue;
+  final Future<bool> Function(String status) onStatus;
+  final bool expanded;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = venue['status']?.toString().toUpperCase() ?? 'PENDING';
+    final buttons = switch (status) {
+      'PENDING' => [
+        OutlinedButton.icon(
+          onPressed: () => onStatus('REJECTED'),
+          icon: const Icon(Icons.close_rounded),
+          label: const Text('Reject listing'),
+        ),
+        ElevatedButton.icon(
+          onPressed: () => onStatus('APPROVED'),
+          icon: const Icon(Icons.check_rounded),
+          label: const Text('Approve listing'),
+        ),
+      ],
+      'APPROVED' => [
+        OutlinedButton.icon(
+          onPressed: () => onStatus('REJECTED'),
+          icon: const Icon(Icons.visibility_off_outlined),
+          label: const Text('Unlist venue'),
+        ),
+      ],
+      _ => [
+        ElevatedButton.icon(
+          onPressed: () => onStatus('APPROVED'),
+          icon: const Icon(Icons.restore_outlined),
+          label: const Text('Restore listing'),
+        ),
+      ],
+    };
+
+    if (!expanded) return Wrap(spacing: 8, runSpacing: 8, children: buttons);
+
+    return Row(
+      children: [
+        for (var index = 0; index < buttons.length; index++) ...[
+          if (index > 0) const SizedBox(width: 12),
+          Expanded(child: buttons[index]),
+        ],
+      ],
     );
   }
 }
@@ -6409,30 +7435,14 @@ class AdminVenueDetailsScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Review venue listing')),
       bottomNavigationBar: SafeArea(
         minimum: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () async {
-                  final didUpdate = await onStatus('REJECTED');
-                  if (didUpdate && context.mounted) Navigator.pop(context);
-                },
-                icon: const Icon(Icons.close),
-                label: const Text('Reject'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  final didUpdate = await onStatus('APPROVED');
-                  if (didUpdate && context.mounted) Navigator.pop(context);
-                },
-                icon: const Icon(Icons.check),
-                label: const Text('Approve'),
-              ),
-            ),
-          ],
+        child: _AdminVenueActionButtons(
+          venue: venue,
+          expanded: true,
+          onStatus: (status) async {
+            final didUpdate = await onStatus(status);
+            if (didUpdate && context.mounted) Navigator.pop(context);
+            return didUpdate;
+          },
         ),
       ),
       body: ListView(
@@ -6631,6 +7641,11 @@ class _AdminIncomeScreenState extends State<AdminIncomeScreen> {
           final response = snapshot.data!;
           final data = response['income'] as Map<String, dynamic>;
           final serviceFeePercent = _num(response['serviceFeePercent']);
+          final trend = _incomeTrend(data);
+          final paymentBreakdown =
+              data['paymentBreakdown'] as Map<String, dynamic>? ?? {};
+          final statusBreakdown =
+              data['statusBreakdown'] as Map<String, dynamic>? ?? {};
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -6652,50 +7667,120 @@ class _AdminIncomeScreenState extends State<AdminIncomeScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              VHStatCard(
-                label: 'Gross paid',
-                value: moneyFormat.format(_num(data['grossPaid'])),
-                icon: Icons.payments_outlined,
+              _DashboardHeroCard(
+                title: 'Income health',
+                subtitle:
+                    '${data['paidBookingCount'] ?? 0} paid bookings - ${data['completedBookings'] ?? 0} completed',
+                amount: moneyFormat.format(_num(data['allTime'])),
+                caption: 'Realized platform fees',
+                icon: Icons.savings_outlined,
               ),
-              const SizedBox(height: 12),
-              VHStatCard(
-                label: 'Platform fees',
-                value: moneyFormat.format(_num(data['allTime'])),
-                icon: Icons.savings,
-              ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               _MiniBarChart(
-                values: [
-                  _num(data['weekly']),
-                  _num(data['monthly']),
-                  _num(data['annual']),
-                  _num(data['allTime']),
+                title: trend.isDemo
+                    ? 'Demo platform fee trend'
+                    : 'Platform fee trend',
+                subtitle: trend.isDemo
+                    ? 'Sample history shown because live payments are only in one month.'
+                    : 'Live monthly platform fees by booking payment date.',
+                values: trend.values,
+                labels: trend.labels,
+              ),
+              const SizedBox(height: 14),
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                childAspectRatio: 1.05,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                children: [
+                  VHStatCard(
+                    label: 'Gross paid',
+                    value: moneyFormat.format(_num(data['grossPaid'])),
+                    icon: Icons.payments_outlined,
+                  ),
+                  VHStatCard(
+                    label: 'Host payout est.',
+                    value: moneyFormat.format(
+                      _num(data['estimatedHostIncome']),
+                    ),
+                    icon: Icons.account_balance_wallet_outlined,
+                  ),
+                  VHStatCard(
+                    label: 'Unpaid balances',
+                    value: moneyFormat.format(_num(data['outstandingBalance'])),
+                    icon: Icons.pending_actions_outlined,
+                  ),
+                  VHStatCard(
+                    label: 'Avg platform fee',
+                    value: moneyFormat.format(_num(data['averagePlatformFee'])),
+                    icon: Icons.analytics_outlined,
+                  ),
                 ],
-                labels: const ['Week', 'Month', 'Year', 'All'],
               ),
-              const SizedBox(height: 12),
-              VHStatCard(
-                label: 'Weekly fees',
-                value: moneyFormat.format(_num(data['weekly'])),
-                icon: Icons.calendar_view_week,
+              const SizedBox(height: 14),
+              _DashboardInfoCard(
+                title: 'What unpaid balances mean',
+                rows: [
+                  _DashboardInfoRow(
+                    icon: Icons.info_outline_rounded,
+                    label:
+                        'Approved or pending booking amounts that have not been collected yet.',
+                    value: moneyFormat.format(_num(data['outstandingBalance'])),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              VHStatCard(
-                label: 'Monthly platform income',
-                value: moneyFormat.format(_num(data['monthly'])),
-                icon: Icons.calendar_month,
+              const SizedBox(height: 14),
+              _DashboardInfoCard(
+                title: 'Payment breakdown',
+                rows: [
+                  _DashboardInfoRow(
+                    icon: Icons.savings_outlined,
+                    label: 'Deposits collected',
+                    value: moneyFormat.format(
+                      _num(paymentBreakdown['deposit']),
+                    ),
+                  ),
+                  _DashboardInfoRow(
+                    icon: Icons.task_alt_outlined,
+                    label: 'Balances collected',
+                    value: moneyFormat.format(
+                      _num(paymentBreakdown['balance']),
+                    ),
+                  ),
+                  _DashboardInfoRow(
+                    icon: Icons.payments_outlined,
+                    label: 'Full payments collected',
+                    value: moneyFormat.format(_num(paymentBreakdown['full'])),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              VHStatCard(
-                label: 'Annual platform income',
-                value: moneyFormat.format(_num(data['annual'])),
-                icon: Icons.stacked_line_chart,
-              ),
-              const SizedBox(height: 12),
-              VHStatCard(
-                label: 'All-time platform income',
-                value: moneyFormat.format(_num(data['allTime'])),
-                icon: Icons.savings,
+              const SizedBox(height: 14),
+              _DashboardInfoCard(
+                title: 'Booking status mix',
+                rows: [
+                  _DashboardInfoRow(
+                    icon: Icons.hourglass_top_rounded,
+                    label: 'Pending',
+                    value: '${statusBreakdown['PENDING'] ?? 0}',
+                  ),
+                  _DashboardInfoRow(
+                    icon: Icons.event_available_outlined,
+                    label: 'Approved',
+                    value: '${statusBreakdown['APPROVED'] ?? 0}',
+                  ),
+                  _DashboardInfoRow(
+                    icon: Icons.verified_outlined,
+                    label: 'Completed',
+                    value: '${statusBreakdown['COMPLETED'] ?? 0}',
+                  ),
+                  _DashboardInfoRow(
+                    icon: Icons.cancel_outlined,
+                    label: 'Rejected',
+                    value: '${statusBreakdown['REJECTED'] ?? 0}',
+                  ),
+                ],
               ),
               const VHSectionTitle('Recent income activity'),
               ...((data['recent'] as List<dynamic>? ?? []).map((item) {
@@ -6726,10 +7811,17 @@ class _AdminIncomeScreenState extends State<AdminIncomeScreen> {
 }
 
 class _MiniBarChart extends StatelessWidget {
-  const _MiniBarChart({required this.values, required this.labels});
+  const _MiniBarChart({
+    required this.values,
+    required this.labels,
+    required this.title,
+    required this.subtitle,
+  });
 
   final List<num> values;
   final List<String> labels;
+  final String title;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -6740,34 +7832,69 @@ class _MiniBarChart extends StatelessWidget {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: List.generate(values.length, (index) {
-            final height = 24 + (values[index] / maxValue * 86);
-            return Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 420),
-                    height: height.toDouble(),
-                    width: 30,
-                    decoration: BoxDecoration(
-                      color: AppTheme.blue.withValues(
-                        alpha: 0.18 + (index * 0.12).clamp(0, 0.5),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 3),
+            Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: List.generate(values.length, (index) {
+                final height = 26 + (values[index] / maxValue * 90);
+                return Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        moneyFormat.format(values[index]),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                      const SizedBox(height: 6),
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 420),
+                        curve: Curves.easeOutCubic,
+                        height: height.toDouble(),
+                        width: 30,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [
+                              AppTheme.navy,
+                              AppTheme.blue.withValues(alpha: 0.82),
+                              AppTheme.gold.withValues(alpha: 0.72),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        labels[index],
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.black54,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    labels[index],
-                    style: const TextStyle(fontSize: 12, color: Colors.black54),
-                  ),
-                ],
-              ),
-            );
-          }),
+                );
+              }),
+            ),
+          ],
         ),
       ),
     );
@@ -6803,6 +7930,408 @@ class _AdminJsonCard extends StatelessWidget {
               ? null
               : VHStatusChip(item['status'].toString()),
         ),
+      ),
+    );
+  }
+}
+
+class _AdminUserCard extends StatelessWidget {
+  const _AdminUserCard({required this.user});
+
+  final Map<String, dynamic> user;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
+    final name = _displayValue(user['name'], fallback: 'Unnamed account');
+    final email = _displayValue(user['email'], fallback: 'No email');
+    final role = user['role']?.toString() ?? 'CUSTOMER';
+    final bookingCount = _summaryCount(user, 'bookingCount', 'bookings');
+    final venueCount = _summaryCount(user, 'venueCount', 'venues');
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Card(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+          onTap: () => _showAdminUserDetails(context, user),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: AppTheme.sky,
+                  child: Text(
+                    name[0].toUpperCase(),
+                    style: const TextStyle(
+                      color: AppTheme.navy,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        email,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colors.secondaryText,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          _MiniInfoChip(
+                            Icons.verified_user_outlined,
+                            _roleText(role),
+                          ),
+                          _MiniInfoChip(
+                            Icons.event_note_outlined,
+                            '$bookingCount bookings',
+                          ),
+                          _MiniInfoChip(
+                            Icons.apartment_outlined,
+                            '$venueCount venues',
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+void _showAdminUserDetails(BuildContext context, Map<String, dynamic> user) {
+  final name = _displayValue(user['name'], fallback: 'Unnamed account');
+  final email = _displayValue(user['email'], fallback: 'No email');
+  final role = user['role']?.toString() ?? 'CUSTOMER';
+  final bookings = _summaryList(user, 'recentBookings', 'bookings');
+  final venues = _summaryList(user, 'venueSummaries', 'venues');
+  final bookingCount = _summaryCount(user, 'bookingCount', 'bookings');
+  final venueCount = _summaryCount(user, 'venueCount', 'venues');
+
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+    ),
+    builder: (context) {
+      final colors = AppTheme.colorsOf(context);
+      return DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.82,
+        minChildSize: 0.45,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => ListView(
+          controller: scrollController,
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+          children: [
+            Center(
+              child: Container(
+                height: 4,
+                width: 44,
+                decoration: BoxDecoration(
+                  color: colors.divider,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 30,
+                  backgroundColor: AppTheme.sky,
+                  child: Text(
+                    name[0].toUpperCase(),
+                    style: const TextStyle(
+                      color: AppTheme.navy,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 22,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name, style: Theme.of(context).textTheme.titleLarge),
+                      const SizedBox(height: 3),
+                      Text(
+                        email,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colors.secondaryText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _MiniInfoChip(Icons.verified_user_outlined, _roleText(role)),
+                _MiniInfoChip(
+                  Icons.event_note_outlined,
+                  '$bookingCount bookings',
+                ),
+                _MiniInfoChip(Icons.apartment_outlined, '$venueCount venues'),
+              ],
+            ),
+            const SizedBox(height: 18),
+            _AdminDetailSection(
+              title: 'Contact',
+              children: [
+                _InfoLine(Icons.email_outlined, 'Email', email),
+                _InfoLine(
+                  Icons.phone_outlined,
+                  'Phone',
+                  _displayValue(user['phone'], fallback: 'Not provided'),
+                ),
+                _InfoLine(
+                  Icons.wc_outlined,
+                  'Gender',
+                  _displayValue(user['gender'], fallback: 'Not provided'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _AdminDetailSection(
+              title: 'Profile notes',
+              children: [
+                _InfoLine(
+                  Icons.travel_explore_outlined,
+                  'Preferences',
+                  _displayValue(
+                    user['preferences'],
+                    fallback: 'No preferences yet',
+                  ),
+                ),
+                _InfoLine(
+                  Icons.thumb_up_alt_outlined,
+                  'Likes',
+                  _displayValue(user['likes'], fallback: 'No likes yet'),
+                ),
+                _InfoLine(
+                  Icons.notes_outlined,
+                  'Notes',
+                  _displayValue(
+                    user['specialNotes'],
+                    fallback: 'No special notes yet',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _AdminDetailSection(
+              title: 'Recent booking activity',
+              children: bookings.isEmpty
+                  ? [
+                      Text(
+                        'No recent booking activity.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ]
+                  : bookings.map((booking) {
+                      final map = booking as Map<String, dynamic>;
+                      return _AdminSummaryRow(
+                        icon: Icons.event_note_outlined,
+                        title: _displayValue(
+                          map['venueName'] ??
+                              (map['venue'] is Map
+                                  ? (map['venue'] as Map)['name']
+                                  : null),
+                          fallback: 'Venue booking',
+                        ),
+                        subtitle:
+                            '${_prettyStatus(map['status'])} · ${_prettyStatus(map['paymentStatus'])}',
+                        trailing: _dateLabel(map['eventDate']),
+                      );
+                    }).toList(),
+            ),
+            const SizedBox(height: 12),
+            _AdminDetailSection(
+              title: 'Listed venues',
+              children: venues.isEmpty
+                  ? [
+                      Text(
+                        'No listed venues.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ]
+                  : venues.map((venue) {
+                      final map = venue as Map<String, dynamic>;
+                      return _AdminSummaryRow(
+                        icon: Icons.apartment_outlined,
+                        title: _displayValue(map['name'], fallback: 'Venue'),
+                        subtitle: _displayValue(
+                          map['location'],
+                          fallback: 'No location',
+                        ),
+                        trailing: _prettyStatus(map['status']),
+                      );
+                    }).toList(),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+class _AdminDetailSection extends StatelessWidget {
+  const _AdminDetailSection({required this.title, required this.children});
+
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(color: colors.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 10),
+          ...children,
+        ],
+      ),
+    );
+  }
+}
+
+class _AdminSummaryRow extends StatelessWidget {
+  const _AdminSummaryRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.trailing,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Container(
+            height: 38,
+            width: 38,
+            decoration: BoxDecoration(
+              color: AppTheme.sky,
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(icon, color: AppTheme.navy, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: colors.secondaryText),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            trailing,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: colors.secondaryText,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniInfoChip extends StatelessWidget {
+  const _MiniInfoChip(this.icon, this.label);
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppTheme.sky,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: colors.divider),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: AppTheme.navy),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+          ),
+        ],
       ),
     );
   }
@@ -6862,13 +8391,22 @@ void _showAdminRecordDetails(BuildContext context, Map<String, dynamic> item) {
   );
 }
 
-IconData _paymentIcon(String method) {
-  return switch (method) {
-    'VISA' || 'MASTERCARD' => Icons.credit_card,
-    'PAYPAL' => Icons.account_balance_wallet,
-    'GCASH' || 'MAYA' => Icons.phone_android,
-    _ => Icons.wallet,
-  };
+Color _notificationAccent(String type) {
+  final normalized = type.toUpperCase();
+  if (normalized.contains('PAYMENT')) return AppTheme.gold;
+  if (normalized.contains('BOOKING_STATUS')) return AppTheme.blue;
+  if (normalized.contains('BOOKING_REQUEST')) return AppTheme.navy;
+  return AppTheme.blue;
+}
+
+IconData _notificationIcon(String type) {
+  final normalized = type.toUpperCase();
+  if (normalized.contains('PAYMENT')) return Icons.payments_outlined;
+  if (normalized.contains('BOOKING_STATUS')) {
+    return Icons.event_available_outlined;
+  }
+  if (normalized.contains('BOOKING_REQUEST')) return Icons.inbox_outlined;
+  return Icons.notifications_none_rounded;
 }
 
 List<String> _csv(String text) {
@@ -6905,6 +8443,48 @@ num _num(dynamic value) {
   return num.tryParse(value?.toString() ?? '') ?? 0;
 }
 
+String _displayValue(dynamic value, {required String fallback}) {
+  final text = value?.toString().trim() ?? '';
+  return text.isEmpty || text == 'null' ? fallback : text;
+}
+
+String _roleText(String role) {
+  return switch (role.toUpperCase()) {
+    'VENUEHUB_ADMIN' => 'Admin',
+    'HOST' => 'Host',
+    _ => 'Customer',
+  };
+}
+
+int _summaryCount(
+  Map<String, dynamic> item,
+  String countKey,
+  String legacyListKey,
+) {
+  final explicit = item[countKey];
+  if (explicit is num) return explicit.toInt();
+  final legacy = item[legacyListKey];
+  if (legacy is List) return legacy.length;
+  return 0;
+}
+
+List<dynamic> _summaryList(
+  Map<String, dynamic> item,
+  String summaryKey,
+  String legacyKey,
+) {
+  final summary = item[summaryKey];
+  if (summary is List) return summary;
+  final legacy = item[legacyKey];
+  if (legacy is List) return legacy.take(4).toList();
+  return const [];
+}
+
+String _dateLabel(dynamic value) {
+  final parsed = DateTime.tryParse(value?.toString() ?? '');
+  return parsed == null ? 'No date' : dateFormat.format(parsed);
+}
+
 num _balanceDue(Map<String, dynamic> booking) {
   final receipt = booking['receipt'];
   if (receipt is Map<String, dynamic>) {
@@ -6921,6 +8501,149 @@ num _balanceDue(Map<String, dynamic> booking) {
   }
 
   return _num(booking['remainingBalance']);
+}
+
+String _bookingStatus(Map<String, dynamic> booking) =>
+    booking['status']?.toString().toUpperCase() ?? 'PENDING';
+
+String _bookingPaymentStatus(Map<String, dynamic> booking) =>
+    booking['paymentStatus']?.toString().toUpperCase() ?? 'UNPAID';
+
+bool _canPayDeposit(Map<String, dynamic> booking) =>
+    _bookingStatus(booking) == 'APPROVED' &&
+    _bookingPaymentStatus(booking) == 'UNPAID';
+
+bool _canPayBalance(Map<String, dynamic> booking) =>
+    _bookingStatus(booking) == 'APPROVED' &&
+    _bookingPaymentStatus(booking) == 'PARTIALLY_PAID' &&
+    _balanceDue(booking) > 0;
+
+bool _canHostApprove(Map<String, dynamic> booking) =>
+    _bookingStatus(booking) == 'PENDING';
+
+bool _canHostReject(Map<String, dynamic> booking) =>
+    _bookingStatus(booking) == 'PENDING' &&
+    _bookingPaymentStatus(booking) == 'UNPAID';
+
+bool _canHostComplete(Map<String, dynamic> booking) =>
+    _bookingStatus(booking) == 'APPROVED' &&
+    _bookingPaymentStatus(booking) == 'PAID';
+
+IconData _bookingNextStepIcon(Map<String, dynamic> booking) {
+  final status = _bookingStatus(booking);
+  final payment = _bookingPaymentStatus(booking);
+  if (status == 'PENDING') return Icons.hourglass_empty_rounded;
+  if (status == 'REJECTED' || status == 'CANCELLED') {
+    return Icons.cancel_outlined;
+  }
+  if (status == 'COMPLETED') return Icons.verified_outlined;
+  if (payment == 'UNPAID') return Icons.lock_outline_rounded;
+  if (payment == 'PARTIALLY_PAID') return Icons.payments_outlined;
+  return Icons.task_alt_rounded;
+}
+
+String _bookingNextStepMessage(
+  Map<String, dynamic> booking, {
+  required bool hostView,
+}) {
+  final status = _bookingStatus(booking);
+  final payment = _bookingPaymentStatus(booking);
+  if (status == 'PENDING') {
+    return hostView
+        ? 'Review this request. Approve it to unlock customer payment, or reject it before any deposit is paid.'
+        : 'Waiting for the host to approve this request. Payment opens after approval.';
+  }
+  if (status == 'REJECTED') {
+    return 'This booking was rejected. No payment can be made for this request.';
+  }
+  if (status == 'CANCELLED') {
+    return 'This booking was cancelled.';
+  }
+  if (status == 'COMPLETED') {
+    return 'This event is complete and closed.';
+  }
+  if (payment == 'UNPAID') {
+    return hostView
+        ? 'Approved and waiting for the customer to pay the 50% security deposit.'
+        : 'Approved. Pay the 50% security deposit to secure the booking.';
+  }
+  if (payment == 'PARTIALLY_PAID') {
+    return hostView
+        ? 'Deposit received. The customer still needs to pay the remaining balance.'
+        : 'Deposit received. Pay the remaining balance before or on event day.';
+  }
+  return hostView
+      ? 'Fully paid. You can mark the event completed after the event.'
+      : 'Fully paid. The host will mark this completed after the event.';
+}
+
+class _IncomeTrend {
+  const _IncomeTrend({
+    required this.values,
+    required this.labels,
+    required this.isDemo,
+  });
+
+  final List<num> values;
+  final List<String> labels;
+  final bool isDemo;
+}
+
+_IncomeTrend _incomeTrend(Map<String, dynamic> data) {
+  final liveTrend = data['monthlyTrend'];
+  if (liveTrend is List && liveTrend.isNotEmpty) {
+    final values = liveTrend
+        .map((item) => _num((item as Map<String, dynamic>)['platformFees']))
+        .toList();
+    final labels = liveTrend.map((item) {
+      final map = item as Map<String, dynamic>;
+      final label = map['label']?.toString() ?? '';
+      final key = map['key']?.toString() ?? '';
+      if (key.length >= 7) {
+        return '$label ${key.substring(0, 4)}';
+      }
+      return label;
+    }).toList();
+    final nonZeroMonths = values.where((value) => value > 0).length;
+    final uniqueValues = values
+        .map((value) => value.toStringAsFixed(2))
+        .toSet();
+    if (nonZeroMonths >= 2 && uniqueValues.length > 1) {
+      return _IncomeTrend(values: values, labels: labels, isDemo: false);
+    }
+  }
+
+  return _demoIncomeTrend(_num(data['allTime']));
+}
+
+_IncomeTrend _demoIncomeTrend(num baseAmount) {
+  final now = DateTime.now();
+  final amount = baseAmount <= 0 ? 37000 : baseAmount;
+  final weights = <double>[0.34, 0.48, 0.63, 0.57, 0.82, 1.0];
+  final labels = <String>[];
+  final values = <num>[];
+  const monthLabels = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+
+  for (var index = 5; index >= 0; index--) {
+    final date = DateTime(now.year, now.month - index, 1);
+    labels.add('${monthLabels[date.month - 1]} ${date.year}');
+    values.add((amount * weights[5 - index]).round());
+  }
+
+  return _IncomeTrend(values: values, labels: labels, isDemo: true);
 }
 
 String _locationLabel(dynamic value) {
@@ -7013,60 +8736,70 @@ bool _isValidLatLng(double? latitude, double? longitude) {
 
 ll.LatLng _fallbackLatLngForVenue(Map<String, dynamic> venue) {
   final name = (venue['name']?.toString() ?? '').toLowerCase();
-  if (name.contains('leyte convention complex')) {
-    return const ll.LatLng(11.159448, 124.990814);
+  const coordinates = [
+    ('leyte convention complex', ll.LatLng(11.159448, 124.990814)),
+    ('tropics', ll.LatLng(11.163523, 125.004271)),
+    ('arcivu', ll.LatLng(11.159655, 124.992231)),
+    ('playa alegre', ll.LatLng(11.112276, 125.021208)),
+    ('banez', ll.LatLng(11.111211, 125.016919)),
+    ('haiyan', ll.LatLng(11.1104, 125.0181)),
+    ('shydan', ll.LatLng(10.953244, 125.033452)),
+    ('camp bryztoff', ll.LatLng(10.9519, 125.0337)),
+    ('dulag cultural', ll.LatLng(10.953529, 125.034146)),
+    ('tacloban city convention', ll.LatLng(11.2444, 125.0005)),
+    ('the pavilion', ll.LatLng(11.2419, 125.0038)),
+    ('sophia', ll.LatLng(11.222857, 125.001154)),
+    ('antonios', ll.LatLng(11.20383, 125.020509)),
+    ('cancabato', ll.LatLng(11.214509, 125.023794)),
+    ('ritz tower', ll.LatLng(11.244093, 125.001422)),
+    ('myco', ll.LatLng(11.201936, 125.006776)),
+    ('summit hotel tacloban', ll.LatLng(11.208056, 125.007281)),
+    ('le jardin', ll.LatLng(11.2289, 125.0058)),
+    ('pacific point', ll.LatLng(11.1967, 125.0209)),
+    ('palm', ll.LatLng(11.189519, 124.783188)),
+    ('sheila', ll.LatLng(11.1876, 124.7842)),
+    ('villaconzoilo', ll.LatLng(11.2036, 124.8359)),
+    ('origami', ll.LatLng(11.009035, 124.609394)),
+    ('zt leisure', ll.LatLng(11.0316, 124.6087)),
+    ('rosetta', ll.LatLng(11.0068, 124.6071)),
+    ('camp kawayan', ll.LatLng(10.978997, 124.910294)),
+    ('teresita', ll.LatLng(10.986909, 124.891691)),
+    ('garden paradise', ll.LatLng(10.974871, 124.893223)),
+    ('burauen community', ll.LatLng(10.974377, 124.891765)),
+    ('calbayog cultural', ll.LatLng(12.066963, 124.594666)),
+    ('m grand royale', ll.LatLng(11.775053, 124.883907)),
+    ('ssu convention', ll.LatLng(11.771232, 124.885358)),
+    ('ibabao hall', ll.LatLng(12.504133, 124.632916)),
+  ];
+
+  for (final (needle, point) in coordinates) {
+    if (name.contains(needle)) {
+      return point;
+    }
   }
-  if (name.contains('tropics')) return const ll.LatLng(11.163523, 125.004271);
-  if (name.contains('arcivu')) return const ll.LatLng(11.159655, 124.992231);
-  if (name.contains('playa alegre')) return const ll.LatLng(11.112276, 125.021208);
-  if (name.contains('banez')) return const ll.LatLng(11.111211, 125.016919);
-  if (name.contains('haiyan')) return const ll.LatLng(11.1104, 125.0181);
-  if (name.contains('shydan')) return const ll.LatLng(10.953244, 125.033452);
-  if (name.contains('camp bryztoff')) return const ll.LatLng(10.9519, 125.0337);
-  if (name.contains('dulag cultural')) return const ll.LatLng(10.953529, 125.034146);
-  if (name.contains('tacloban city convention')) {
-    return const ll.LatLng(11.2444, 125.0005);
-  }
-  if (name.contains('the pavilion')) return const ll.LatLng(11.2419, 125.0038);
-  if (name.contains("sophia")) return const ll.LatLng(11.222857, 125.001154);
-  if (name.contains('antonios')) return const ll.LatLng(11.20383, 125.020509);
-  if (name.contains('cancabato')) return const ll.LatLng(11.214509, 125.023794);
-  if (name.contains('ritz tower')) return const ll.LatLng(11.244093, 125.001422);
-  if (name.contains("myco")) return const ll.LatLng(11.201936, 125.006776);
-  if (name.contains('summit hotel tacloban')) {
-    return const ll.LatLng(11.208056, 125.007281);
-  }
-  if (name.contains('le jardin')) return const ll.LatLng(11.2289, 125.0058);
-  if (name.contains('pacific point')) return const ll.LatLng(11.1967, 125.0209);
-  if (name.contains("palm")) return const ll.LatLng(11.189519, 124.783188);
-  if (name.contains("sheila")) return const ll.LatLng(11.1876, 124.7842);
-  if (name.contains('villaconzoilo')) return const ll.LatLng(11.2036, 124.8359);
-  if (name.contains('origami')) return const ll.LatLng(11.009035, 124.609394);
-  if (name.contains('zt leisure')) return const ll.LatLng(11.0316, 124.6087);
-  if (name.contains('rosetta')) return const ll.LatLng(11.0068, 124.6071);
-  if (name.contains('camp kawayan')) return const ll.LatLng(10.978997, 124.910294);
-  if (name.contains('teresita')) return const ll.LatLng(10.986909, 124.891691);
-  if (name.contains('garden paradise')) return const ll.LatLng(10.974871, 124.893223);
-  if (name.contains('burauen community')) return const ll.LatLng(10.974377, 124.891765);
-  if (name.contains('calbayog cultural')) return const ll.LatLng(12.066963, 124.594666);
-  if (name.contains('m grand royale')) return const ll.LatLng(11.775053, 124.883907);
-  if (name.contains('ssu convention')) return const ll.LatLng(11.771232, 124.885358);
-  if (name.contains('ibabao hall')) return const ll.LatLng(12.504133, 124.632916);
   return _fallbackLatLngForLocation(venue['location'], venue['address']);
 }
 
 ll.LatLng _fallbackLatLngForLocation(dynamic location, dynamic address) {
   final text = '${location ?? ''} ${address ?? ''}'.toLowerCase();
-  if (text.contains('catarman')) return const ll.LatLng(12.504133, 124.632916);
-  if (text.contains('calbayog')) return const ll.LatLng(12.066963, 124.594666);
-  if (text.contains('catbalogan')) return const ll.LatLng(11.771232, 124.885358);
-  if (text.contains('ormoc')) return const ll.LatLng(11.009035, 124.609394);
-  if (text.contains('jaro')) return const ll.LatLng(11.189519, 124.783188);
-  if (text.contains('burauen')) return const ll.LatLng(10.974871, 124.893223);
-  if (text.contains('dulag')) return const ll.LatLng(10.953244, 125.033452);
-  if (text.contains('tanauan')) return const ll.LatLng(11.111211, 125.016919);
-  if (text.contains('palo')) return const ll.LatLng(11.159448, 124.990814);
-  if (text.contains('tacloban')) return const ll.LatLng(11.244093, 125.001422);
+  const coordinates = [
+    ('catarman', ll.LatLng(12.504133, 124.632916)),
+    ('calbayog', ll.LatLng(12.066963, 124.594666)),
+    ('catbalogan', ll.LatLng(11.771232, 124.885358)),
+    ('ormoc', ll.LatLng(11.009035, 124.609394)),
+    ('jaro', ll.LatLng(11.189519, 124.783188)),
+    ('burauen', ll.LatLng(10.974871, 124.893223)),
+    ('dulag', ll.LatLng(10.953244, 125.033452)),
+    ('tanauan', ll.LatLng(11.111211, 125.016919)),
+    ('palo', ll.LatLng(11.159448, 124.990814)),
+    ('tacloban', ll.LatLng(11.244093, 125.001422)),
+  ];
+
+  for (final (needle, point) in coordinates) {
+    if (text.contains(needle)) {
+      return point;
+    }
+  }
   return const ll.LatLng(11.244093, 125.001422);
 }
 
@@ -7185,8 +8918,9 @@ Future<bool> _confirmAction(
       false;
 }
 
-String _prettyStatus(String status) {
-  return status.toLowerCase().replaceAll('_', ' ');
+String _prettyStatus(dynamic status) {
+  final text = status?.toString() ?? 'unknown';
+  return text.toLowerCase().replaceAll('_', ' ');
 }
 
 String _prettyStatusAction(String status) {
@@ -7196,6 +8930,46 @@ String _prettyStatusAction(String status) {
     'COMPLETED' => 'Complete',
     _ => 'Update',
   };
+}
+
+String _adminVenueActionLabel(String nextStatus, String currentStatus) {
+  if (nextStatus == 'APPROVED' && currentStatus == 'REJECTED') {
+    return 'Restore listing';
+  }
+  if (nextStatus == 'APPROVED') return 'Approve listing';
+  if (nextStatus == 'REJECTED' && currentStatus == 'APPROVED') {
+    return 'Unlist venue';
+  }
+  if (nextStatus == 'REJECTED') return 'Reject listing';
+  return 'Update listing';
+}
+
+String _adminVenueActionMessage(String nextStatus, String currentStatus) {
+  if (nextStatus == 'APPROVED' && currentStatus == 'PENDING') {
+    return 'This publishes the host venue so customers can browse and book it.';
+  }
+  if (nextStatus == 'APPROVED') {
+    return 'This restores the venue to the public customer marketplace.';
+  }
+  if (nextStatus == 'REJECTED' && currentStatus == 'APPROVED') {
+    return 'This hides the venue from customers. Existing booking records stay in the system.';
+  }
+  if (nextStatus == 'REJECTED') {
+    return 'This rejects the listing request and keeps it hidden from customers.';
+  }
+  return 'This updates the venue listing status.';
+}
+
+String _adminVenueActionSuccess(String nextStatus, String currentStatus) {
+  if (nextStatus == 'APPROVED' && currentStatus == 'REJECTED') {
+    return 'Venue restored and visible to customers.';
+  }
+  if (nextStatus == 'APPROVED') return 'Venue approved and published.';
+  if (nextStatus == 'REJECTED' && currentStatus == 'APPROVED') {
+    return 'Venue unlisted and hidden from customers.';
+  }
+  if (nextStatus == 'REJECTED') return 'Venue listing rejected.';
+  return 'Venue updated.';
 }
 
 void _snack(BuildContext context, String message) {

@@ -362,65 +362,71 @@ class SearchPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = AppTheme.colorsOf(context);
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.92, end: 1),
-      duration: const Duration(milliseconds: 520),
-      curve: Curves.easeOutBack,
-      builder: (context, value, child) =>
-          Transform.scale(scale: value, child: child),
-      child: Material(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppTheme.radiusPill),
-        shadowColor: Colors.black.withValues(alpha: 0.16),
-        elevation: 8,
-        child: InkWell(
+    return Semantics(
+      button: true,
+      label: '$title. $subtitle',
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.96, end: 1),
+        duration: const Duration(milliseconds: 460),
+        curve: Curves.easeOutBack,
+        builder: (context, value, child) =>
+            Transform.scale(scale: value, child: child),
+        child: Material(
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(AppTheme.radiusPill),
-          highlightColor: colors.surfaceGray,
-          onTap: onTap,
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 68),
-            padding: const EdgeInsets.fromLTRB(18, 10, 10, 10),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppTheme.radiusPill),
-              border: Border.all(color: colors.divider),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.search_rounded, color: colors.ink, size: 26),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
+          shadowColor: Colors.black.withValues(alpha: 0.14),
+          elevation: 7,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+            highlightColor: colors.surfaceGray,
+            onTap: onTap,
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 58),
+              padding: const EdgeInsets.fromLTRB(18, 8, 8, 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+                border: Border.all(color: colors.divider),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.search_rounded, color: colors.ink, size: 28),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Container(
+                      height: 3,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        gradient: LinearGradient(
+                          colors: [
+                            AppTheme.blue.withValues(alpha: 0.22),
+                            AppTheme.gold.withValues(alpha: 0.18),
+                            colors.divider.withValues(alpha: 0.3),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-                Container(
-                  height: 42,
-                  width: 42,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: colors.divider),
+                  const SizedBox(width: 14),
+                  Container(
+                    height: 42,
+                    width: 42,
+                    decoration: BoxDecoration(
+                      color: AppTheme.sky,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: colors.divider),
+                    ),
+                    child: Icon(
+                      Icons.tune_rounded,
+                      color: AppTheme.navy,
+                      size: 20,
+                    ),
                   ),
-                  child: Icon(Icons.tune_rounded, color: colors.ink, size: 20),
-                ),
-                if (trailing != null) ...[const SizedBox(width: 4), trailing!],
-              ],
+                  if (trailing != null) ...[
+                    const SizedBox(width: 4),
+                    trailing!,
+                  ],
+                ],
+              ),
             ),
           ),
         ),

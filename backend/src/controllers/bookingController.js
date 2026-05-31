@@ -50,6 +50,77 @@ const formatBooking = (booking) => ({
     : null
 });
 
+const validateStatusTransition = (booking, nextStatus) => {
+  const currentStatus = booking.status;
+  const paymentStatus = booking.paymentStatus;
+  const finalStatuses = ['REJECTED', 'CANCELLED', 'COMPLETED'];
+
+  if (nextStatus === currentStatus) {
+    throw new ApiError(400, `Booking is already ${nextStatus.toLowerCase()}.`);
+  }
+
+  if (finalStatuses.includes(currentStatus)) {
+    throw new ApiError(400, `A ${currentStatus.toLowerCase()} booking can no longer be changed.`);
+  }
+
+  if (nextStatus === 'PENDING') {
+    throw new ApiError(400, 'Bookings cannot be moved back to pending.');
+  }
+
+  if (nextStatus === 'APPROVED' && currentStatus !== 'PENDING') {
+    throw new ApiError(400, 'Only pending bookings can be approved.');
+  }
+
+  if (nextStatus === 'REJECTED') {
+    if (currentStatus !== 'PENDING') {
+      throw new ApiError(400, 'Only pending bookings can be rejected.');
+    }
+    if (paymentStatus !== 'UNPAID') {
+      throw new ApiError(400, 'Paid bookings cannot be rejected because the security deposit is non-refundable.');
+    }
+  }
+
+  if (nextStatus === 'CANCELLED' && paymentStatus !== 'UNPAID') {
+    throw new ApiError(400, 'Paid bookings cannot be cancelled from this demo flow.');
+  }
+
+  if (nextStatus === 'COMPLETED') {
+    if (currentStatus !== 'APPROVED') {
+      throw new ApiError(400, 'Only approved bookings can be completed.');
+    }
+    if (paymentStatus !== 'PAID') {
+      throw new ApiError(400, 'The customer must fully pay before the booking can be completed.');
+    }
+  }
+};
+
+const statusNotification = (booking, nextStatus) => {
+  const venueName = booking.venue.name;
+  const messages = {
+    APPROVED: {
+      title: 'Booking approved',
+      message: `${venueName} was approved. You can now pay the 50% security deposit.`
+    },
+    REJECTED: {
+      title: 'Booking rejected',
+      message: `${venueName} was rejected by the host. Please choose another date or venue.`
+    },
+    CANCELLED: {
+      title: 'Booking cancelled',
+      message: `${venueName} was cancelled.`
+    },
+    COMPLETED: {
+      title: 'Booking completed',
+      message: `${venueName} was marked completed. Thank you for booking with VenueHub.`
+    }
+  };
+
+  return messages[nextStatus] || {
+    title: 'Booking updated',
+    message: `${venueName} was updated to ${nextStatus.toLowerCase()}.`
+  };
+};
+
 const createBooking = asyncHandler(async (req, res) => {
   const { venueId, eventDate, notes } = req.body;
 
@@ -156,6 +227,8 @@ const updateBookingStatus = asyncHandler(async (req, res) => {
     throw new ApiError(403, 'You can only update bookings for your own venues.');
   }
 
+  validateStatusTransition(booking, nextStatus);
+
   const updatedBooking = await prisma.$transaction(async (tx) => {
     const nextBooking = await tx.booking.update({
       where: { id: req.params.id },
@@ -164,11 +237,12 @@ const updateBookingStatus = asyncHandler(async (req, res) => {
     });
 
     if (['APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED'].includes(nextStatus)) {
+      const notification = statusNotification(nextBooking, nextStatus);
       await tx.notification.create({
         data: {
           userId: nextBooking.customerId,
-          title: `Booking ${nextStatus.toLowerCase()}`,
-          message: `${nextBooking.venue.name} was marked ${nextStatus.toLowerCase().replaceAll('_', ' ')}.`,
+          title: notification.title,
+          message: notification.message,
           type: 'BOOKING_STATUS',
           metadata: { bookingId: nextBooking.id, venueId: nextBooking.venueId, status: nextStatus }
         }
@@ -178,16 +252,23 @@ const updateBookingStatus = asyncHandler(async (req, res) => {
     return nextBooking;
   });
 
-  res.json({ booking: formatBooking(updatedBooking) });
+  res.json({
+    message: statusNotification(updatedBooking, nextStatus).message,
+    booking: formatBooking(updatedBooking)
+  });
 });
 
 const hostIncomeSummary = asyncHandler(async (req, res) => {
-  const [bookings, allHostBookings, venues] = await Promise.all([
+  const [paidBookings, allHostBookings, recentBookings, venues] = await Promise.all([
     prisma.booking.findMany({
       where: {
         venue: { hostId: req.user.id },
         paymentStatus: { in: ['PARTIALLY_PAID', 'PAID'] }
       },
+      include: { payments: true, venue: true }
+    }),
+    prisma.booking.findMany({
+      where: { venue: { hostId: req.user.id } },
       include: { payments: true, venue: true }
     }),
     prisma.booking.findMany({
@@ -199,23 +280,63 @@ const hostIncomeSummary = asyncHandler(async (req, res) => {
     prisma.venue.findMany({ where: { hostId: req.user.id } })
   ]);
 
-  const grossPaid = bookings.reduce(
+  const grossPaid = paidBookings.reduce(
     (sum, booking) => sum + booking.payments.reduce((paymentSum, payment) => paymentSum + toNumber(payment.amount), 0),
     0
   );
-  const platformFees = bookings.reduce((sum, booking) => sum + toNumber(booking.serviceFee), 0);
+  const platformFees = paidBookings.reduce((sum, booking) => {
+    const bookingPaid = booking.payments.reduce((paymentSum, payment) => paymentSum + toNumber(payment.amount), 0);
+    const ratio = toNumber(booking.totalAmount) > 0 ? Math.min(bookingPaid / toNumber(booking.totalAmount), 1) : 0;
+    return sum + toNumber(booking.serviceFee) * ratio;
+  }, 0);
+  const outstandingBalance = allHostBookings.reduce((sum, booking) => {
+    if (!['APPROVED', 'PENDING'].includes(booking.status) || booking.paymentStatus === 'PAID') return sum;
+    const bookingPaid = booking.payments.reduce((paymentSum, payment) => paymentSum + toNumber(payment.amount), 0);
+    return sum + Math.max(toNumber(booking.totalAmount) - bookingPaid, 0);
+  }, 0);
+  const approvedBookings = allHostBookings.filter((booking) => booking.status === 'APPROVED').length;
+  const completedBookings = allHostBookings.filter((booking) => booking.status === 'COMPLETED').length;
+  const rejectedBookings = allHostBookings.filter((booking) => booking.status === 'REJECTED').length;
+  const conversionRate = allHostBookings.length
+    ? Number(((approvedBookings + completedBookings) / allHostBookings.length * 100).toFixed(1))
+    : 0;
+  const averageBookingValue = allHostBookings.length
+    ? Number((allHostBookings.reduce((sum, booking) => sum + toNumber(booking.totalAmount), 0) / allHostBookings.length).toFixed(2))
+    : 0;
+  const topVenueMap = new Map();
+  allHostBookings.forEach((booking) => {
+    const current = topVenueMap.get(booking.venueId) || {
+      id: booking.venueId,
+      venueName: booking.venue.name,
+      bookings: 0,
+      grossPaid: 0
+    };
+    current.bookings += 1;
+    current.grossPaid += booking.payments.reduce((sum, payment) => sum + toNumber(payment.amount), 0);
+    topVenueMap.set(booking.venueId, current);
+  });
 
   res.json({
     summary: {
-      paidBookings: bookings.length,
+      paidBookings: paidBookings.length,
       totalBookings: allHostBookings.length,
       pendingBookings: allHostBookings.filter((booking) => booking.status === 'PENDING').length,
+      approvedBookings,
+      completedBookings,
+      rejectedBookings,
       activeVenues: venues.filter((venue) => venue.status === 'APPROVED').length,
       pendingVenues: venues.filter((venue) => venue.status === 'PENDING').length,
       grossPaid: Number(grossPaid.toFixed(2)),
       estimatedPlatformFees: Number(platformFees.toFixed(2)),
       estimatedHostIncome: Number((grossPaid - platformFees).toFixed(2)),
-      recentActivity: allHostBookings.map((booking) => ({
+      outstandingBalance: Number(outstandingBalance.toFixed(2)),
+      averageBookingValue,
+      conversionRate,
+      topVenues: Array.from(topVenueMap.values())
+        .sort((left, right) => right.grossPaid - left.grossPaid || right.bookings - left.bookings)
+        .slice(0, 4)
+        .map((venue) => ({ ...venue, grossPaid: Number(venue.grossPaid.toFixed(2)) })),
+      recentActivity: recentBookings.map((booking) => ({
         id: booking.id,
         venueName: booking.venue.name,
         status: booking.status,
