@@ -341,6 +341,11 @@ const hostIncomeSummary = asyncHandler(async (req, res) => {
   const approvedBookings = allHostBookings.filter((booking) => booking.status === 'APPROVED').length;
   const completedBookings = allHostBookings.filter((booking) => booking.status === 'COMPLETED').length;
   const rejectedBookings = allHostBookings.filter((booking) => booking.status === 'REJECTED').length;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const upcomingBookings = allHostBookings.filter((booking) =>
+    ['PENDING', 'APPROVED'].includes(booking.status) && new Date(booking.eventDate) >= today
+  ).length;
   const conversionRate = allHostBookings.length
     ? Number(((approvedBookings + completedBookings) / allHostBookings.length * 100).toFixed(1))
     : 0;
@@ -368,6 +373,7 @@ const hostIncomeSummary = asyncHandler(async (req, res) => {
       awaitingDeposit: allHostBookings.filter(
         (booking) => booking.status === 'APPROVED' && booking.paymentStatus === 'UNPAID'
       ).length,
+      upcomingBookings,
       approvedBookings,
       completedBookings,
       rejectedBookings,

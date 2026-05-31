@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.22+23 - 2026-06-01
+
+- Removed leftover host approval/deposit-awaiting wording from the current direct-booking flow and changed host metrics to upcoming reserved bookings.
+- Hid customer profile preferences and likes from the customer's own booking detail screen while keeping them visible for host/admin review.
+- Scoped favourites to each signed-in customer account so one customer's liked venues no longer appear on another account.
+
 ## 1.0.21+22 - 2026-06-01
 
 - Clarified the host dashboard income wording so paid received, estimated payout, service fee, and unpaid balances are explicitly scoped to the signed-in host's venues.

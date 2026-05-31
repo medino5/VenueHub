@@ -311,7 +311,7 @@ class _DemoLoginCard extends StatelessWidget {
       (
         icon: Icons.storefront_outlined,
         title: 'Host demo',
-        subtitle: 'Manage venues and booking requests',
+        subtitle: 'Manage venues, reservations, and income',
         email: 'host@venuehub.test',
       ),
       (
@@ -930,19 +930,42 @@ class _CustomerHomeState extends State<CustomerHome> {
   int index = 0;
   Set<String> favoriteVenueIds = {};
 
+  String get _favoriteStorageKey {
+    final userId = widget.user['id']?.toString();
+    final email = widget.user['email']?.toString();
+    final accountKey = (userId != null && userId.isNotEmpty)
+        ? userId
+        : (email != null && email.isNotEmpty ? email : 'guest');
+    return 'favoriteVenueIds_$accountKey';
+  }
+
   @override
   void initState() {
     super.initState();
     _restoreFavorites();
   }
 
+  @override
+  void didUpdateWidget(covariant CustomerHome oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.user['id'] != widget.user['id'] ||
+        oldWidget.user['email'] != widget.user['email']) {
+      setState(() => favoriteVenueIds = {});
+      _restoreFavorites();
+    }
+  }
+
   Future<void> _restoreFavorites() async {
+    final key = _favoriteStorageKey;
     final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getStringList('favoriteVenueIds') ?? const [];
-    if (mounted) setState(() => favoriteVenueIds = saved.toSet());
+    final saved = prefs.getStringList(key) ?? const [];
+    if (mounted && _favoriteStorageKey == key) {
+      setState(() => favoriteVenueIds = saved.toSet());
+    }
   }
 
   Future<void> _setFavorite(String venueId, bool value) async {
+    final key = _favoriteStorageKey;
     setState(() {
       if (value) {
         favoriteVenueIds.add(venueId);
@@ -951,7 +974,7 @@ class _CustomerHomeState extends State<CustomerHome> {
       }
     });
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('favoriteVenueIds', favoriteVenueIds.toList());
+    await prefs.setStringList(key, favoriteVenueIds.toList());
   }
 
   @override
@@ -4150,12 +4173,14 @@ class BookingTile extends StatelessWidget {
     required this.api,
     required this.booking,
     this.hostControls = false,
+    this.showCustomerProfile = false,
     this.onStatus,
   });
 
   final ApiClient api;
   final Map<String, dynamic> booking;
   final bool hostControls;
+  final bool showCustomerProfile;
   final Future<void> Function(String status)? onStatus;
 
   @override
@@ -4177,6 +4202,7 @@ class BookingTile extends StatelessWidget {
               api: api,
               booking: booking,
               hostControls: hostControls,
+              showCustomerProfile: showCustomerProfile,
               onStatus: onStatus,
             ),
           ),
@@ -4250,12 +4276,14 @@ class BookingDetailsScreen extends StatelessWidget {
     required this.api,
     required this.booking,
     this.hostControls = false,
+    this.showCustomerProfile = false,
     this.onStatus,
   });
 
   final ApiClient api;
   final Map<String, dynamic> booking;
   final bool hostControls;
+  final bool showCustomerProfile;
   final Future<void> Function(String status)? onStatus;
 
   @override
@@ -4313,40 +4341,37 @@ class BookingDetailsScreen extends StatelessWidget {
                     'Event date',
                     dateFormat.format(DateTime.parse(booking['eventDate'])),
                   ),
-                  if (customer != null)
+                  if (showCustomerProfile && customer != null) ...[
                     _InfoLine(
                       Icons.person_outline,
                       'Customer',
                       '${customer['name'] ?? 'Guest'} - ${customer['email'] ?? ''}',
                     ),
-                  if (customer != null &&
-                      (customer['phone']?.toString() ?? '').isNotEmpty)
-                    _InfoLine(
-                      Icons.phone_outlined,
-                      'Contact',
-                      customer['phone'].toString(),
-                    ),
-                  if (customer != null &&
-                      (customer['preferences']?.toString() ?? '').isNotEmpty)
-                    _InfoLine(
-                      Icons.travel_explore_outlined,
-                      'Preferences',
-                      customer['preferences'].toString(),
-                    ),
-                  if (customer != null &&
-                      (customer['likes']?.toString() ?? '').isNotEmpty)
-                    _InfoLine(
-                      Icons.thumb_up_alt_outlined,
-                      'Likes',
-                      customer['likes'].toString(),
-                    ),
-                  if (customer != null &&
-                      (customer['specialNotes']?.toString() ?? '').isNotEmpty)
-                    _InfoLine(
-                      Icons.notes_outlined,
-                      'Notes',
-                      customer['specialNotes'].toString(),
-                    ),
+                    if ((customer['phone']?.toString() ?? '').isNotEmpty)
+                      _InfoLine(
+                        Icons.phone_outlined,
+                        'Contact',
+                        customer['phone'].toString(),
+                      ),
+                    if ((customer['preferences']?.toString() ?? '').isNotEmpty)
+                      _InfoLine(
+                        Icons.travel_explore_outlined,
+                        'Preferences',
+                        customer['preferences'].toString(),
+                      ),
+                    if ((customer['likes']?.toString() ?? '').isNotEmpty)
+                      _InfoLine(
+                        Icons.thumb_up_alt_outlined,
+                        'Likes',
+                        customer['likes'].toString(),
+                      ),
+                    if ((customer['specialNotes']?.toString() ?? '').isNotEmpty)
+                      _InfoLine(
+                        Icons.notes_outlined,
+                        'Notes',
+                        customer['specialNotes'].toString(),
+                      ),
+                  ],
                   _InfoLine(
                     Icons.payments_outlined,
                     'Total amount',
@@ -4525,18 +4550,6 @@ class _BookingHostActionPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final actions = <Widget>[
-      if (_canHostApprove(booking))
-        OutlinedButton.icon(
-          onPressed: () => onStatus?.call('APPROVED'),
-          icon: const Icon(Icons.check_circle_outline_rounded),
-          label: const Text('Approve'),
-        ),
-      if (_canHostReject(booking))
-        OutlinedButton.icon(
-          onPressed: () => onStatus?.call('REJECTED'),
-          icon: const Icon(Icons.cancel_outlined),
-          label: const Text('Reject'),
-        ),
       if (_canHostComplete(booking))
         ElevatedButton.icon(
           onPressed: () => onStatus?.call('COMPLETED'),
@@ -5686,7 +5699,7 @@ class _HostIncomeExplainerCard extends StatelessWidget {
           _HostIncomeMeaningLine(
             label: 'Unpaid balances',
             value:
-                'Approved reservations for your venues that still need payment.',
+                'Reserved dates for your venues that still need deposit or balance payment.',
           ),
         ],
       ),
@@ -5755,7 +5768,7 @@ class _HostDashboardState extends State<HostDashboard> {
               _DashboardHeroCard(
                 title: 'Your host income',
                 subtitle:
-                    'Only your listed venues - ${data['awaitingDeposit'] ?? data['pendingBookings'] ?? 0} awaiting deposit',
+                    'Only your listed venues - ${data['upcomingBookings'] ?? data['approvedBookings'] ?? 0} upcoming bookings',
                 amount: moneyFormat.format(_num(data['estimatedHostIncome'])),
                 caption: 'Estimated payout to you after VenueHub service fees',
                 icon: Icons.storefront_outlined,
@@ -5790,10 +5803,11 @@ class _HostDashboardState extends State<HostDashboard> {
                     caption: 'Still expected',
                   ),
                   VHStatCard(
-                    label: 'Awaiting deposit',
+                    label: 'Upcoming',
                     value:
-                        '${data['awaitingDeposit'] ?? data['pendingBookings'] ?? 0}',
-                    icon: Icons.lock_clock_outlined,
+                        '${data['upcomingBookings'] ?? data['approvedBookings'] ?? 0}',
+                    icon: Icons.event_available_outlined,
+                    caption: 'Reserved dates',
                   ),
                   VHStatCard(
                     label: 'Active venues',
@@ -5853,7 +5867,7 @@ class _HostDashboardState extends State<HostDashboard> {
               if (recent.isEmpty)
                 const EmptyState(
                   title: 'No activity yet',
-                  message: 'New booking requests will appear here.',
+                  message: 'New venue reservations will appear here.',
                 )
               else
                 ...recent.map((item) {
@@ -5946,9 +5960,9 @@ class _HostBookingsScreenState extends State<HostBookingsScreen> {
           final raw = snapshot.data!;
           if (raw.isEmpty) {
             return const EmptyState(
-              title: 'No requests yet',
+              title: 'No reservations yet',
               message:
-                  'Customer booking requests for your venues will appear here.',
+                  'Customer reservations for your venues will appear here.',
             );
           }
           final data = _filterSortBookings(raw, search.text, sort);
@@ -5974,6 +5988,7 @@ class _HostBookingsScreenState extends State<HostBookingsScreen> {
                     api: widget.api,
                     booking: map,
                     hostControls: true,
+                    showCustomerProfile: true,
                     onStatus: (status) => _status(map['id'] as String, status),
                   );
                 }),
@@ -7422,7 +7437,11 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
               else
                 ...data.map((booking) {
                   final map = booking as Map<String, dynamic>;
-                  return BookingTile(api: widget.api, booking: map);
+                  return BookingTile(
+                    api: widget.api,
+                    booking: map,
+                    showCustomerProfile: true,
+                  );
                 }),
             ],
           );
@@ -7453,7 +7472,7 @@ class _AdminRecordsNotice extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Admins review $count booking records for audit and payment visibility. Hosts still approve or reject bookings.',
+              'Admins review $count booking records for audit, payment visibility, and platform income reporting.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: colors.ink,
                 fontWeight: FontWeight.w600,
@@ -8784,13 +8803,6 @@ bool _canPayBalance(Map<String, dynamic> booking) =>
     _bookingPaymentStatus(booking) == 'PARTIALLY_PAID' &&
     _balanceDue(booking) > 0;
 
-bool _canHostApprove(Map<String, dynamic> booking) =>
-    _bookingStatus(booking) == 'PENDING';
-
-bool _canHostReject(Map<String, dynamic> booking) =>
-    _bookingStatus(booking) == 'PENDING' &&
-    _bookingPaymentStatus(booking) == 'UNPAID';
-
 bool _canHostComplete(Map<String, dynamic> booking) =>
     _bookingStatus(booking) == 'APPROVED' &&
     _bookingPaymentStatus(booking) == 'PAID';
@@ -8816,7 +8828,7 @@ String _bookingNextStepMessage(
   final payment = _bookingPaymentStatus(booking);
   if (status == 'PENDING') {
     return hostView
-        ? 'Legacy pending request. The customer can now pay the deposit without waiting for host approval.'
+        ? 'Legacy pending reservation. The customer can pay the deposit to secure this date.'
         : 'This date is reserved. Pay the 50% security deposit to secure the booking.';
   }
   if (status == 'REJECTED') {
