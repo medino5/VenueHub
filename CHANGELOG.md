@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.21+22 - 2026-06-01
+
+- Clarified the host dashboard income wording so paid received, estimated payout, service fee, and unpaid balances are explicitly scoped to the signed-in host's venues.
+- Improved host metric card layout so large peso amounts stay on one line instead of wrapping or getting cut off.
+- Added a short host income explanation card for client/demo clarity.
+
 ## 1.0.20+21 - 2026-06-01
 
 - Removed the customer Cancelled tab and grouped closed, rejected, and older bookings under History.

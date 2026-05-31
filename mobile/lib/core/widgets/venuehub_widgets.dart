@@ -269,29 +269,62 @@ class VHStatCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.icon,
+    this.caption,
   });
 
   final String label;
   final String value;
   final IconData icon;
+  final String? caption;
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon, color: AppTheme.blue),
-            const SizedBox(height: 14),
-            Text(
-              value,
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                  ),
+                ),
+              ),
             ),
-            Text(label, style: const TextStyle(color: Colors.black54)),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: colors.secondaryText,
+                fontWeight: FontWeight.w700,
+                height: 1.15,
+              ),
+            ),
+            if (caption != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                caption!,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(fontSize: 11, height: 1.15),
+              ),
+            ],
           ],
         ),
       ),

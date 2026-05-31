@@ -5528,11 +5528,20 @@ class _DashboardHeroCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 18),
-          Text(
-            amount,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
+          SizedBox(
+            width: double.infinity,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                amount,
+                maxLines: 1,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                ),
+              ),
             ),
           ),
           Text(
@@ -5623,6 +5632,97 @@ class _DashboardInfoCard extends StatelessWidget {
   }
 }
 
+class _HostIncomeExplainerCard extends StatelessWidget {
+  const _HostIncomeExplainerCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.sky,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(color: colors.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                height: 38,
+                width: 38,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.info_outline_rounded,
+                  color: AppTheme.navy,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'What these host numbers mean',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _HostIncomeMeaningLine(
+            label: 'Paid received',
+            value:
+                'Total customer payments already collected for your venues only.',
+          ),
+          _HostIncomeMeaningLine(
+            label: 'Est. payout to you',
+            value: 'Paid received minus VenueHub service fees.',
+          ),
+          _HostIncomeMeaningLine(
+            label: 'Unpaid balances',
+            value:
+                'Approved reservations for your venues that still need payment.',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HostIncomeMeaningLine extends StatelessWidget {
+  const _HostIncomeMeaningLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppTheme.colorsOf(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: RichText(
+        text: TextSpan(
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: colors.ink, height: 1.35),
+          children: [
+            TextSpan(
+              text: '$label: ',
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+            TextSpan(text: value),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _HostDashboardState extends State<HostDashboard> {
   late Future<Map<String, dynamic>> summary = _load();
 
@@ -5653,11 +5753,11 @@ class _HostDashboardState extends State<HostDashboard> {
             padding: const EdgeInsets.all(16),
             children: [
               _DashboardHeroCard(
-                title: 'Host snapshot',
+                title: 'Your host income',
                 subtitle:
-                    '${data['awaitingDeposit'] ?? data['pendingBookings'] ?? 0} awaiting deposit - ${data['conversionRate'] ?? 0}% secured rate',
+                    'Only your listed venues - ${data['awaitingDeposit'] ?? data['pendingBookings'] ?? 0} awaiting deposit',
                 amount: moneyFormat.format(_num(data['estimatedHostIncome'])),
-                caption: 'Estimated host income',
+                caption: 'Estimated payout to you after VenueHub service fees',
                 icon: Icons.storefront_outlined,
               ),
               const SizedBox(height: 14),
@@ -5665,10 +5765,30 @@ class _HostDashboardState extends State<HostDashboard> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisCount: 2,
-                childAspectRatio: 1.05,
+                childAspectRatio: 1.18,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
                 children: [
+                  VHStatCard(
+                    label: 'Paid received',
+                    value: moneyFormat.format(_num(data['grossPaid'])),
+                    icon: Icons.payments,
+                    caption: 'From your venues',
+                  ),
+                  VHStatCard(
+                    label: 'Est. payout to you',
+                    value: moneyFormat.format(
+                      _num(data['estimatedHostIncome']),
+                    ),
+                    icon: Icons.account_balance_wallet_outlined,
+                    caption: 'After service fee',
+                  ),
+                  VHStatCard(
+                    label: 'Unpaid balances',
+                    value: moneyFormat.format(_num(data['outstandingBalance'])),
+                    icon: Icons.pending_actions_outlined,
+                    caption: 'Still expected',
+                  ),
                   VHStatCard(
                     label: 'Awaiting deposit',
                     value:
@@ -5681,34 +5801,21 @@ class _HostDashboardState extends State<HostDashboard> {
                     icon: Icons.home_work_outlined,
                   ),
                   VHStatCard(
-                    label: 'Approved',
-                    value: '${data['approvedBookings'] ?? 0}',
-                    icon: Icons.event_available_outlined,
-                  ),
-                  VHStatCard(
                     label: 'Completed',
                     value: '${data['completedBookings'] ?? 0}',
                     icon: Icons.verified_outlined,
                   ),
-                  VHStatCard(
-                    label: 'Gross paid',
-                    value: moneyFormat.format(_num(data['grossPaid'])),
-                    icon: Icons.payments,
-                  ),
-                  VHStatCard(
-                    label: 'Unpaid balances',
-                    value: moneyFormat.format(_num(data['outstandingBalance'])),
-                    icon: Icons.account_balance_wallet_outlined,
-                  ),
                 ],
               ),
+              const SizedBox(height: 14),
+              const _HostIncomeExplainerCard(),
               const SizedBox(height: 14),
               _DashboardInfoCard(
                 title: 'Income insight',
                 rows: [
                   _DashboardInfoRow(
                     icon: Icons.savings_outlined,
-                    label: 'Platform fees estimate',
+                    label: 'VenueHub service fee from your venue payments',
                     value: moneyFormat.format(
                       _num(data['estimatedPlatformFees']),
                     ),
@@ -5722,7 +5829,7 @@ class _HostDashboardState extends State<HostDashboard> {
                   ),
                   _DashboardInfoRow(
                     icon: Icons.percent_rounded,
-                    label: 'Approval rate',
+                    label: 'Secured booking rate',
                     value: '${data['conversionRate'] ?? 0}%',
                   ),
                 ],
